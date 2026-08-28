@@ -1954,7 +1954,7 @@ async function loadProjectFile(file, handle = null) {
     hideTextToolbar();
     currentProjectFileHandle = handle;
     currentProjectFileName = file.name || "local-ppt.txt";
-    document.title = `Local ppt — ${currentProjectFileName}`;
+    document.title = `Local PPT 2 — ${currentProjectFileName}`;
     render();
   } catch (error) {
     window.alert(`파일을 불러올 수 없습니다.\n${error.message}`);
@@ -1967,7 +1967,7 @@ async function writeProjectToHandle(handle) {
   await writable.close();
   currentProjectFileHandle = handle;
   currentProjectFileName = handle.name || currentProjectFileName;
-  document.title = `Local ppt — ${currentProjectFileName}`;
+  document.title = `Local PPT 2 — ${currentProjectFileName}`;
 }
 
 function downloadProject(filename = currentProjectFileName) {
@@ -1981,7 +1981,7 @@ function downloadProject(filename = currentProjectFileName) {
   anchor.remove();
   URL.revokeObjectURL(url);
   currentProjectFileName = anchor.download;
-  document.title = `Local ppt — ${currentProjectFileName}`;
+  document.title = `Local PPT 2 — ${currentProjectFileName}`;
 }
 
 function suggestedProjectName() {
@@ -2329,3 +2329,47 @@ document.addEventListener("keydown", (event) => {
 window.addEventListener("resize", () => requestAnimationFrame(fitAllText));
 populateVariantSelects();
 render();
+
+window.LocalPptApp = {
+  startBlank() {
+    state.design = "bauhaus";
+    state.pages = [createCoverPage()];
+    state.currentPageIndex = 0;
+    state.selectedIds.clear();
+    state.guides = [];
+    state.history = [];
+    hideTextToolbar();
+    render();
+  },
+  loadProjectFile,
+  applyAiPresentation(presentation) {
+    const title = String(presentation?.title || "AI PRESENTATION").trim().slice(0, 90) || "AI PRESENTATION";
+    const slides = Array.isArray(presentation?.slides) ? presentation.slides.slice(0, 30) : [];
+    if (!slides.length) throw new Error("AI 응답에 만들 슬라이드가 없습니다.");
+    state.design = "bauhaus";
+    const cover = createCoverPage();
+    cover.objects.find((object) => object.role === "cover-title").text = title;
+    cover.objects.find((object) => object.role === "cover-subtitle").text = String(presentation?.subtitle || "AI가 생성한 프레젠테이션 초안").trim().slice(0, 160);
+    state.pages = [cover, ...slides.map((slide) => {
+      const page = createContentPage();
+      buildTemplate(page, "bullet");
+      const titleObject = page.objects.find((object) => object.role === "page-title");
+      titleObject.text = String(slide?.title || "핵심 메시지").trim().slice(0, 100);
+      const bullets = Array.isArray(slide?.bullets) ? slide.bullets.filter(Boolean).slice(0, 8) : [];
+      page.objects = page.objects.filter((object) => object.role !== "bullet-item");
+      bullets.forEach((bullet) => page.objects.push(createTextObject("bullet-item", String(bullet).trim().slice(0, 220), 12, 0, 75, 9, { item: true, bulletLevel: 1 })));
+      if (!bullets.length) page.objects.push(createTextObject("bullet-item", "핵심 내용을 입력하세요.", 12, 0, 75, 9, { item: true, bulletLevel: 1 }));
+      layoutBulletItems(page);
+      return page;
+    })];
+    state.currentPageIndex = 0;
+    state.selectedIds.clear();
+    state.guides = [];
+    state.history = [];
+    currentProjectFileHandle = null;
+    currentProjectFileName = "local-ppt.txt";
+    document.title = "Local PPT 2";
+    hideTextToolbar();
+    render();
+  }
+};

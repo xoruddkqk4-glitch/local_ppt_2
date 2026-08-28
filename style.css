@@ -7,6 +7,41 @@
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 980px; --ink:#151515; --paper:#fffdf8; --red:#ef7f7a; --yellow:#f7d660; --blue:#7199e6; --content-accent:var(--red); }
 button, select, input { font: inherit; }
+.ai-intake { position:fixed; z-index:100; inset:0; display:grid; place-items:center; overflow:auto; padding:32px; background:#151515cc; }
+.ai-intake[hidden] { display:none; }
+.ai-intake-card { width:min(100%,1060px); padding:42px; border:4px solid var(--ink); background:var(--paper); box-shadow:12px 12px 0 var(--yellow); }
+.ai-intake-heading { display:grid; grid-template-columns:1.25fr .75fr; column-gap:28px; align-items:end; padding-bottom:26px; border-bottom:3px solid var(--ink); }
+.ai-eyebrow { grid-column:1/-1; margin:0 0 9px; color:#5d5b55; font-size:11px; font-weight:950; letter-spacing:1.5px; }
+.ai-intake h1 { margin:0; font-size:clamp(28px,4vw,49px); font-weight:950; letter-spacing:-.075em; line-height:.95; }
+.ai-intake-heading > p:last-child { margin:0; font-size:14px; font-weight:750; line-height:1.55; }
+.intake-source-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:25px; }
+.intake-source { min-height:124px; display:flex; flex-direction:column; align-items:flex-start; justify-content:space-between; padding:15px; border:2px solid var(--ink); background:#fff; color:var(--ink); text-align:left; cursor:pointer; }
+.intake-source:hover { position:relative; top:-3px; left:-3px; box-shadow:6px 6px 0 var(--ink); background:var(--yellow); }
+.intake-source b { display:grid; width:25px; height:25px; place-items:center; border:1px solid var(--ink); background:var(--blue); font-size:11px; }
+.intake-source span { font-size:18px; font-weight:950; line-height:1.05; letter-spacing:-.04em; }
+.intake-source small { color:#62605a; font-size:10px; font-weight:750; }
+.ai-generation-form { margin-top:25px; padding-top:21px; border-top:3px solid var(--ink); }
+.ai-generation-form[hidden] { display:none; }
+.intake-form-heading { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:16px; font-size:18px; font-weight:950; }
+.text-link { padding:0; border:0; border-bottom:1px solid currentColor; background:transparent; font-size:12px; font-weight:800; cursor:pointer; }
+.intake-field { display:grid; gap:7px; font-size:12px; font-weight:900; }
+.intake-field textarea,.intake-field input { width:100%; padding:11px; border:2px solid var(--ink); border-radius:0; background:#fff; color:var(--ink); font-weight:650; resize:vertical; }
+.intake-file { min-height:104px; display:grid; place-items:center; gap:7px; border:2px dashed var(--ink); background:#fff; font-size:13px; font-weight:900; cursor:pointer; }
+.intake-file input { position:absolute; width:1px; height:1px; opacity:0; }
+.intake-file strong { padding:8px 12px; border:2px solid var(--ink); background:var(--blue); }
+.intake-file-info { margin:7px 0 0; color:#625f58; font-size:11px; font-weight:700; }
+.intake-settings { display:grid; grid-template-columns:160px 1fr; gap:15px; align-items:start; margin-top:14px; }
+.api-fields { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0; padding:11px; border:2px solid var(--ink); }
+.api-fields legend { padding:0 4px; font-size:12px; font-weight:900; }
+.api-fields legend small { color:#6a6660; font-size:10px; font-weight:650; }
+.api-fields label { display:grid; gap:5px; font-size:11px; font-weight:850; }
+.api-fields input { min-width:0; padding:9px; border:1px solid var(--ink); background:#fff; }
+.provider-choice { grid-column:1/-1; display:flex; align-items:center; gap:11px; padding-top:3px; font-size:11px; font-weight:800; }
+.provider-choice label { display:block; }
+.ai-intake-status { min-height:19px; margin:12px 0 0; color:#51504b; font-size:12px; font-weight:750; }
+.ai-intake-status.is-error { color:#c52b2b; }
+.intake-generate { width:100%; margin-top:1px; padding:12px; font-size:15px; }
+@media (max-width:760px) { .ai-intake { padding:14px; } .ai-intake-card { padding:24px; } .ai-intake-heading,.intake-settings { grid-template-columns:1fr; } .ai-intake-heading > p:last-child { margin-top:15px; } .intake-source-grid { grid-template-columns:repeat(2,1fr); } .api-fields { grid-template-columns:1fr; } }
 .app-header { height:68px; display:flex; align-items:center; gap:22px; padding:0 24px; border-bottom:3px solid var(--ink); background:var(--paper); }
 .brand { color:var(--ink); text-decoration:none; font-size:23px; font-weight:950; letter-spacing:-1px; }
 .app-header > p { margin:0; color:#68645d; font-size:11px; font-weight:850; letter-spacing:1.6px; }
