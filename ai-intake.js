@@ -1,15 +1,16 @@
 (() => {
   const $ = (selector) => document.querySelector(selector);
-  const intake = $("#aiIntake"), form = $("#aiGenerationForm"), sourceTitle = $("#intakeSourceTitle");
+  const intake = $("#aiIntake"), form = $("#aiGenerationForm"), sourceInput = $("#intakeSourceInput"), selectionHint = $("#intakeSelectionHint");
   const textLabel = $("#intakeTextLabel"), textInput = $("#intakeText"), fileLabel = $("#intakeFileLabel"), fileInput = $("#intakeFile");
   const fileName = $("#intakeFileName"), fileInfo = $("#intakeFileInfo"), status = $("#aiIntakeStatus"), submitButton = $("#generatePresentationButton");
   let sourceType = null;
   const sourceLabels = { prose: "줄글 붙여넣기", outline: "개요 붙여넣기", pdf: "PDF 파일 업로드", spreadsheet: "엑셀 파일 업로드" };
   function setStatus(message = "", isError = false) { status.textContent = message; status.classList.toggle("is-error", isError); }
   function selectSource(type) {
-    sourceType = type; form.hidden = false; sourceTitle.textContent = `${sourceLabels[type]}로 AI PPT 만들기`;
+    sourceType = type; sourceInput.hidden = false; selectionHint.textContent = `${sourceLabels[type]}를 선택했습니다.`;
+    document.querySelectorAll("[data-intake-action]").forEach((button) => button.classList.toggle("is-selected", button.dataset.intakeAction === type));
     const isFile = type === "pdf" || type === "spreadsheet";
-    textLabel.hidden = isFile; fileLabel.hidden = !isFile; fileInfo.hidden = !isFile; fileInput.value = ""; fileInfo.textContent = ""; textInput.value = "";
+    textLabel.hidden = isFile; fileLabel.hidden = !isFile; fileInfo.hidden = !isFile; fileInput.value = ""; fileInfo.textContent = "";
     textInput.placeholder = type === "outline" ? "예: 1. 시장 문제\n   - 고객의 불편\n   - 시장 규모\n2. 해결 방법\n   - 제품의 핵심 기능" : "핵심 내용, 수치, 대상 독자, 꼭 담아야 할 메시지를 붙여넣으세요.";
     if (type === "spreadsheet") { fileInput.accept = ".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"; fileName.textContent = "엑셀 파일 선택"; }
     else { fileInput.accept = ".pdf,application/pdf"; fileName.textContent = "PDF 파일 선택"; }
@@ -53,8 +54,9 @@
     } catch (error) { setStatus(error.message || "AI PPT를 만들지 못했습니다.", true); }
     finally { $("#openaiApiKey").value = ""; $("#anthropicApiKey").value = ""; updateProviderChoice(); submitButton.disabled = false; }
   }
+  function showStartScreen() { intake.hidden = false; sourceType = null; sourceInput.hidden = true; selectionHint.textContent = "입력 방식을 선택하세요."; document.querySelectorAll("[data-intake-action]").forEach((button) => button.classList.remove("is-selected")); setStatus(); }
   document.querySelectorAll("[data-intake-action]").forEach((button) => button.addEventListener("click", () => { const action = button.dataset.intakeAction; if (action === "empty") { window.LocalPptApp.startBlank(); intake.hidden = true; } else if (action === "project") $("#intakeProjectFile").click(); else selectSource(action); }));
-  $("#intakeBackButton").addEventListener("click", () => { form.hidden = true; sourceType = null; setStatus(); });
+  $("#goHomeButton").addEventListener("click", showStartScreen);
   $("#intakeProjectFile").addEventListener("change", async (event) => { const file = event.target.files[0]; if (!file) return; await window.LocalPptApp.loadProjectFile(file); intake.hidden = true; });
   fileInput.addEventListener("change", () => { const file = fileInput.files[0]; fileName.textContent = file ? file.name : (sourceType === "pdf" ? "PDF 파일 선택" : "엑셀 파일 선택"); });
   [$("#openaiApiKey"), $("#anthropicApiKey")].forEach((input) => input.addEventListener("input", updateProviderChoice)); form.addEventListener("submit", generate);

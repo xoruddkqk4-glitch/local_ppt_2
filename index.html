@@ -6,14 +6,15 @@
   <title>Local PPT 2</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="style.css?v=20260828-charts1">
+  <link rel="stylesheet" href="style.css?v=20260828-intake2">
 </head>
 <body data-design="bauhaus">
   <header class="app-header">
-    <a class="brand" href="#" aria-label="Local ppt 홈">LOCAL PPT</a>
+    <a class="brand" href="#" aria-label="Local ppt 홈">LOCAL PPT 2</a>
     <p>LOCAL PRESENTATION STUDIO</p>
     <div class="header-actions">
-      <button id="loadProjectButton" class="button">불러오기</button>
+      <button id="goHomeButton" class="button">첫 페이지로 돌아가기</button>
+      <button id="loadProjectButton" class="button">txt 불러오기</button>
       <button id="saveProjectButton" class="button">현재 txt에 저장</button>
       <button id="saveAsProjectButton" class="button">다른 이름으로 저장</button>
       <button id="undoButton" class="button">되돌리기 <kbd>Ctrl Z</kbd></button>
@@ -145,33 +146,35 @@
         <h1 id="aiIntakeTitle">무엇으로 프레젠테이션을<br>시작할까요?</h1>
         <p>텍스트와 숫자 정보를 넣으면 AI가 원하는 장수의 슬라이드 초안을 만듭니다.</p>
       </div>
-      <div class="intake-source-grid" role="group" aria-label="시작 방식">
-        <button class="intake-source" type="button" data-intake-action="empty"><b>01</b><span>빈 슬라이드<br>불러오기</span></button>
-        <button class="intake-source" type="button" data-intake-action="project"><b>02</b><span>txt 불러오기</span><small>기존 Local PPT 파일</small></button>
-        <button class="intake-source" type="button" data-intake-action="prose"><b>03</b><span>줄글 붙여넣기</span></button>
-        <button class="intake-source" type="button" data-intake-action="outline"><b>04</b><span>개요 붙여넣기</span></button>
-        <button class="intake-source" type="button" data-intake-action="pdf"><b>05</b><span>PDF 파일 업로드</span></button>
-        <button class="intake-source" type="button" data-intake-action="spreadsheet"><b>06</b><span>엑셀 파일 업로드</span></button>
-      </div>
-      <form id="aiGenerationForm" class="ai-generation-form" hidden>
-        <div class="intake-form-heading"><strong id="intakeSourceTitle">AI PPT 만들기</strong><button id="intakeBackButton" type="button" class="text-link">다른 방식 선택</button></div>
-        <label id="intakeTextLabel" class="intake-field">내용
+      <form id="aiGenerationForm" class="ai-generation-form">
+        <div class="intake-source-grid" role="group" aria-label="시작 방식">
+          <button class="intake-source intake-source-primary" type="button" data-intake-action="empty"><b>01</b><span>빈 슬라이드<br>불러오기</span></button>
+          <button class="intake-source intake-source-primary" type="button" data-intake-action="project"><b>02</b><span>txt 불러오기</span><small>기존 Local PPT 파일</small></button>
+          <div class="intake-settings">
+            <label class="intake-field">슬라이드 장수
+              <input id="aiSlideCount" type="number" min="2" max="30" value="8" inputmode="numeric">
+            </label>
+            <fieldset class="api-fields"><legend>AI API 키 <small>입력값은 이 요청에만 사용되며 저장되지 않습니다.</small></legend>
+              <label>ChatGPT API 키 <input id="openaiApiKey" type="password" autocomplete="off" placeholder="sk-..."></label>
+              <label>Claude API 키 <input id="anthropicApiKey" type="password" autocomplete="off" placeholder="sk-ant-..."></label>
+              <div id="providerChoice" class="provider-choice" hidden aria-live="polite"></div>
+            </fieldset>
+          </div>
+          <button class="intake-source" type="button" data-intake-action="prose"><b>03</b><span>줄글 붙여넣기</span></button>
+          <button class="intake-source" type="button" data-intake-action="outline"><b>04</b><span>개요 붙여넣기</span></button>
+          <button class="intake-source" type="button" data-intake-action="pdf"><b>05</b><span>PDF 파일 업로드</span></button>
+          <button class="intake-source" type="button" data-intake-action="spreadsheet"><b>06</b><span>엑셀 파일 업로드</span></button>
+        </div>
+        <p id="intakeSelectionHint" class="intake-selection-hint" aria-live="polite">입력 방식을 선택하세요.</p>
+        <div id="intakeSourceInput" class="intake-source-input" hidden>
+          <label id="intakeTextLabel" class="intake-field" hidden>내용
           <textarea id="intakeText" rows="8" placeholder="핵심 내용, 수치, 대상 독자, 꼭 담아야 할 메시지를 붙여넣으세요."></textarea>
-        </label>
+          </label>
         <label id="intakeFileLabel" class="intake-file" hidden>파일 선택
           <input id="intakeFile" type="file" accept=".pdf,application/pdf">
           <strong id="intakeFileName">PDF 파일 선택</strong>
         </label>
         <p id="intakeFileInfo" class="intake-file-info" hidden></p>
-        <div class="intake-settings">
-          <label class="intake-field">슬라이드 장수
-            <input id="aiSlideCount" type="number" min="2" max="30" value="8" inputmode="numeric">
-          </label>
-          <fieldset class="api-fields"><legend>AI API 키 <small>입력값은 이 요청에만 사용되며 저장되지 않습니다.</small></legend>
-            <label>ChatGPT API 키 <input id="openaiApiKey" type="password" autocomplete="off" placeholder="sk-..."></label>
-            <label>Claude API 키 <input id="anthropicApiKey" type="password" autocomplete="off" placeholder="sk-ant-..."></label>
-            <div id="providerChoice" class="provider-choice" hidden aria-live="polite"></div>
-          </fieldset>
         </div>
         <p id="aiIntakeStatus" class="ai-intake-status" aria-live="polite"></p>
         <button id="generatePresentationButton" class="button button-dark intake-generate" type="submit">AI로 슬라이드 만들기</button>
@@ -186,6 +189,6 @@
   <script src="charts/options.js?v=20260828-charts1"></script>
   <script src="app.js?v=20260828-charts2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="ai-intake.js?v=20260828-ai1"></script>
+  <script src="ai-intake.js?v=20260828-ai2"></script>
 </body>
 </html>
