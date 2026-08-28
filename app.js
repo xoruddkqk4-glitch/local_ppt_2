@@ -309,6 +309,13 @@ function buildObjectTemplate(page, itemCount) {
 }
 
 const RELAYOUT_TEXT_PROPERTIES = ["text", "textColor", "fontSize", "textAlign", "color"];
+const LAYOUT_CONTENT_EXCLUDED_ROLES = new Set(["page-title", "media-placeholder", "vs-label", "chart-context"]);
+
+function copyRelayoutTextProperties(target, source) {
+  RELAYOUT_TEXT_PROPERTIES.forEach((property) => {
+    if (Object.hasOwn(source, property)) target[property] = source[property];
+  });
+}
 
 function rebuildObjectTemplatePreservingContent(page, itemCount, removedObject = null) {
   const previousItemCount = getItemCount(page);
@@ -338,13 +345,198 @@ function rebuildObjectTemplatePreservingContent(page, itemCount, removedObject =
     .forEach((object) => {
       const index = nextRoleIndexes.get(object.role) || 0;
       const previous = previousByRole.get(object.role)?.[index];
-      if (previous) {
-        RELAYOUT_TEXT_PROPERTIES.forEach((property) => {
-          if (Object.hasOwn(previous, property)) object[property] = previous[property];
-        });
-      }
+      if (previous) copyRelayoutTextProperties(object, previous);
       nextRoleIndexes.set(object.role, index + 1);
     });
+}
+
+function getLayoutContentSnapshot(page) {
+  const chart = page.objects.find((object) => object.type === "chart");
+  const blocks = page.objects
+    .filter((object) => object.type === "text" && !LAYOUT_CONTENT_EXCLUDED_ROLES.has(object.role) && String(object.text || "").trim())
+    .map((object) => ({ ...object }))
+    .concat(page.objects
+      .filter((object) => object.type === "table")
+      .flatMap((table) => table.cells.map((row, index) => ({
+        type: "text",
+        role: "table-row",
+        text: row.join(" | "),
+        x: table.x,
+        y: table.y + index / Math.max(table.cells.length, 1) * table.h
+      }))));
+  if (!blocks.length && Array.isArray(chart?.sourceBlocks)) {
+    blocks.push(...chart.sourceBlocks.map((block) => ({ ...block })));
+  }
+  const chartData = chart ? getChartData(chart) : [];
+  if (!blocks.length && chartData.length) {
+    blocks.push(...chartData.map((item, index) => ({
+      type: "text",
+      role: "chart-data",
+      text: `${item.label}: ${item.value}`,
+      x: chart.x,
+      y: chart.y + index / Math.max(chartData.length, 1) * chart.h
+    })));
+  }
+  blocks.sort((a, b) => a.y - b.y || a.x - b.x);
+  return {
+    title: page.objects.find((object) => object.role === "page-title") || null,
+    blocks,
+    tableCells: page.objects.find((object) => object.type === "table")?.cells.map((row) => [...row]) || null,
+    chartData
+  };
+}
+
+function restoreSnapshotTitle(page, snapshotContent) {
+  const title = page.objects.find((object) => object.role === "page-title");
+  if (title && snapshotContent.title) copyRelayoutTextProperties(title, snapshotContent.title);
+}
+
+function applySnapshotBlocksToTargets(blocks, targets) {
+  targets.forEach((target, index) => {
+    const source = blocks[index];
+    if (!source) {
+      target.text = "";
+      return;
+    }
+    copyRelayoutTextProperties(target, source);
+  });
+  if (blocks.length > targets.length && targets.length) {
+    const overflow = blocks.slice(targets.length).map((block) => block.text).join("\n");
+    targets.at(-1).text = `${targets.at(-1).text}\n${overflow}`.trim();
+  }
+}
+
+function changeLayoutVariantPreservingContent(page, variant) {
+  const snapshotContent = getLayoutContentSnapshot(page);
+  page.objectCategory = "layout";
+  page.variant = variant;
+  const minimum = getLayoutMinimumCount(variant);
+  const maximum = getLayoutMaximumCount(variant);
+  let itemCount = clamp(minimum, snapshotContent.blocks.length || getLayoutDefaultCount(variant), maximum);
+  buildObjectTemplate(page, itemCount);
+
+  let targets = page.objects.filter((object) => object.type === "text" && !LAYOUT_CONTENT_EXCLUDED_ROLES.has(object.role));
+  const supplementalCount = Math.max(0, targets.length - itemCount);
+  const adjustedCount = clamp(minimum, Math.max(1, snapshotContent.blocks.length - supplementalCount), maximum);
+  if (adjustedCount !== itemCount) {
+    itemCount = adjustedCount;
+    buildObjectTemplate(page, itemCount);
+    targets = page.objects.filter((object) => object.type === "text" && !LAYOUT_CONTENT_EXCLUDED_ROLES.has(object.role));
+  }
+
+  restoreSnapshotTitle(page, snapshotContent);
+
+  const table = page.objects.find((object) => object.type === "table");
+  if (table) {
+    table.cells = snapshotContent.tableCells || [
+      ["내용"],
+      ...snapshotContent.blocks.map((block) => [block.text])
+    ];
+    targets.forEach((target) => { target.text = ""; });
+    return;
+  }
+
+  applySnapshotBlocksToTargets(snapshotContent.blocks, targets);
+}
+
+function changeDiagramVariantPreservingContent(page, variant) {
+  const snapshotContent = getLayoutContentSnapshot(page);
+  page.objectCategory = "diagram";
+  page.variant = variant;
+  const count = clamp(
+    getDiagramMinimumCount(variant),
+    snapshotContent.blocks.length || getDiagramDefaultCount(variant),
+    getDiagramMaximumCount(variant)
+  );
+  buildObjectTemplate(page, count);
+  restoreSnapshotTitle(page, snapshotContent);
+  const targets = page.objects.filter((object) => object.type === "text" && !LAYOUT_CONTENT_EXCLUDED_ROLES.has(object.role));
+  applySnapshotBlocksToTargets(snapshotContent.blocks, targets);
+}
+
+function parseChartNumber(value) {
+  const text = String(value ?? "").replaceAll(",", "").trim();
+  if (!text || /^\d{1,4}[./-]\d{1,2}(?:[./-]\d{1,4})?(?:\s|$)/.test(text)) return null;
+  const matches = [...text.matchAll(/-?\d+(?:\.\d+)?/g)].filter((match) => {
+    const before = text[match.index - 1] || "";
+    const after = text[match.index + match[0].length] || "";
+    return !["/", ":"].includes(before) && !["/", ":"].includes(after);
+  });
+  if (!matches.length) return null;
+  const match = matches.at(-1);
+  const number = Number(match[0]);
+  return Number.isFinite(number) ? { value: Math.max(0, number), token: match[0] } : null;
+}
+
+function chartDataFromTable(cells) {
+  if (!Array.isArray(cells) || cells.length < 2) return [];
+  const headers = cells[0].map((cell) => String(cell || "").trim());
+  const data = [];
+  cells.slice(1).forEach((row, rowIndex) => {
+    const rowLabel = String(row[0] || `항목 ${rowIndex + 1}`).trim();
+    row.slice(1).forEach((cell, columnOffset) => {
+      const parsed = parseChartNumber(cell);
+      if (!parsed || data.length >= CHART_MAX_ITEMS) return;
+      const header = headers[columnOffset + 1];
+      data.push({ label: normalizeAiText(header ? `${rowLabel} · ${header}` : rowLabel, 40), value: parsed.value });
+    });
+  });
+  return data;
+}
+
+function chartDataFromBlocks(blocks) {
+  const numeric = [];
+  blocks.forEach((block, index) => {
+    const text = String(block.text || "").trim();
+    const parsed = parseChartNumber(text);
+    if (!text || !parsed || numeric.length >= CHART_MAX_ITEMS) return;
+    const label = normalizeAiText(text.replace(parsed.token, "").replace(/[:：·|\-]+\s*$/, "").trim(), 40) || `항목 ${index + 1}`;
+    numeric.push({ label, value: parsed.value });
+  });
+  if (numeric.length >= CHART_MIN_ITEMS) return numeric;
+  return blocks
+    .filter((block) => String(block.text || "").trim())
+    .slice(0, CHART_MAX_ITEMS)
+    .map((block, index) => ({ label: normalizeAiText(block.text, 40) || `항목 ${index + 1}`, value: 1 }));
+}
+
+function changeChartVariantPreservingContent(page, variant) {
+  const snapshotContent = getLayoutContentSnapshot(page);
+  const sourceBlocks = snapshotContent.blocks.map((block) => ({
+    type: "text",
+    role: block.role || "chart-source",
+    text: String(block.text || ""),
+    x: Number(block.x) || 0,
+    y: Number(block.y) || 0,
+    textColor: block.textColor,
+    fontSize: block.fontSize,
+    textAlign: block.textAlign
+  }));
+  let data = snapshotContent.chartData.length >= CHART_MIN_ITEMS
+    ? snapshotContent.chartData
+    : chartDataFromTable(snapshotContent.tableCells);
+  if (data.length < CHART_MIN_ITEMS) data = chartDataFromBlocks(sourceBlocks);
+
+  page.objectCategory = "chart";
+  page.variant = variant;
+  buildObjectTemplate(page, Math.max(data.length, CHART_MIN_ITEMS));
+  restoreSnapshotTitle(page, snapshotContent);
+  const chart = page.objects.find((object) => object.type === "chart");
+  if (!chart) return;
+  if (data.length >= CHART_MIN_ITEMS) chart.data = data.slice(0, CHART_MAX_ITEMS);
+  chart.sourceBlocks = sourceBlocks;
+  if (sourceBlocks.length) {
+    chart.h = 57;
+    page.objects.push(createTextObject(
+      "chart-context",
+      sourceBlocks.map((block) => block.text).join(" · "),
+      7,
+      85,
+      86,
+      9,
+      { textAlign: "left" }
+    ));
+  }
 }
 
 function getVariantTitle(page) {
@@ -1543,11 +1735,9 @@ function updateActiveTextStyle(property, value) {
   const object = page.objects.find((item) => item.id === state.activeTextObjectId && item.type === "text");
   if (!object) return;
   snapshot();
-  const targets = property === "fontSize" && object.mindLevel
-    ? page.objects.filter((item) => item.type === "text" && item.mindLevel === object.mindLevel)
-    : property === "fontSize" && ["bullet-item", "cover-item"].includes(object.role)
-      ? page.objects.filter((item) => item.type === "text" && item.role === object.role && (item.bulletLevel || 1) === (object.bulletLevel || 1))
-      : [object];
+  const targets = property === "fontSize"
+    ? page.objects.filter((item) => item.type === "text" && getTextStageKey(item) === getTextStageKey(object))
+    : [object];
   targets.forEach((target) => { target[property] = value; });
   renderStage();
   const activeText = stage.querySelector(`[data-object-id="${object.id}"] .canvas-text`);
@@ -1832,24 +2022,41 @@ function drawConnection(from, to) {
 function fitAllText() {
   const mindTexts = new Set(stage.querySelectorAll(".mind-root .canvas-text, .mind-node .canvas-text"));
   const bulletTexts = new Set(stage.querySelectorAll(".bullet-item .canvas-text, .cover-item .canvas-text"));
+  const grouped = new Map();
   stage.querySelectorAll(".canvas-text").forEach((text) => {
     if (mindTexts.has(text) || bulletTexts.has(text)) return;
-    if (text.closest(".canvas-object")?.dataset.manualFontSize) return;
-    const rect = text.getBoundingClientRect();
-    const lines = (text.dataset.fitText || text.textContent || "").split("\n");
-    const longest = Math.max(...lines.map((line) => line.length), 1);
-    const byWidth = (rect.width - 18) / longest * 1.55;
-    const byHeight = (rect.height - 12) / (lines.length * 1.15);
-    const fontSize = clamp(11, Math.min(byWidth, byHeight), 112);
-    text.style.setProperty("--object-font-size", `${fontSize}px`);
+    const object = getTextObjectForElement(text);
+    if (!object) return;
+    const key = getTextStageKey(object);
+    const texts = grouped.get(key) || [];
+    texts.push(text);
+    grouped.set(key, texts);
   });
+  grouped.forEach((texts) => fitTextGroupToCommonSize(texts, 8, getTextGroupMaximum(texts, 112)));
   fitBulletTextByLevel(bulletTexts);
   fitMindmapTextByLevel(mindTexts);
-  stage.querySelectorAll(".table-object").forEach((table) => {
-    const rect = table.getBoundingClientRect();
-    const rows = Math.max(table.rows.length, 1);
-    table.style.setProperty("--table-font-size", `${clamp(10, rect.height / rows * .28, 30)}px`);
-  });
+  fitTablesToCommonSize([...stage.querySelectorAll(".table-object")]);
+}
+
+function getTextObjectForElement(text) {
+  const objectId = text.closest(".canvas-object")?.dataset.objectId;
+  return currentPage().objects.find((object) => object.id === objectId && object.type === "text") || null;
+}
+
+function getTextStageKey(object) {
+  if (object.mindLevel) return `mind:${clamp(1, Number(object.mindLevel) || 1, 4)}`;
+  if (["bullet-item", "cover-item"].includes(object.role)) {
+    return `${object.role}:level:${clamp(1, Number(object.bulletLevel) || 1, 4)}`;
+  }
+  return `${object.role || "text"}:${object.rootNode ? "root" : "item"}`;
+}
+
+function getTextGroupMaximum(texts, fallback) {
+  const manualSizes = texts
+    .map((text) => getTextObjectForElement(text)?.fontSize)
+    .filter((size) => Number.isFinite(Number(size)) && Number(size) > 0)
+    .map(Number);
+  return manualSizes.length ? Math.min(fallback, ...manualSizes) : fallback;
 }
 
 function fitBulletTextByLevel(bulletTexts) {
@@ -1857,13 +2064,13 @@ function fitBulletTextByLevel(bulletTexts) {
   bulletTexts.forEach((text) => {
     const wrapper = text.closest(".canvas-object");
     const object = currentPage().objects.find((item) => item.id === wrapper?.dataset.objectId);
-    if (!object || wrapper.dataset.manualFontSize) return;
+    if (!object) return;
     const key = `${object.role}:${clamp(1, Number(object.bulletLevel) || 1, 4)}`;
     const texts = grouped.get(key) || [];
     texts.push(text);
     grouped.set(key, texts);
   });
-  grouped.forEach((texts) => fitTextGroupToCommonSize(texts, 11, 72));
+  grouped.forEach((texts) => fitTextGroupToCommonSize(texts, 8, getTextGroupMaximum(texts, 72)));
 }
 
 function fitTextGroupToCommonSize(texts, minimum, maximum) {
@@ -1895,16 +2102,40 @@ function fitMindmapTextByLevel(mindTexts) {
   let baseSize = 32 * stageScale;
   Object.entries(grouped).forEach(([level, texts]) => {
     if (!texts.length) return;
-    if (texts[0].closest(".canvas-object")?.dataset.manualFontSize) return;
     const available = Math.min(...texts.map(getTextFitSize));
     baseSize = Math.min(baseSize, available / levelRatios[level]);
+    const manualMaximum = getTextGroupMaximum(texts, Number.POSITIVE_INFINITY);
+    if (Number.isFinite(manualMaximum)) baseSize = Math.min(baseSize, manualMaximum / levelRatios[level]);
   });
-  baseSize = Math.max(10 * stageScale, baseSize);
+  baseSize = Math.max(8 * stageScale, baseSize);
   Object.entries(grouped).forEach(([level, texts]) => {
-    if (texts[0]?.closest(".canvas-object")?.dataset.manualFontSize) return;
+    if (!texts.length) return;
+    const manualMaximum = getTextGroupMaximum(texts, Number.POSITIVE_INFINITY);
+    if (Number.isFinite(manualMaximum)) baseSize = Math.min(baseSize, manualMaximum / levelRatios[level]);
+  });
+  Object.entries(grouped).forEach(([level, texts]) => {
     const size = baseSize * levelRatios[level];
     texts.forEach((text) => text.style.setProperty("--object-font-size", `${size}px`));
   });
+}
+
+function fitTablesToCommonSize(tables) {
+  if (!tables.length) return;
+  let low = 8;
+  let high = 30;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const size = (low + high) / 2;
+    tables.forEach((table) => table.style.setProperty("--table-font-size", `${size}px`));
+    const fits = tables.every((table) => {
+      const cells = [...table.querySelectorAll("th,td")];
+      return table.scrollWidth <= table.clientWidth + 1
+        && table.scrollHeight <= table.clientHeight + 1
+        && cells.every((cell) => cell.scrollWidth <= cell.clientWidth + 1 && cell.scrollHeight <= cell.clientHeight + 1);
+    });
+    if (fits) low = size;
+    else high = size;
+  }
+  tables.forEach((table) => table.style.setProperty("--table-font-size", `${low}px`));
 }
 
 function getTextFitSize(text) {
@@ -2185,9 +2416,7 @@ $("#layoutVariantGrid").addEventListener("click", (event) => {
   if (!button) return;
   const page = currentPage();
   snapshot();
-  page.objectCategory = "layout";
-  page.variant = button.dataset.layoutVariant;
-  buildObjectTemplate(page, getLayoutDefaultCount(page.variant));
+  changeLayoutVariantPreservingContent(page, button.dataset.layoutVariant);
   state.selectedIds.clear();
   hideTextToolbar();
   render();
@@ -2207,9 +2436,7 @@ $("#diagramVariantGrid").addEventListener("click", (event) => {
   if (!button) return;
   const page = currentPage();
   snapshot();
-  page.objectCategory = "diagram";
-  page.variant = button.dataset.diagramVariant;
-  buildObjectTemplate(page, getDiagramDefaultCount(page.variant));
+  changeDiagramVariantPreservingContent(page, button.dataset.diagramVariant);
   state.selectedIds.clear();
   hideTextToolbar();
   render();
@@ -2229,9 +2456,7 @@ $("#chartVariantGrid").addEventListener("click", (event) => {
   if (!button) return;
   const page = currentPage();
   snapshot();
-  page.objectCategory = "chart";
-  page.variant = button.dataset.chartVariant;
-  buildObjectTemplate(page, 1);
+  changeChartVariantPreservingContent(page, button.dataset.chartVariant);
   state.selectedIds.clear();
   hideTextToolbar();
   render();
@@ -2264,10 +2489,26 @@ $("#tableAxisSelect").addEventListener("change", (event) => {
 $("#undoButton").addEventListener("click", undo);
 
 $("#textColorInput").addEventListener("change", (event) => updateActiveTextStyle("textColor", event.target.value));
-$("#textSizeInput").addEventListener("input", (event) => {
-  const size = clamp(8, Number(event.target.value) || 8, 160);
-  event.target.value = size;
+function commitTextSizeInput(input) {
+  const parsed = Number(input.value);
+  if (!Number.isFinite(parsed)) {
+    const object = currentPage().objects.find((item) => item.id === state.activeTextObjectId && item.type === "text");
+    input.value = Math.round(object?.fontSize || 28);
+    return;
+  }
+  const size = clamp(8, Math.round(parsed), 160);
+  input.value = size;
   updateActiveTextStyle("fontSize", size);
+}
+
+$("#textSizeInput").addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  commitTextSizeInput(event.currentTarget);
+  event.currentTarget.select();
+});
+$("#textSizeInput").addEventListener("blur", (event) => {
+  commitTextSizeInput(event.currentTarget);
 });
 document.querySelectorAll("[data-text-align]").forEach((button) => {
   button.addEventListener("click", () => updateActiveTextStyle("textAlign", button.dataset.textAlign));
@@ -2307,6 +2548,17 @@ $("#fullscreenButton").addEventListener("click", () => {
 function isTextInputTarget(target) {
   const tagName = target?.tagName;
   return Boolean(target?.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(tagName));
+}
+
+function navigateFullscreenPage(direction) {
+  const nextIndex = clamp(0, state.currentPageIndex + direction, state.pages.length - 1);
+  if (nextIndex === state.currentPageIndex) return false;
+  state.currentPageIndex = nextIndex;
+  state.selectedIds.clear();
+  state.guides = [];
+  hideTextToolbar();
+  render();
+  return true;
 }
 
 function copySelectedObjects() {
@@ -2396,6 +2648,11 @@ document.addEventListener("keydown", (event) => {
   const modifier = event.ctrlKey || event.metaKey;
   const key = event.key.toLowerCase();
   const editingText = isTextInputTarget(document.activeElement);
+  if (document.fullscreenElement === stage && !editingText && ["ArrowLeft", "ArrowRight"].includes(event.key)) {
+    event.preventDefault();
+    navigateFullscreenPage(event.key === "ArrowLeft" ? -1 : 1);
+    return;
+  }
   if (modifier && key === "c" && !editingText && copySelectedObjects()) {
     event.preventDefault();
     return;

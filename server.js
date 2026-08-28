@@ -103,7 +103,7 @@ async function generate({ provider, model, apiKey, content, sourceType, slideCou
   const userSource = userSourceFor(content);
   let endpoint, headers, request;
   if (provider === "openai") { endpoint = "https://api.openai.com/v1/chat/completions"; headers = { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` }; request = { model: selectedModel, response_format: { type: "json_object" }, messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userSource }] }; }
-  else { endpoint = "https://api.anthropic.com/v1/messages"; headers = { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" }; request = { model: selectedModel, system: systemPrompt, max_tokens: 12000, temperature: 0.4, messages: [{ role: "user", content: userSource }] }; }
+  else { endpoint = "https://api.anthropic.com/v1/messages"; headers = { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" }; request = { model: selectedModel, system: systemPrompt, max_tokens: 12000, messages: [{ role: "user", content: userSource }] }; }
   const upstream = await fetch(endpoint, { method: "POST", headers, body: JSON.stringify(request) }), result = await upstream.json().catch(() => ({}));
   if (!upstream.ok) throw new Error(result?.error?.message || "AI 제공자가 요청을 처리하지 못했습니다.");
   const raw = provider === "openai" ? result?.choices?.[0]?.message?.content : result?.content?.map((part) => part.text || "").join("\n"), presentation = cleanJson(raw);

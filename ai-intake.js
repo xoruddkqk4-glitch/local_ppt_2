@@ -4,8 +4,37 @@
   const textLabel = $("#intakeTextLabel"), textInput = $("#intakeText"), fileLabel = $("#intakeFileLabel"), fileInput = $("#intakeFile");
   const fileName = $("#intakeFileName"), fileInfo = $("#intakeFileInfo"), status = $("#aiIntakeStatus"), submitButton = $("#generatePresentationButton");
   let sourceType = null;
+  let progressTimer = null;
+  const generateButtonLabel = "AI로 슬라이드 만들기";
   const sourceLabels = { prose: "줄글 붙여넣기", outline: "개요 붙여넣기", pdf: "PDF 파일 업로드", spreadsheet: "엑셀 파일 업로드" };
   function setStatus(message = "", isError = false) { status.textContent = message; status.classList.toggle("is-error", isError); }
+  function setProgress(value, label) {
+    const progress = Math.max(0, Math.min(100, Math.round(value)));
+    submitButton.classList.add("is-progress");
+    submitButton.style.setProperty("--generation-progress", `${progress}%`);
+    submitButton.textContent = `${label} · ${progress}%`;
+    submitButton.setAttribute("aria-valuenow", String(progress));
+  }
+  function stopProgressTimer() {
+    if (progressTimer) window.clearInterval(progressTimer);
+    progressTimer = null;
+  }
+  function resetProgress() {
+    stopProgressTimer();
+    submitButton.classList.remove("is-progress");
+    submitButton.style.removeProperty("--generation-progress");
+    submitButton.textContent = generateButtonLabel;
+    submitButton.removeAttribute("aria-valuenow");
+  }
+  function startAiProgress() {
+    stopProgressTimer();
+    let progress = 35;
+    setProgress(progress, "AI가 슬라이드 구성 중");
+    progressTimer = window.setInterval(() => {
+      progress = Math.min(90, progress + Math.max(1, Math.round((91 - progress) / 9)));
+      setProgress(progress, "AI가 슬라이드 구성 중");
+    }, 800);
+  }
   function selectSource(type) {
     sourceType = type; sourceInput.hidden = false; selectionHint.textContent = `${sourceLabels[type]}를 선택했습니다.`;
     document.querySelectorAll("[data-intake-action]").forEach((button) => button.classList.toggle("is-selected", button.dataset.intakeAction === type));
@@ -25,17 +54,27 @@
     const pdfjs = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs");
     pdfjs.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
     const pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise, pages = [];
-    for (let i = 1; i <= Math.min(pdf.numPages, 30); i += 1) { const content = await (await pdf.getPage(i)).getTextContent(); pages.push(content.items.map((item) => item.str).join(" ")); }
+    const pageCount = Math.min(pdf.numPages, 30);
+    for (let i = 1; i <= pageCount; i += 1) {
+      const content = await (await pdf.getPage(i)).getTextContent();
+      pages.push(content.items.map((item) => item.str).join(" "));
+      setProgress(10 + i / pageCount * 20, `PDF ${i}/${pageCount} 분석 중`);
+    }
     return pages.join("\n\n").trim();
   }
   async function extractSpreadsheet(file) {
     if (!window.XLSX) throw new Error("엑셀 파일 분석 도구를 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도하세요.");
     const workbook = window.XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true });
-    return workbook.SheetNames.slice(0, 5).map((name) => `[시트: ${name}]\n${window.XLSX.utils.sheet_to_csv(workbook.Sheets[name], { blankrows: false }).split("\n").slice(0, 200).join("\n")}`).join("\n\n").trim();
+    const content = workbook.SheetNames.slice(0, 5).map((name) => `[시트: ${name}]\n${window.XLSX.utils.sheet_to_csv(workbook.Sheets[name], { blankrows: false }).split("\n").slice(0, 200).join("\n")}`).join("\n\n").trim();
+    setProgress(30, "엑셀 데이터 분석 완료");
+    return content;
   }
   async function sourceContent() {
-    if (sourceType === "prose" || sourceType === "outline") return textInput.value.trim();
-    const file = fileInput.files[0]; if (!file) return ""; setStatus(`${file.name} 분석 중…`);
+    if (sourceType === "prose" || sourceType === "outline") {
+      setProgress(25, "입력 내용 정리 중");
+      return textInput.value.trim();
+    }
+    const file = fileInput.files[0]; if (!file) return ""; setStatus(`${file.name} 분석 중…`); setProgress(8, "파일 분석 준비 중");
     const content = sourceType === "pdf" ? await extractPdf(file) : await extractSpreadsheet(file);
     fileInfo.textContent = `${file.name} · 추출된 텍스트 ${content.length.toLocaleString()}자`; return content;
   }
@@ -45,14 +84,16 @@
     if (!Number.isInteger(slideCount) || slideCount < 2 || slideCount > 30) return setStatus("슬라이드 장수는 2~30 사이로 입력하세요.", true);
     let completed = false;
     try {
-      submitButton.disabled = true; const content = await sourceContent();
+      submitButton.disabled = true; setProgress(3, "입력 확인 중"); const content = await sourceContent();
       if (!content) throw new Error("프레젠테이션으로 만들 텍스트 또는 파일을 입력하세요.");
       if (content.length > 120000) throw new Error("입력 내용이 너무 깁니다. 120,000자 이하의 파일 또는 텍스트를 사용하세요.");
       if (window.location.protocol === "file:") throw new Error("AI 기능을 사용하려면 터미널에서 node server.js를 실행한 뒤 http://127.0.0.1:8765으로 접속하세요.");
-      setStatus("AI가 슬라이드 구조를 만들고 있습니다…");
+      setStatus("AI가 슬라이드 구조를 만들고 있습니다…"); startAiProgress();
       const response = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider, model, apiKey, sourceType, content, slideCount }) });
+      stopProgressTimer(); setProgress(93, "AI 응답 확인 중");
       const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || "AI 요청에 실패했습니다.");
-      window.LocalPptApp.applyAiPresentation(result.presentation); completed = true; intake.hidden = true;
+      setProgress(98, "편집기에 적용 중"); window.LocalPptApp.applyAiPresentation(result.presentation);
+      setProgress(100, "슬라이드 생성 완료"); completed = true; intake.hidden = true;
     } catch (error) {
       const message = /failed to fetch|networkerror/i.test(String(error?.message || ""))
         ? "로컬 AI 서버에 연결할 수 없습니다. 터미널에서 node server.js를 실행한 뒤 http://127.0.0.1:8765으로 접속하세요."
@@ -61,7 +102,7 @@
     }
     finally {
       if (completed) { $("#openaiApiKey").value = ""; $("#anthropicApiKey").value = ""; updateProviderChoice(); }
-      submitButton.disabled = false;
+      submitButton.disabled = false; resetProgress();
     }
   }
   function showStartScreen() { intake.hidden = false; sourceType = null; sourceInput.hidden = true; selectionHint.textContent = "입력 방식을 선택하세요."; document.querySelectorAll("[data-intake-action]").forEach((button) => button.classList.remove("is-selected")); setStatus(); }
