@@ -40,19 +40,29 @@
     fileInfo.textContent = `${file.name} · 추출된 텍스트 ${content.length.toLocaleString()}자`; return content;
   }
   async function generate(event) {
-    event.preventDefault(); const provider = selectedProvider(), apiKey = provider === "openai" ? $("#openaiApiKey").value.trim() : $("#anthropicApiKey").value.trim(), slideCount = Number($("#aiSlideCount").value);
+    event.preventDefault(); const provider = selectedProvider(), apiKey = provider === "openai" ? $("#openaiApiKey").value.trim() : $("#anthropicApiKey").value.trim(), model = provider === "openai" ? $("#openaiModel").value : $("#anthropicModel").value, slideCount = Number($("#aiSlideCount").value);
     if (!apiKey) return setStatus("ChatGPT 또는 Claude API 키를 하나 이상 입력하세요.", true);
     if (!Number.isInteger(slideCount) || slideCount < 2 || slideCount > 30) return setStatus("슬라이드 장수는 2~30 사이로 입력하세요.", true);
+    let completed = false;
     try {
       submitButton.disabled = true; const content = await sourceContent();
       if (!content) throw new Error("프레젠테이션으로 만들 텍스트 또는 파일을 입력하세요.");
       if (content.length > 120000) throw new Error("입력 내용이 너무 깁니다. 120,000자 이하의 파일 또는 텍스트를 사용하세요.");
+      if (window.location.protocol === "file:") throw new Error("AI 기능을 사용하려면 터미널에서 node server.js를 실행한 뒤 http://127.0.0.1:8765으로 접속하세요.");
       setStatus("AI가 슬라이드 구조를 만들고 있습니다…");
-      const response = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider, apiKey, sourceType, content, slideCount }) });
+      const response = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider, model, apiKey, sourceType, content, slideCount }) });
       const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || "AI 요청에 실패했습니다.");
-      window.LocalPptApp.applyAiPresentation(result.presentation); intake.hidden = true;
-    } catch (error) { setStatus(error.message || "AI PPT를 만들지 못했습니다.", true); }
-    finally { $("#openaiApiKey").value = ""; $("#anthropicApiKey").value = ""; updateProviderChoice(); submitButton.disabled = false; }
+      window.LocalPptApp.applyAiPresentation(result.presentation); completed = true; intake.hidden = true;
+    } catch (error) {
+      const message = /failed to fetch|networkerror/i.test(String(error?.message || ""))
+        ? "로컬 AI 서버에 연결할 수 없습니다. 터미널에서 node server.js를 실행한 뒤 http://127.0.0.1:8765으로 접속하세요."
+        : error.message || "AI PPT를 만들지 못했습니다.";
+      setStatus(message, true);
+    }
+    finally {
+      if (completed) { $("#openaiApiKey").value = ""; $("#anthropicApiKey").value = ""; updateProviderChoice(); }
+      submitButton.disabled = false;
+    }
   }
   function showStartScreen() { intake.hidden = false; sourceType = null; sourceInput.hidden = true; selectionHint.textContent = "입력 방식을 선택하세요."; document.querySelectorAll("[data-intake-action]").forEach((button) => button.classList.remove("is-selected")); setStatus(); }
   document.querySelectorAll("[data-intake-action]").forEach((button) => button.addEventListener("click", () => { const action = button.dataset.intakeAction; if (action === "empty") { window.LocalPptApp.startBlank(); intake.hidden = true; } else if (action === "project") $("#intakeProjectFile").click(); else selectSource(action); }));

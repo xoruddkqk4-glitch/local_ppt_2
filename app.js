@@ -21,6 +21,13 @@ const STRUCTURED_LAYOUT_ROLES = new Set([
 ]);
 const TABLE_LAYOUT_VARIANTS = new Set(["table", "tableDualNotices"]);
 const ITEM_COUNT_ROLE_BY_VARIANT = { pairedCheckWarnings: "checklist-card" };
+const AI_TEMPLATES = new Set(["bullet", "mindmap", "object"]);
+const AI_OBJECT_VARIANTS = {
+  layout: new Set(["cards", "cardsAccent", "table", "compare", "bannerMetrics", "stepsMedia", "tableStats", "mediaFeatures", "compareSummary", "scaleDefinitions", "processNotices", "iconGridAlert", "tableDualNotices", "stepsNotices", "conceptNotices", "dualOverviewFeatures", "focusCards", "sideAccentGrid", "pairedCheckWarnings", "detailMetrics"]),
+  diagram: new Set(["process", "timeline", "pyramid", "cycle", "chain", "ribbonArrow", "funnel", "venn", "target", "connectedCircles", "quadrant", "vs"]),
+  chart: new Set(["column", "line", "pie", "bar", "area"])
+};
+const AI_OBJECT_DEFAULT_VARIANTS = { layout: "cards", diagram: "process", chart: "column" };
 
 let currentProjectFileHandle = null;
 let currentProjectFileName = "local-ppt.txt";
@@ -301,6 +308,45 @@ function buildObjectTemplate(page, itemCount) {
   }
 }
 
+const RELAYOUT_TEXT_PROPERTIES = ["text", "textColor", "fontSize", "textAlign", "color"];
+
+function rebuildObjectTemplatePreservingContent(page, itemCount, removedObject = null) {
+  const previousItemCount = getItemCount(page);
+  const previousByRole = new Map();
+  page.objects
+    .filter((object) => object.type === "text")
+    .forEach((object) => {
+      const objects = previousByRole.get(object.role) || [];
+      objects.push(object);
+      previousByRole.set(object.role, objects);
+    });
+
+  if (removedObject?.type === "text") {
+    const selectedRoleObjects = previousByRole.get(removedObject.role) || [];
+    const removedIndex = selectedRoleObjects.findIndex((object) => object.id === removedObject.id);
+    if (removedIndex >= 0) {
+      previousByRole.forEach((objects) => {
+        if (objects.length === previousItemCount) objects.splice(removedIndex, 1);
+      });
+    }
+  }
+
+  buildObjectTemplate(page, itemCount);
+  const nextRoleIndexes = new Map();
+  page.objects
+    .filter((object) => object.type === "text")
+    .forEach((object) => {
+      const index = nextRoleIndexes.get(object.role) || 0;
+      const previous = previousByRole.get(object.role)?.[index];
+      if (previous) {
+        RELAYOUT_TEXT_PROPERTIES.forEach((property) => {
+          if (Object.hasOwn(previous, property)) object[property] = previous[property];
+        });
+      }
+      nextRoleIndexes.set(object.role, index + 1);
+    });
+}
+
 function getVariantTitle(page) {
   const collection = page.objectCategory === "layout" ? layouts : page.objectCategory === "diagram" ? diagrams : charts;
   return collection[page.variant]?.name?.toUpperCase() || "OBJECT PAGE";
@@ -363,7 +409,7 @@ function addLayoutBanner(page, text, y = 24, h = 12) {
 }
 
 function addResponsiveCards(page, count, role, textFactory, area) {
-  const columns = area.columns || (count <= 4 ? count : 3);
+  const columns = Math.min(count, area.columns || (count <= 4 ? count : 3));
   const rows = Math.ceil(count / columns);
   const gapX = area.gapX ?? 2;
   const gapY = area.gapY ?? 3;
@@ -936,7 +982,7 @@ function addItem() {
       selected.cells.push(selected.cells[0].map((_, index) => index === 0 ? `항목 ${selected.cells.length}` : "내용"));
     }
   } else {
-    buildObjectTemplate(page, count + 1);
+    rebuildObjectTemplatePreservingContent(page, count + 1);
     state.selectedIds.clear();
   }
   hideTextToolbar();
@@ -979,7 +1025,7 @@ function removeItem() {
     if (tableManagementAxis === "column") selected.cells.forEach((row) => row.pop());
     else selected.cells.pop();
   } else {
-    buildObjectTemplate(page, count - 1);
+    rebuildObjectTemplatePreservingContent(page, count - 1, selected);
     state.selectedIds.clear();
   }
   hideTextToolbar();
@@ -1442,11 +1488,32 @@ function beginTextEdit(event, object, wrapper, text) {
   text.addEventListener("blur", finish, { once: true });
   text.addEventListener("keydown", (keyEvent) => {
     if (keyEvent.key === "Escape") text.blur();
+    if (keyEvent.key === "Enter" && keyEvent.altKey) {
+      keyEvent.preventDefault();
+      keyEvent.stopPropagation();
+      insertEditableLineBreak(text);
+      return;
+    }
     if (keyEvent.key === "Enter" && !keyEvent.shiftKey) {
       keyEvent.preventDefault();
       text.blur();
     }
   });
+}
+
+function insertEditableLineBreak(editable) {
+  if (document.execCommand?.("insertLineBreak", false)) return;
+  const selection = window.getSelection();
+  if (!selection?.rangeCount) return;
+  const range = selection.getRangeAt(0);
+  if (!editable.contains(range.commonAncestorContainer)) return;
+  range.deleteContents();
+  const lineBreak = document.createElement("br");
+  range.insertNode(lineBreak);
+  range.setStartAfter(lineBreak);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
 }
 
 function showTextToolbar(object, textElement) {
@@ -1478,7 +1545,9 @@ function updateActiveTextStyle(property, value) {
   snapshot();
   const targets = property === "fontSize" && object.mindLevel
     ? page.objects.filter((item) => item.type === "text" && item.mindLevel === object.mindLevel)
-    : [object];
+    : property === "fontSize" && ["bullet-item", "cover-item"].includes(object.role)
+      ? page.objects.filter((item) => item.type === "text" && item.role === object.role && (item.bulletLevel || 1) === (object.bulletLevel || 1))
+      : [object];
   targets.forEach((target) => { target[property] = value; });
   renderStage();
   const activeText = stage.querySelector(`[data-object-id="${object.id}"] .canvas-text`);
@@ -1498,6 +1567,12 @@ function beginCellEdit(event, object, rowIndex, columnIndex, cell) {
   };
   cell.addEventListener("blur", finish, { once: true });
   cell.addEventListener("keydown", (keyEvent) => {
+    if (keyEvent.key === "Enter" && keyEvent.altKey) {
+      keyEvent.preventDefault();
+      keyEvent.stopPropagation();
+      insertEditableLineBreak(cell);
+      return;
+    }
     if (keyEvent.key === "Enter") {
       keyEvent.preventDefault();
       cell.blur();
@@ -1756,8 +1831,9 @@ function drawConnection(from, to) {
 
 function fitAllText() {
   const mindTexts = new Set(stage.querySelectorAll(".mind-root .canvas-text, .mind-node .canvas-text"));
+  const bulletTexts = new Set(stage.querySelectorAll(".bullet-item .canvas-text, .cover-item .canvas-text"));
   stage.querySelectorAll(".canvas-text").forEach((text) => {
-    if (mindTexts.has(text)) return;
+    if (mindTexts.has(text) || bulletTexts.has(text)) return;
     if (text.closest(".canvas-object")?.dataset.manualFontSize) return;
     const rect = text.getBoundingClientRect();
     const lines = (text.dataset.fitText || text.textContent || "").split("\n");
@@ -1767,12 +1843,41 @@ function fitAllText() {
     const fontSize = clamp(11, Math.min(byWidth, byHeight), 112);
     text.style.setProperty("--object-font-size", `${fontSize}px`);
   });
+  fitBulletTextByLevel(bulletTexts);
   fitMindmapTextByLevel(mindTexts);
   stage.querySelectorAll(".table-object").forEach((table) => {
     const rect = table.getBoundingClientRect();
     const rows = Math.max(table.rows.length, 1);
     table.style.setProperty("--table-font-size", `${clamp(10, rect.height / rows * .28, 30)}px`);
   });
+}
+
+function fitBulletTextByLevel(bulletTexts) {
+  const grouped = new Map();
+  bulletTexts.forEach((text) => {
+    const wrapper = text.closest(".canvas-object");
+    const object = currentPage().objects.find((item) => item.id === wrapper?.dataset.objectId);
+    if (!object || wrapper.dataset.manualFontSize) return;
+    const key = `${object.role}:${clamp(1, Number(object.bulletLevel) || 1, 4)}`;
+    const texts = grouped.get(key) || [];
+    texts.push(text);
+    grouped.set(key, texts);
+  });
+  grouped.forEach((texts) => fitTextGroupToCommonSize(texts, 11, 72));
+}
+
+function fitTextGroupToCommonSize(texts, minimum, maximum) {
+  if (!texts.length) return;
+  let low = minimum;
+  let high = maximum;
+  for (let attempt = 0; attempt < 9; attempt += 1) {
+    const size = (low + high) / 2;
+    texts.forEach((text) => text.style.setProperty("--object-font-size", `${size}px`));
+    const fits = texts.every((text) => text.scrollWidth <= text.clientWidth + 1 && text.scrollHeight <= text.clientHeight + 1);
+    if (fits) low = size;
+    else high = size;
+  }
+  texts.forEach((text) => text.style.setProperty("--object-font-size", `${low}px`));
 }
 
 function fitMindmapTextByLevel(mindTexts) {
@@ -2330,6 +2435,138 @@ window.addEventListener("resize", () => requestAnimationFrame(fitAllText));
 populateVariantSelects();
 render();
 
+function normalizeAiText(value, maxLength = 220) {
+  return String(value ?? "").replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+function getAiItems(slide) {
+  const source = Array.isArray(slide?.items)
+    ? slide.items
+    : Array.isArray(slide?.bullets)
+      ? slide.bullets
+      : [];
+  return source
+    .map((item) => normalizeAiText(item))
+    .filter(Boolean)
+    .slice(0, MAX_ITEMS);
+}
+
+function getAiChartData(slide) {
+  if (!Array.isArray(slide?.chartData)) return [];
+  return slide.chartData
+    .map((item, index) => ({
+      label: normalizeAiText(item?.label || `항목 ${index + 1}`, 40),
+      value: Number(item?.value)
+    }))
+    .filter((item) => item.label && Number.isFinite(item.value) && item.value >= 0)
+    .slice(0, CHART_MAX_ITEMS);
+}
+
+function getAiTableData(slide) {
+  if (!Array.isArray(slide?.tableData)) return [];
+  return slide.tableData
+    .filter(Array.isArray)
+    .slice(0, 9)
+    .map((row) => row.slice(0, 6).map((cell) => normalizeAiText(cell, 80)))
+    .filter((row) => row.some(Boolean));
+}
+
+function createAiBulletPage(slide, suppliedItems) {
+  const page = createContentPage();
+  const items = suppliedItems || getAiItems(slide);
+  buildTemplate(page, "bullet");
+  const title = page.objects.find((object) => object.role === "page-title");
+  if (title) title.text = normalizeAiText(slide?.title, 100) || "핵심 내용";
+  page.objects = page.objects.filter((object) => object.role !== "bullet-item");
+  const bulletItems = (items.length ? items : ["내용을 입력하세요."]).map((text) => (
+    createTextObject("bullet-item", text, 12, 0, 75, 9, { item: true, bulletLevel: 1 })
+  ));
+  page.objects.push(...bulletItems);
+  layoutBulletItems(page);
+  return page;
+}
+
+function createAiMindmapPage(slide) {
+  const page = createContentPage();
+  const root = createTextObject(
+    "mind-root",
+    normalizeAiText(slide?.title, 70) || "핵심 주제",
+    42,
+    45,
+    16,
+    14,
+    { item: false, node: true, root: true, mindLevel: 1 }
+  );
+  const items = getAiItems(slide);
+  const branches = (items.length ? items : ["핵심 내용"])
+    .slice(0, 8)
+    .map((text) => createMindNode(text, root.id, 2));
+  page.template = "mindmap";
+  page.objectCategory = "diagram";
+  page.variant = "connectedCircles";
+  page.objects = [root, ...branches];
+  layoutMindmapTree(page);
+  return page;
+}
+
+function createAiObjectPage(slide) {
+  const requestedCategory = normalizeAiText(slide?.category, 20).toLowerCase();
+  const category = Object.hasOwn(AI_OBJECT_VARIANTS, requestedCategory) ? requestedCategory : "layout";
+  const requestedVariant = normalizeAiText(slide?.variant, 40);
+  const variant = AI_OBJECT_VARIANTS[category].has(requestedVariant)
+    ? requestedVariant
+    : AI_OBJECT_DEFAULT_VARIANTS[category];
+  const items = getAiItems(slide);
+  const chartData = getAiChartData(slide);
+  const tableData = getAiTableData(slide);
+
+  // 숫자가 없는 응답으로 기본 예시 차트를 노출하지 않는다.
+  if (category === "chart" && chartData.length < CHART_MIN_ITEMS) {
+    return createAiBulletPage(slide, items);
+  }
+
+  const page = createContentPage();
+  page.template = "object";
+  page.objectCategory = category;
+  page.variant = variant;
+  const requestedCount = category === "chart"
+    ? chartData.length
+    : tableData.length > 1
+      ? tableData.length - 1
+      : items.length || 3;
+  buildObjectTemplate(page, requestedCount);
+
+  const title = page.objects.find((object) => object.role === "page-title");
+  if (title) title.text = normalizeAiText(slide?.title, 100) || "핵심 내용";
+
+  if (category === "chart") {
+    const chart = page.objects.find((object) => object.type === "chart");
+    if (chart) chart.data = chartData;
+  }
+
+  const table = page.objects.find((object) => object.type === "table");
+  if (table && tableData.length >= 2) table.cells = tableData;
+
+  const textTargets = page.objects.filter((object) => (
+    object.type === "text"
+    && object.role !== "page-title"
+    && object.role !== "vs-label"
+    && object.role !== "media-placeholder"
+  ));
+  textTargets.forEach((target, index) => {
+    target.text = items[index] || "";
+  });
+  return page;
+}
+
+function createAiContentPage(slide) {
+  const requestedTemplate = normalizeAiText(slide?.template, 20).toLowerCase();
+  const template = AI_TEMPLATES.has(requestedTemplate) ? requestedTemplate : "bullet";
+  if (template === "mindmap") return createAiMindmapPage(slide);
+  if (template === "object") return createAiObjectPage(slide);
+  return createAiBulletPage(slide);
+}
+
 window.LocalPptApp = {
   startBlank() {
     state.design = "bauhaus";
@@ -2350,18 +2587,7 @@ window.LocalPptApp = {
     const cover = createCoverPage();
     cover.objects.find((object) => object.role === "cover-title").text = title;
     cover.objects.find((object) => object.role === "cover-subtitle").text = String(presentation?.subtitle || "AI가 생성한 프레젠테이션 초안").trim().slice(0, 160);
-    state.pages = [cover, ...slides.map((slide) => {
-      const page = createContentPage();
-      buildTemplate(page, "bullet");
-      const titleObject = page.objects.find((object) => object.role === "page-title");
-      titleObject.text = String(slide?.title || "핵심 메시지").trim().slice(0, 100);
-      const bullets = Array.isArray(slide?.bullets) ? slide.bullets.filter(Boolean).slice(0, 8) : [];
-      page.objects = page.objects.filter((object) => object.role !== "bullet-item");
-      bullets.forEach((bullet) => page.objects.push(createTextObject("bullet-item", String(bullet).trim().slice(0, 220), 12, 0, 75, 9, { item: true, bulletLevel: 1 })));
-      if (!bullets.length) page.objects.push(createTextObject("bullet-item", "핵심 내용을 입력하세요.", 12, 0, 75, 9, { item: true, bulletLevel: 1 }));
-      layoutBulletItems(page);
-      return page;
-    })];
+    state.pages = [cover, ...slides.map(createAiContentPage)];
     state.currentPageIndex = 0;
     state.selectedIds.clear();
     state.guides = [];

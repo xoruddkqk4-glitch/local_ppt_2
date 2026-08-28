@@ -25,6 +25,7 @@ button, select, input { font: inherit; }
 .ai-generation-form { margin-top:0; }
 .text-link { padding:0; border:0; border-bottom:1px solid currentColor; background:transparent; font-size:12px; font-weight:800; cursor:pointer; }
 .intake-field { display:grid; gap:7px; font-size:12px; font-weight:900; }
+.intake-field[hidden],.intake-file[hidden] { display:none; }
 .intake-field textarea,.intake-field input { width:100%; padding:11px; border:2px solid var(--ink); border-radius:0; background:#fff; color:var(--ink); font-weight:650; resize:vertical; }
 .intake-file { min-height:104px; display:grid; place-items:center; gap:7px; border:2px dashed var(--ink); background:#fff; font-size:13px; font-weight:900; cursor:pointer; }
 .intake-file input { position:absolute; width:1px; height:1px; opacity:0; }
@@ -42,7 +43,7 @@ button, select, input { font: inherit; }
 .api-fields legend { padding:0 4px; font-size:12px; font-weight:900; }
 .api-fields legend small { color:#6a6660; font-size:10px; font-weight:650; }
 .api-fields label { display:grid; gap:5px; font-size:11px; font-weight:850; }
-.api-fields input { min-width:0; padding:9px; border:1px solid var(--ink); background:#fff; }
+.api-fields input,.api-fields select { min-width:0; padding:9px; border:1px solid var(--ink); border-radius:0; background:#fff; }
 .provider-choice { grid-column:1/-1; display:flex; align-items:center; gap:11px; padding-top:3px; font-size:11px; font-weight:800; }
 .provider-choice label { display:block; }
 .ai-intake-status { min-height:19px; margin:12px 0 0; color:#51504b; font-size:12px; font-weight:750; }
@@ -177,7 +178,7 @@ kbd { border:1px solid currentColor; padding:1px 3px; font-size:10px; }
 .text-tool-button { min-width:28px; height:28px; padding:3px 7px; border:1px solid var(--ink); background:#fff; color:var(--ink); font-weight:900; cursor:pointer; }
 .text-tool-button + .text-tool-button { margin-left:-1px; }
 .text-tool-button.is-active { position:relative; background:var(--yellow); }
-.page-list { min-width:0; display:flex; gap:5px; overflow-x:auto; padding-bottom:2px; }
+.page-list { width:100%; min-width:0; display:flex; gap:5px; overflow-x:auto; padding-bottom:2px; }
 .page-item { flex:none; padding:6px 8px; border:2px solid var(--ink); background:#fff; font-size:11px; font-weight:900; cursor:pointer; }
 .page-item.is-current { background:var(--yellow); }
 .page-item.cover::before { content:"TITLE · "; }
@@ -191,7 +192,7 @@ kbd { border:1px solid currentColor; padding:1px 3px; font-size:10px; }
 .canvas-object { position:absolute; z-index:2; min-width:40px; min-height:28px; user-select:none; touch-action:none; cursor:grab; }
 .canvas-object.is-selected { outline:3px dashed #2563eb; outline-offset:5px; }
 .canvas-object.is-editing { outline:3px solid #2563eb; outline-offset:4px; cursor:text; }
-.canvas-text { width:100%; height:100%; display:flex; align-items:center; justify-content:center; text-align:center; white-space:pre-wrap; overflow:hidden; font-size:calc(var(--object-font-size,28px) * var(--hierarchy-scale, 1)); font-weight:850; line-height:1.08; }
+.canvas-text { width:100%; height:100%; display:flex; align-items:center; justify-content:center; text-align:center; white-space:pre-wrap; word-break:keep-all; overflow-wrap:break-word; overflow:hidden; font-size:calc(var(--object-font-size,28px) * var(--hierarchy-scale, 1)); font-weight:850; line-height:1.08; }
 .canvas-text[contenteditable="true"] { user-select:text; cursor:text; overflow:auto; }
 .cover-title { font-weight:950; letter-spacing:-.07em; line-height:.92; }
 .cover-subtitle { font-weight:750; }

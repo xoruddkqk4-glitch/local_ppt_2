@@ -6,7 +6,7 @@
   <title>Local PPT 2</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="style.css?v=20260828-intake2">
+  <link rel="stylesheet" href="style.css?v=20260828-intake3">
 </head>
 <body data-design="bauhaus">
   <header class="app-header">
@@ -122,7 +122,6 @@
     <section class="stage-panel" aria-label="프레젠테이션 편집 영역">
       <div class="stage-toolbar">
         <div id="pageList" class="page-list"></div>
-        <span id="stageGuide">더블클릭: 편집 · Ctrl+클릭: 복수 선택 · Ctrl+C/V: 개체 또는 현재 페이지 복사 · 드래그: 이동 · 격자 스냅</span>
       </div>
       <div id="textToolbar" class="text-toolbar" hidden aria-label="텍스트 서식">
         <strong>텍스트</strong>
@@ -157,6 +156,21 @@
             <fieldset class="api-fields"><legend>AI API 키 <small>입력값은 이 요청에만 사용되며 저장되지 않습니다.</small></legend>
               <label>ChatGPT API 키 <input id="openaiApiKey" type="password" autocomplete="off" placeholder="sk-..."></label>
               <label>Claude API 키 <input id="anthropicApiKey" type="password" autocomplete="off" placeholder="sk-ant-..."></label>
+              <label>ChatGPT 모델
+                <select id="openaiModel">
+                  <option value="gpt-5.6-sol">GPT-5.6 Sol — 최신 최고 성능</option>
+                  <option value="gpt-5.6-terra">GPT-5.6 Terra — 고성능 균형형</option>
+                  <option value="gpt-5.4-mini" selected>GPT-5.4 Mini — 균형형</option>
+                  <option value="gpt-5.6-luna">GPT-5.6 Luna — 최신 저비용</option>
+                  <option value="gpt-5-mini">GPT-5 Mini — 저비용 초안</option>
+                </select>
+              </label>
+              <label>Claude 모델
+                <select id="anthropicModel">
+                  <option value="claude-sonnet-5" selected>Claude Sonnet 5 — 고품질</option>
+                  <option value="claude-haiku-4-5">Claude Haiku 4.5 — 저비용 초안</option>
+                </select>
+              </label>
               <div id="providerChoice" class="provider-choice" hidden aria-live="polite"></div>
             </fieldset>
           </div>
@@ -189,6 +203,6 @@
   <script src="charts/options.js?v=20260828-charts1"></script>
   <script src="app.js?v=20260828-charts2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="ai-intake.js?v=20260828-ai2"></script>
+  <script src="ai-intake.js?v=20260828-ai4"></script>
 </body>
 </html>
