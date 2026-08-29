@@ -1566,6 +1566,8 @@ function renderControls() {
   }
 }
 
+let draggedPageIndex = null;
+
 function renderPages() {
   const list = $("#pageList");
   list.innerHTML = "";
@@ -1573,7 +1575,10 @@ function renderPages() {
     const button = document.createElement("button");
     button.className = `page-item ${index === state.currentPageIndex ? "is-current" : ""} ${page.type === "cover" ? "cover" : ""}`;
     button.type = "button";
+    button.setAttribute("draggable", "true");
+    button.dataset.pageIndex = index;
     button.innerHTML = `PAGE ${String(index + 1).padStart(2, "0")}${page.type === "content" ? '<span class="page-delete">×</span>' : ""}`;
+
     button.addEventListener("click", (event) => {
       if (event.target.classList.contains("page-delete")) {
         snapshot();
@@ -1587,6 +1592,97 @@ function renderPages() {
       hideTextToolbar();
       render();
     });
+
+    button.addEventListener("dragstart", (event) => {
+      if (event.target.classList.contains("page-delete")) {
+        event.preventDefault();
+        return;
+      }
+      draggedPageIndex = index;
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", String(index));
+      requestAnimationFrame(() => {
+        button.classList.add("is-dragging");
+      });
+    });
+
+    button.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      if (draggedPageIndex === null) return;
+      event.dataTransfer.dropEffect = "move";
+
+      const rect = button.getBoundingClientRect();
+      const midX = rect.left + rect.width / 2;
+      const isBefore = event.clientX < midX;
+
+      list.querySelectorAll(".page-item").forEach((item) => {
+        item.classList.remove("drag-over-before", "drag-over-after");
+      });
+
+      if (isBefore) {
+        button.classList.add("drag-over-before");
+      } else {
+        button.classList.add("drag-over-after");
+      }
+    });
+
+    button.addEventListener("dragenter", (event) => {
+      event.preventDefault();
+    });
+
+    button.addEventListener("dragleave", (event) => {
+      if (event.relatedTarget && button.contains(event.relatedTarget)) return;
+      button.classList.remove("drag-over-before", "drag-over-after");
+    });
+
+    button.addEventListener("drop", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      list.querySelectorAll(".page-item").forEach((item) => {
+        item.classList.remove("drag-over-before", "drag-over-after", "is-dragging");
+      });
+
+      if (draggedPageIndex === null) return;
+      const fromIndex = draggedPageIndex;
+      draggedPageIndex = null;
+
+      const rect = button.getBoundingClientRect();
+      const midX = rect.left + rect.width / 2;
+      let targetIndex = index;
+      if (event.clientX >= midX) {
+        targetIndex = index + 1;
+      }
+
+      if (fromIndex === targetIndex || fromIndex === targetIndex - 1) return;
+
+      snapshot();
+      const activePage = state.pages[state.currentPageIndex];
+      const [movedPage] = state.pages.splice(fromIndex, 1);
+
+      let insertIndex = targetIndex;
+      if (fromIndex < targetIndex) {
+        insertIndex -= 1;
+      }
+      state.pages.splice(insertIndex, 0, movedPage);
+
+      const newActiveIndex = state.pages.indexOf(activePage);
+      if (newActiveIndex !== -1) {
+        state.currentPageIndex = newActiveIndex;
+      }
+      state.selectedIds.clear();
+      state.guides = [];
+      hideTextToolbar();
+      render();
+    });
+
+    button.addEventListener("dragend", () => {
+      draggedPageIndex = null;
+      list.querySelectorAll(".page-item").forEach((item) => {
+        item.classList.remove("drag-over-before", "drag-over-after", "is-dragging");
+      });
+    });
+
     list.append(button);
   });
 }
@@ -2645,9 +2741,6 @@ function parseProject(text) {
   if (!presentation || !Array.isArray(presentation.pages) || !presentation.pages.length) {
     throw new Error("페이지 데이터가 없습니다.");
   }
-  if (presentation.pages[0]?.type !== "cover" || presentation.pages[0]?.template !== "cover") {
-    throw new Error("첫 페이지는 표지 페이지여야 합니다.");
-  }
   presentation.pages.forEach((page, pageIndex) => {
     if (!page || !Array.isArray(page.objects)) throw new Error(`PAGE ${pageIndex + 1}의 개체 데이터가 올바르지 않습니다.`);
     page.objects.forEach((object) => {
@@ -2780,7 +2873,7 @@ $("#saveProjectButton").addEventListener("click", saveCurrentProject);
 $("#saveAsProjectButton").addEventListener("click", saveProjectAs);
 
 $("#designSelect")?.addEventListener("change", (event) => {
-  if (state.currentPageIndex !== 0) return;
+  if (currentPage()?.type !== "cover") return;
   snapshot();
   state.design = event.target.value;
   state.customPalette = null;
