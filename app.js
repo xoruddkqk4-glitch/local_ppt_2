@@ -1189,6 +1189,45 @@ function addItem() {
   render();
 }
 
+function deleteSelectedObjects() {
+  const page = currentPage();
+  if (state.selectedIds.size === 0) return false;
+
+  const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
+  if (!selectedObjects.length) return false;
+
+  const deletable = selectedObjects.filter((obj) => obj.role !== "page-title" && !obj.root);
+  if (!deletable.length) return false;
+
+  snapshot();
+
+  if (page.template === "bullet") {
+    page.objects = page.objects.filter((object) => !state.selectedIds.has(object.id));
+    layoutBulletItems(page);
+  } else if (page.template === "mindmap") {
+    const deletedIds = new Set(state.selectedIds);
+    let foundChild = true;
+    while (foundChild) {
+      foundChild = false;
+      page.objects.forEach((object) => {
+        if (object.parentId && deletedIds.has(object.parentId) && !deletedIds.has(object.id)) {
+          deletedIds.add(object.id);
+          foundChild = true;
+        }
+      });
+    }
+    page.objects = page.objects.filter((object) => !deletedIds.has(object.id));
+  } else {
+    page.objects = page.objects.filter((object) => !state.selectedIds.has(object.id));
+  }
+
+  state.selectedIds.clear();
+  state.guides = [];
+  hideTextToolbar();
+  render();
+  return true;
+}
+
 function removeItem() {
   const page = currentPage();
   const count = getItemCount(page);
@@ -1526,6 +1565,26 @@ function createObjectElement(object) {
   element.className = `canvas-object ${getObjectClass(object)} ${state.selectedIds.has(object.id) ? "is-selected" : ""}`;
   element.dataset.objectId = object.id;
   applyObjectBox(element, object);
+
+  if (object.shapeType || object.role === "shape-box") {
+    const shapeType = object.shapeType || "rectangle";
+    const shapeSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    shapeSvg.setAttribute("viewBox", "0 0 100 100");
+    shapeSvg.setAttribute("preserveAspectRatio", "none");
+    shapeSvg.classList.add("shape-vector-svg");
+    const color = object.bgColor || (shapeType === "circle" ? "#ef4444" : shapeType === "triangle" ? "#10b981" : shapeType === "star" ? "#f59e0b" : "#2563eb");
+
+    if (shapeType === "circle") {
+      shapeSvg.innerHTML = `<circle cx="50" cy="50" r="46" fill="${color}" stroke="#0f172a" stroke-width="4"/>`;
+    } else if (shapeType === "triangle") {
+      shapeSvg.innerHTML = `<polygon points="50,4 96,96 4,96" fill="${color}" stroke="#0f172a" stroke-width="4" stroke-linejoin="round"/>`;
+    } else if (shapeType === "star") {
+      shapeSvg.innerHTML = `<polygon points="50,4 63,35 96,35 70,56 80,94 50,71 20,94 30,56 4,35 37,35" fill="${color}" stroke="#0f172a" stroke-width="4" stroke-linejoin="round"/>`;
+    } else {
+      shapeSvg.innerHTML = `<rect x="3" y="3" width="94" height="94" rx="8" fill="${color}" stroke="#0f172a" stroke-width="4"/>`;
+    }
+    element.append(shapeSvg);
+  }
 
   if (typeof object.animOrder === "number" && object.animOrder > 0) {
     const badge = document.createElement("span");
@@ -1897,6 +1956,9 @@ function showTextToolbar(object, textElement) {
   const toolbar = $("#textToolbar");
   toolbar.hidden = false;
   $("#textColorInput").value = normalizeColor(object.textColor || getComputedStyle(textElement).color);
+  if ($("#bgColorInput")) {
+    $("#bgColorInput").value = normalizeColor(object.bgColor || getComputedStyle(textElement.parentElement || textElement).backgroundColor || "#ffffff");
+  }
   $("#textSizeInput").value = Math.round(object.fontSize || Number.parseFloat(getComputedStyle(textElement).fontSize) || 28);
   toolbar.querySelectorAll("[data-text-align]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.textAlign === getTextAlign(object));
@@ -2793,6 +2855,14 @@ $("#tableAxisSelect").addEventListener("change", (event) => {
 $("#undoButton").addEventListener("click", undo);
 
 $("#textColorInput").addEventListener("change", (event) => updateActiveTextStyle("textColor", event.target.value));
+$("#bgColorInput")?.addEventListener("change", (event) => {
+  const page = currentPage();
+  const selectedObjects = page.objects.filter((item) => state.selectedIds.has(item.id));
+  if (!selectedObjects.length) return;
+  snapshot();
+  selectedObjects.forEach((item) => { item.bgColor = event.target.value; });
+  renderStage();
+});
 function commitTextSizeInput(input) {
   const parsed = Number(input.value);
   if (!Number.isFinite(parsed)) {
@@ -2820,8 +2890,42 @@ document.querySelectorAll("[data-text-align]").forEach((button) => {
 $("#autoTextSizeButton").addEventListener("click", () => updateActiveTextStyle("fontSize", null));
 $("#closeTextToolbarButton").addEventListener("click", hideTextToolbar);
 
-$("#mergeCardsButton")?.addEventListener("click", () => {
-  mergeSelectedCards();
+$("#addTextObjectButton")?.addEventListener("click", () => {
+  const page = currentPage();
+  if (page.type === "cover") return;
+  snapshot();
+  page.objects.push(createTextObject("free-text", "새 텍스트 개체", 40, 45, 24, 12, { item: false, textAlign: "center" }));
+  render();
+});
+$("#addShapeObjectButton")?.addEventListener("click", () => {
+  const page = currentPage();
+  if (page.type === "cover") return;
+  snapshot();
+  page.objects.push(createTextObject("shape-box", "도형 개체", 40, 45, 20, 18, { item: false, textAlign: "center", shapeType: "rectangle", bgColor: "#2563eb", textColor: "#ffffff" }));
+  render();
+});
+document.querySelectorAll(".shape-select-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const shapeType = btn.dataset.shapeType || "rectangle";
+    const page = currentPage();
+    if (page.type === "cover") return;
+    snapshot();
+    const configMap = {
+      rectangle: { name: "사각형", bg: "#2563eb", text: "#ffffff" },
+      circle: { name: "동그라미", bg: "#ef4444", text: "#ffffff" },
+      triangle: { name: "세모", bg: "#10b981", text: "#ffffff" },
+      star: { name: "별표", bg: "#f59e0b", text: "#1e293b" }
+    };
+    const config = configMap[shapeType] || configMap.rectangle;
+    page.objects.push(createTextObject("shape-box", config.name, 40, 45, 20, 18, {
+      item: false,
+      textAlign: "center",
+      shapeType,
+      bgColor: config.bg,
+      textColor: config.text
+    }));
+    render();
+  });
 });
 $("#cardImageInsertButton")?.addEventListener("click", () => {
   $("#imageInput").click();
@@ -3130,6 +3234,13 @@ document.addEventListener("keydown", (event) => {
 
   if (key === "m" && !modifier && !editingText && !["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) {
     if (mergeSelectedCards()) {
+      event.preventDefault();
+      return;
+    }
+  }
+
+  if ((event.key === "Delete" || event.key === "Del" || key === "delete" || key === "del") && !editingText && !["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) {
+    if (deleteSelectedObjects()) {
       event.preventDefault();
       return;
     }
