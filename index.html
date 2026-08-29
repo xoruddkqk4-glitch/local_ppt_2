@@ -36,50 +36,72 @@
 
       <section id="templateSection" class="panel-section">
         <div class="section-heading"><span>01</span><h2>본문 템플릿</h2></div>
-        <label class="select-label">템플릿
-          <select id="templateSelect">
-            <option value="">템플릿을 선택하세요</option>
-            <option value="bullet">개조식</option>
-            <option value="mindmap">마인드맵</option>
-            <option value="object">개체형</option>
-          </select>
-        </label>
-        <div id="objectOptions" class="object-options" hidden>
-          <div id="layoutVariantSection" class="layout-variant-section">
+        <p id="templateCurrentBadge" class="template-current-badge">현재 템플릿: <strong>개조식</strong></p>
+
+        <div id="unifiedTemplateContainer" class="unified-template-container">
+          <!-- 1. 텍스트 & 구조화 -->
+          <div class="template-category-block">
             <div class="layout-variant-header">
               <div class="layout-variant-heading">
-                <strong class="option-group-title">레이아웃</strong>
-                <span id="layoutVariantCurrent" class="layout-variant-current">레이아웃 선택</span>
+                <strong class="option-group-title">📁 텍스트 & 구조화</strong>
               </div>
-              <button id="layoutVariantToggle" class="layout-variant-toggle" type="button" aria-expanded="false" aria-controls="layoutVariantGrid" aria-label="레이아웃 목록 펼치기">
+              <button id="catToggle_text" class="layout-variant-toggle" type="button" aria-expanded="true" aria-controls="catGrid_text" aria-label="텍스트 & 구조화 펼치기">
                 <span class="layout-toggle-chevron" aria-hidden="true"></span>
               </button>
             </div>
-            <div id="layoutVariantGrid" class="layout-variant-grid" role="group" aria-label="레이아웃 선택" hidden></div>
+            <div id="catGrid_text" class="layout-variant-grid" role="group"></div>
           </div>
-          <div id="diagramVariantSection" class="diagram-variant-section">
+
+          <!-- 2. 카드 & 레이아웃 -->
+          <div class="template-category-block">
             <div class="layout-variant-header">
               <div class="layout-variant-heading">
-                <strong class="option-group-title">다이어그램</strong>
-                <span id="diagramVariantCurrent" class="layout-variant-current">다이어그램 선택</span>
+                <strong class="option-group-title">📁 카드 & 레이아웃</strong>
               </div>
-              <button id="diagramVariantToggle" class="layout-variant-toggle" type="button" aria-expanded="false" aria-controls="diagramVariantGrid" aria-label="다이어그램 목록 펼치기">
+              <button id="catToggle_card" class="layout-variant-toggle" type="button" aria-expanded="false" aria-controls="catGrid_card" aria-label="카드 & 레이아웃 펼치기">
                 <span class="layout-toggle-chevron" aria-hidden="true"></span>
               </button>
             </div>
-            <div id="diagramVariantGrid" class="layout-variant-grid diagram-variant-grid" role="group" aria-label="다이어그램 선택" hidden></div>
+            <div id="catGrid_card" class="layout-variant-grid" role="group" hidden></div>
           </div>
-          <div id="chartVariantSection" class="chart-variant-section">
+
+          <!-- 3. 요약 및 강조 -->
+          <div class="template-category-block">
             <div class="layout-variant-header">
               <div class="layout-variant-heading">
-                <strong class="option-group-title">차트 및 그래프</strong>
-                <span id="chartVariantCurrent" class="layout-variant-current">차트 선택</span>
+                <strong class="option-group-title">📁 요약 및 강조</strong>
               </div>
-              <button id="chartVariantToggle" class="layout-variant-toggle" type="button" aria-expanded="false" aria-controls="chartVariantGrid" aria-label="차트 목록 펼치기">
+              <button id="catToggle_compare" class="layout-variant-toggle" type="button" aria-expanded="false" aria-controls="catGrid_compare" aria-label="요약 및 강조 펼치기">
                 <span class="layout-toggle-chevron" aria-hidden="true"></span>
               </button>
             </div>
-            <div id="chartVariantGrid" class="layout-variant-grid chart-variant-grid" role="group" aria-label="차트 및 그래프 선택" hidden></div>
+            <div id="catGrid_compare" class="layout-variant-grid" role="group" hidden></div>
+          </div>
+
+          <!-- 4. 프로세스 & 비주얼 -->
+          <div class="template-category-block">
+            <div class="layout-variant-header">
+              <div class="layout-variant-heading">
+                <strong class="option-group-title">📁 프로세스 & 비주얼</strong>
+              </div>
+              <button id="catToggle_diagram" class="layout-variant-toggle" type="button" aria-expanded="false" aria-controls="catGrid_diagram" aria-label="프로세스 & 비주얼 펼치기">
+                <span class="layout-toggle-chevron" aria-hidden="true"></span>
+              </button>
+            </div>
+            <div id="catGrid_diagram" class="layout-variant-grid diagram-variant-grid" role="group" hidden></div>
+          </div>
+
+          <!-- 5. 데이터 차트 & 테이블 -->
+          <div class="template-category-block">
+            <div class="layout-variant-header">
+              <div class="layout-variant-heading">
+                <strong class="option-group-title">📁 데이터 차트 & 테이블</strong>
+              </div>
+              <button id="catToggle_chart" class="layout-variant-toggle" type="button" aria-expanded="false" aria-controls="catGrid_chart" aria-label="데이터 차트 & 테이블 펼치기">
+                <span class="layout-toggle-chevron" aria-hidden="true"></span>
+              </button>
+            </div>
+            <div id="catGrid_chart" class="layout-variant-grid chart-variant-grid" role="group" hidden></div>
           </div>
         </div>
       </section>
@@ -90,6 +112,11 @@
         <div class="action-grid">
           <button id="addItemButton" class="button">+ 항목</button>
           <button id="removeItemButton" class="button">− 항목</button>
+        </div>
+        <div class="card-image-action-grid" style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <button id="mergeCardsButton" class="button button-blue" type="button" style="flex:1 1 100%;">🧩 카드 합치기 (단축키 M)</button>
+          <button id="cardImageInsertButton" class="button" type="button" style="flex:1;">📷 카드 이미지 삽입</button>
+          <button id="cardImageRemoveButton" class="button button-danger" type="button" style="flex:1;" hidden>🗑️ 이미지 제거</button>
         </div>
         <label id="tableAxisLabel" class="select-label" hidden>테이블 관리 대상
           <select id="tableAxisSelect">

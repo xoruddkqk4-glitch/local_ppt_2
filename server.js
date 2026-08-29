@@ -35,12 +35,10 @@ Template decision rules
 - Do not default every slide to bullet. Also do not force a visual when it makes the information less clear.
 
 Layout guidance
-- cards, sideAccentGrid, focusCards: parallel topics or grouped facts.
-- compare: two to four comparable alternatives with summary.
+- cards_1col, cards_2col, cards_3col, cards_4col: basic card grids (1 to 4 columns). Cards can also embed images.
+- sideAccent_1col, sideAccent_2col, sideAccent_3col, sideAccent_4col: side accent card grids with vertical theme accent bar.
+- summaryLeft, summaryRight, summaryTop, summaryBottom: summary & highlight layouts with summary panel/banner on left, right, top, or bottom.
 - table, tableStats: detailed values or data that must be read precisely.
-- bannerMetrics, metricsBottomBanner: KPIs and headline metrics with banner.
-- stepsMedia, processNotices: ordered steps with supporting notes.
-- mediaFeatures, pairedCheckWarnings: concepts, features, benefits, or paired checks.
 
 Diagram guidance
 - process, chain, ribbonArrow: ordered flow or cause-to-result sequence.
@@ -64,7 +62,7 @@ Chart guidance
 - For spreadsheet input, inspect headers and row/column relationships. Use charts for as many meaningful numeric comparisons or trends as the requested slide count reasonably allows, while reserving tables for precision and text slides for conclusions. Do not chart identifiers, phone numbers, codes, years used only as labels, or other non-measures.
 
 Allowed variants
-- layout: cards, sideAccentGrid, mediaFeatures, compare, pairedCheckWarnings, bannerMetrics, metricsBottomBanner, focusCards, stepsMedia, processNotices, table, tableStats.
+- layout: cards_1col, cards_2col, cards_3col, cards_4col, sideAccent_1col, sideAccent_2col, sideAccent_3col, sideAccent_4col, summaryLeft, summaryRight, summaryTop, summaryBottom, table, tableStats.
 - diagram: process, timeline, pyramid, cycle, chain, ribbonArrow, funnel, venn, target, connectedCircles, quadrant, vs.
 - chart: column, line, pie, bar, area.
 

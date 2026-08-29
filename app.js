@@ -23,7 +23,7 @@ const TABLE_LAYOUT_VARIANTS = new Set(["table", "tableStats"]);
 const ITEM_COUNT_ROLE_BY_VARIANT = { pairedCheckWarnings: "checklist-card" };
 const AI_TEMPLATES = new Set(["bullet", "mindmap", "object"]);
 const AI_OBJECT_VARIANTS = {
-  layout: new Set(["cards", "sideAccentGrid", "mediaFeatures", "compare", "pairedCheckWarnings", "bannerMetrics", "metricsBottomBanner", "focusCards", "stepsMedia", "processNotices", "table", "tableStats"]),
+  layout: new Set(["cards_1col", "cards_2col", "cards_3col", "cards_4col", "sideAccent_1col", "sideAccent_2col", "sideAccent_3col", "sideAccent_4col", "summaryLeft", "summaryRight", "summaryTop", "summaryBottom", "table", "tableStats"]),
   diagram: new Set(["process", "timeline", "pyramid", "cycle", "chain", "ribbonArrow", "funnel", "venn", "target", "connectedCircles", "quadrant", "vs"]),
   chart: new Set(["column", "line", "pie", "bar", "area"])
 };
@@ -358,16 +358,20 @@ function buildObjectTemplate(page, itemCount) {
   const count = Math.max(MIN_ITEMS, Math.min(MAX_ITEMS, itemCount));
 
   if (page.objectCategory === "layout") {
-    if (page.variant === "cards") addCardLayout(page, count);
-    if (page.variant === "sideAccentGrid") addSideAccentGridLayout(page, count);
-    if (page.variant === "mediaFeatures") addMediaFeaturesLayout(page, count);
-    if (page.variant === "compare") addCompareSummaryLayout(page);
-    if (page.variant === "pairedCheckWarnings") addPairedCheckWarningsLayout(page, count);
-    if (page.variant === "bannerMetrics") addBannerMetricsLayout(page, count);
-    if (page.variant === "metricsBottomBanner") addMetricsBottomBannerLayout(page, count);
-    if (page.variant === "focusCards") addFocusCardsLayout(page, count);
-    if (page.variant === "stepsMedia") addStepsMediaLayout(page, count);
-    if (page.variant === "processNotices") addProcessNoticesLayout(page, count);
+    if (page.variant === "cards" || page.variant === "cards_2col") addCardLayoutWithColumns(page, count, 2);
+    if (page.variant === "cards_1col") addCardLayoutWithColumns(page, count, 1);
+    if (page.variant === "cards_3col") addCardLayoutWithColumns(page, count, 3);
+    if (page.variant === "cards_4col") addCardLayoutWithColumns(page, count, 4);
+
+    if (page.variant === "sideAccentGrid" || page.variant === "sideAccent_2col") addSideAccentLayoutWithColumns(page, count, 2);
+    if (page.variant === "sideAccent_1col") addSideAccentLayoutWithColumns(page, count, 1);
+    if (page.variant === "sideAccent_3col") addSideAccentLayoutWithColumns(page, count, 3);
+    if (page.variant === "sideAccent_4col") addSideAccentLayoutWithColumns(page, count, 4);
+
+    if (page.variant === "summaryLeft") addSummaryLeftLayout(page, count);
+    if (page.variant === "summaryRight") addSummaryRightLayout(page, count);
+    if (page.variant === "summaryTop") addSummaryTopLayout(page, count);
+    if (page.variant === "summaryBottom") addSummaryBottomLayout(page, count);
     if (page.variant === "table") addTableLayout(page, count);
     if (page.variant === "tableStats") addTableStatsLayout(page, count);
   } else if (page.objectCategory === "diagram") {
@@ -606,9 +610,9 @@ function changeChartVariantPreservingContent(page, variant) {
   if (data.length >= CHART_MIN_ITEMS) chart.data = data.slice(0, CHART_MAX_ITEMS);
   chart.sourceBlocks = sourceBlocks;
   chart.x = 5;
-  chart.y = 16;
+  chart.y = 24;
   chart.w = 90;
-  chart.h = 79;
+  chart.h = 71;
 }
 
 function getVariantTitle(page) {
@@ -616,35 +620,55 @@ function getVariantTitle(page) {
   return collection[page.variant]?.name?.toUpperCase() || "OBJECT PAGE";
 }
 
-function addCardLayout(page, count) {
-  const columns = count <= 4 ? 2 : 3;
+function addCardLayoutWithColumns(page, count, cols) {
+  const columns = clamp(1, cols, 4);
   const rows = Math.ceil(count / columns);
-  const w = columns === 2 ? 37 : 25;
-  const h = Math.min(24, 55 / rows);
+  const gapX = 3;
+  const gapY = 4;
+  const areaW = 84;
+  const areaH = 55;
+  const w = (areaW - gapX * (columns - 1)) / columns;
+  const h = Math.min(48, (areaH - gapY * (rows - 1)) / rows);
+  const startX = 50 - areaW / 2;
+  const startY = 28;
+
   for (let i = 0; i < count; i += 1) {
-    const column = i % columns;
+    const col = i % columns;
     const row = Math.floor(i / columns);
-    page.objects.push(createTextObject("card", `카드 ${i + 1}`, 9 + column * (w + 6), 32 + row * (h + 5), w, h, { item: true }));
+    page.objects.push(createTextObject(
+      "card",
+      `카드 ${i + 1}`,
+      startX + col * (w + gapX),
+      startY + row * (h + gapY),
+      w,
+      h,
+      { item: true }
+    ));
   }
 }
 
-function addSideAccentCardLayout(page, count) {
-  const columns = Math.min(3, count);
+function addSideAccentLayoutWithColumns(page, count, cols) {
+  const columns = clamp(1, cols, 4);
   const rows = Math.ceil(count / columns);
-  const columnGap = 5;
-  const rowGap = 5;
-  const width = (84 - columnGap * (columns - 1)) / columns;
-  const height = Math.min(20, (52 - rowGap * (rows - 1)) / rows);
+  const gapX = 3;
+  const gapY = 4;
+  const areaW = 84;
+  const areaH = 55;
+  const w = (areaW - gapX * (columns - 1)) / columns;
+  const h = Math.min(48, (areaH - gapY * (rows - 1)) / rows);
+  const startX = 50 - areaW / 2;
+  const startY = 28;
+
   for (let i = 0; i < count; i += 1) {
-    const column = i % columns;
+    const col = i % columns;
     const row = Math.floor(i / columns);
     page.objects.push(createTextObject(
       "side-accent-card",
-      `항목 ${i + 1}\n설명을 입력하세요`,
-      8 + column * (width + columnGap),
-      32 + row * (height + rowGap),
-      width,
-      height,
+      `항목 ${i + 1}\n세부 내용을 입력하세요`,
+      startX + col * (w + gapX),
+      startY + row * (h + gapY),
+      w,
+      h,
       { item: true, textAlign: "left" }
     ));
   }
@@ -652,7 +676,7 @@ function addSideAccentCardLayout(page, count) {
 
 function addTableLayout(page, count) {
   page.objects.push({
-    id: createId("table"), type: "table", role: "table", x: 12, y: 29, w: 76, h: 54, item: true,
+    id: createId("table"), type: "table", role: "table", x: 8, y: 25, w: 84, h: 66, item: true,
     cells: [
       ["항목", "현재", "목표"],
       ...Array.from({ length: count }, (_, index) => [`항목 ${index + 1}`, "내용", "내용"])
@@ -694,25 +718,9 @@ function addResponsiveCards(page, count, role, textFactory, area) {
   }
 }
 
-function addBannerMetricsLayout(page, count) {
-  addLayoutBanner(page, "핵심 안내 문구를 입력하세요", 24, 12);
-  addResponsiveCards(page, count, "metric-card", (index) => `${index + 1}00%\n지표 ${index + 1}\n간단한 설명을 입력하세요`, { x: 8, y: 42, w: 84, h: 42, gapX: 2, gapY: 3 });
-}
-
-function addMetricsBottomBannerLayout(page, count) {
-  addResponsiveCards(page, count, "metric-card", (index) => `${index + 1}00%\n지표 ${index + 1}\n간단한 설명을 입력하세요`, { x: 8, y: 24, w: 84, h: 42, gapX: 2, gapY: 3 });
-  addLayoutBanner(page, "핵심 요약 배너 문구를 입력하세요", 72, 12);
-}
-
-function addStepsMediaLayout(page, count) {
-  const cardHeight = count <= 4 ? 25 : 28;
-  addResponsiveCards(page, count, "step-card", (index) => `${String(index + 1).padStart(2, "0")}\n단계 ${index + 1}\n단계 설명을 입력하세요`, { x: 8, y: 25, w: 84, h: cardHeight, gapX: 2, gapY: 2 });
-  page.objects.push(createTextObject("media-placeholder", "이미지 또는 미디어 영역", 8, 58, 84, 27, { textAlign: "center" }));
-}
-
 function addTableStatsLayout(page, count) {
   page.objects.push({
-    id: createId("table"), type: "table", role: "table", x: 7, y: 25, w: 58, h: 61, item: false,
+    id: createId("table"), type: "table", role: "table", x: 7, y: 25, w: 58, h: 66, item: false,
     cells: [
       ["구분", "항목 A", "항목 B"],
       ["데이터 1", "내용", "내용"],
@@ -721,12 +729,45 @@ function addTableStatsLayout(page, count) {
       ["데이터 4", "내용", "내용"]
     ]
   });
-  addResponsiveCards(page, count, "stat-card", (index) => `${(index + 1) * 100}\n지표 ${index + 1}\n보조 설명`, { x: 69, y: 25, w: 24, h: 61, columns: 1, gapX: 2, gapY: 2 });
+  addResponsiveCards(page, count, "stat-card", (index) => `${(index + 1) * 100}\n지표 ${index + 1}\n보조 설명`, { x: 69, y: 25, w: 24, h: 66, columns: 1, gapX: 2, gapY: 2 });
 }
 
-function addMediaFeaturesLayout(page, count) {
-  page.objects.push(createTextObject("media-placeholder", "이미지 또는 화면 영역", 7, 25, 21, 61, { textAlign: "center" }));
-  addResponsiveCards(page, count, "feature-card", (index) => `기능 ${index + 1}\n기능 제목\n설명을 입력하세요`, { x: 32, y: 25, w: 61, h: 61, columns: 2, gapX: 3, gapY: 3 });
+function addSummaryLeftLayout(page, count) {
+  page.objects.push(createTextObject(
+    "notice-panel",
+    "요약\n핵심 결론 및 요약 메시지\n전체 내용을 압축한 설명을 입력하세요",
+    6, 25, 28, 64,
+    { textAlign: "left" }
+  ));
+  addResponsiveCards(page, count, "concept-card", (index) => `항목 ${index + 1}\n세부 내용 설명을 입력하세요`, {
+    x: 37, y: 25, w: 57, h: 64, columns: count <= 3 ? 1 : 2, gapX: 2, gapY: 2
+  });
+}
+
+function addSummaryRightLayout(page, count) {
+  addResponsiveCards(page, count, "concept-card", (index) => `항목 ${index + 1}\n세부 내용 설명을 입력하세요`, {
+    x: 6, y: 25, w: 57, h: 64, columns: count <= 3 ? 1 : 2, gapX: 2, gapY: 2
+  });
+  page.objects.push(createTextObject(
+    "notice-panel",
+    "요약\n핵심 결론 및 요약 메시지\n전체 내용을 압축한 설명을 입력하세요",
+    66, 25, 28, 64,
+    { textAlign: "left" }
+  ));
+}
+
+function addSummaryTopLayout(page, count) {
+  addLayoutBanner(page, "상단 핵심 요약 배너 문구를 입력하세요", 24, 14);
+  addResponsiveCards(page, count, "metric-card", (index) => `${index + 1}00%\n지표 ${index + 1}\n간단한 설명을 입력하세요`, {
+    x: 8, y: 43, w: 84, h: 46, gapX: 2, gapY: 3
+  });
+}
+
+function addSummaryBottomLayout(page, count) {
+  addResponsiveCards(page, count, "metric-card", (index) => `${index + 1}00%\n지표 ${index + 1}\n간단한 설명을 입력하세요`, {
+    x: 8, y: 24, w: 84, h: 46, gapX: 2, gapY: 3
+  });
+  addLayoutBanner(page, "하단 결론 요약 배너 문구를 입력하세요", 75, 14);
 }
 
 function addCompareSummaryLayout(page) {
@@ -735,81 +776,6 @@ function addCompareSummaryLayout(page) {
     createTextObject("comparison-panel", "B\n두 번째 비교 대상\n장점과 특징을 입력하세요", 52, 27, 41, 45, { item: true, textAlign: "left", sequence: 1 })
   );
   addLayoutBanner(page, "비교 결과 또는 결론을 입력하세요", 77, 11);
-}
-
-function addScaleDefinitionsLayout(page, count) {
-  addLayoutBanner(page, "기준과 범위에 대한 설명을 입력하세요", 21, 11);
-  page.objects.push({ id: createId("scale"), type: "scale", role: "scale-track", x: 10, y: 39, w: 80, h: 8, item: false });
-  const markerSpan = 80 / Math.max(count - 1, 1);
-  for (let index = 0; index < count; index += 1) {
-    const center = count === 1 ? 50 : 10 + markerSpan * index;
-    page.objects.push(createTextObject("scale-marker", `기준 ${index + 1}`, center - 5, 34, 10, 8, { textAlign: "center", sequence: index }));
-  }
-  addResponsiveCards(page, count, "definition-card", (index) => `정의 ${index + 1}\n핵심 개념\n설명을 입력하세요`, { x: 8, y: 53, w: 84, h: 32, gapX: 2, gapY: 2 });
-}
-
-function addProcessNoticesLayout(page, count) {
-  addResponsiveCards(page, count, "process-flow-card", (index) => `STEP ${index + 1}\n절차 ${index + 1}\n간단한 설명`, {
-    x: 4, y: 25, w: 92, h: 28, columns: 7, gapX: 1.2, gapY: 2
-  });
-  page.objects.push(
-    createTextObject("notice-panel", "안내\n참고 정보\n설명을 입력하세요", 5, 58, 44, 16, { textAlign: "left" }),
-    createTextObject("warning-panel", "주의\n확인할 내용\n설명을 입력하세요", 52, 58, 43, 16, { textAlign: "left" }),
-    createTextObject("tip-panel", "TIP\n추가 안내\n설명을 입력하세요", 5, 78, 90, 11, { textAlign: "left" })
-  );
-}
-
-function addIconGridAlertLayout(page, count) {
-  addResponsiveCards(page, count, "icon-info-card", (index) => `ICON ${index + 1}\n항목 ${index + 1}\n설명을 입력하세요`, {
-    x: 5, y: 25, w: 90, h: 52, columns: 3, gapX: 2.5, gapY: 3
-  });
-  page.objects.push(createTextObject("warning-panel", "주의\n전체 안내\n설명을 입력하세요", 5, 81, 90, 10, { textAlign: "left" }));
-}
-
-function addTableDualNoticesLayout(page, count) {
-  page.objects.push({
-    id: createId("table"), type: "table", role: "table", x: 5, y: 24, w: 90, h: 46, item: true,
-    cells: [
-      ["구분", "내용", "설명"],
-      ...Array.from({ length: count }, (_, index) => [`항목 ${index + 1}`, "내용", "설명"])
-    ]
-  });
-  page.objects.push(
-    createTextObject("warning-panel", "주의\n확인할 사항\n설명을 입력하세요", 5, 75, 44, 15, { textAlign: "left" }),
-    createTextObject("notice-panel", "확인\n준비할 사항\n설명을 입력하세요", 52, 75, 43, 15, { textAlign: "left" })
-  );
-}
-
-function addStepsNoticesLayout(page, count) {
-  addResponsiveCards(page, count, "numbered-card", (index) => `${index + 1}\n단계 ${index + 1}\n설명을 입력하세요`, {
-    x: 4, y: 25, w: 92, h: 40, columns: 3, gapX: 2.5, gapY: 2.5
-  });
-  page.objects.push(
-    createTextObject("warning-panel", "주의\n중요 안내\n설명을 입력하세요", 4, 70, 92, 10, { textAlign: "left" }),
-    createTextObject("tip-panel", "TIP\n보조 안내\n설명을 입력하세요", 4, 83, 92, 8, { textAlign: "left" })
-  );
-}
-
-function addConceptNoticesLayout(page, count) {
-  addResponsiveCards(page, count, "concept-card", (index) => `KEY ${index + 1}\n개념 ${index + 1}\n설명을 입력하세요`, {
-    x: 4, y: 25, w: 92, h: 37, columns: 3, gapX: 2.5, gapY: 2.5
-  });
-  page.objects.push(
-    createTextObject("notice-panel", "안내\n첫 번째 보조 정보\n설명을 입력하세요", 4, 66, 46, 14, { textAlign: "left" }),
-    createTextObject("warning-panel", "주의\n두 번째 보조 정보\n설명을 입력하세요", 53, 66, 43, 14, { textAlign: "left" }),
-    createTextObject("tip-panel", "TIP\n전체 안내\n설명을 입력하세요", 4, 84, 92, 8, { textAlign: "left" })
-  );
-}
-
-function addDualOverviewFeaturesLayout(page, count) {
-  page.objects.push(
-    createTextObject("notice-panel", "개요\n첫 번째 핵심 내용\n설명을 입력하세요", 4, 25, 46, 28, { textAlign: "left" }),
-    createTextObject("tip-panel", "배경\n두 번째 핵심 내용\n설명을 입력하세요", 53, 25, 43, 28, { textAlign: "left" })
-  );
-  addResponsiveCards(page, count, "icon-info-card", (index) => `ICON ${index + 1}\n항목 ${index + 1}\n설명을 입력하세요`, {
-    x: 4, y: 58, w: 92, h: 21, columns: 4, gapX: 2, gapY: 2
-  });
-  page.objects.push(createTextObject("tip-panel", "TIP\n전체 안내\n설명을 입력하세요", 4, 84, 92, 8, { textAlign: "left" }));
 }
 
 function addFocusCardsLayout(page, count) {
@@ -824,12 +790,6 @@ function addFocusCardsLayout(page, count) {
   });
 }
 
-function addSideAccentGridLayout(page, count) {
-  addResponsiveCards(page, count, "side-accent-card", (index) => `항목 ${index + 1}\n설명을 입력하세요`, {
-    x: 5, y: 25, w: 90, h: 64, columns: 2, gapX: 2, gapY: 2
-  });
-}
-
 function addPairedCheckWarningsLayout(page, count) {
   addResponsiveCards(page, count, "checklist-card", (index) => `${index + 1}분\n점검 카드 ${index + 1}\n확인 내용을 입력하세요`, {
     x: 4, y: 24, w: 92, h: 45, columns: 3, gapX: 2.5, gapY: 2.5
@@ -837,13 +797,6 @@ function addPairedCheckWarningsLayout(page, count) {
   addResponsiveCards(page, count, "warning-summary-card", (index) => `주의 ${index + 1}\n경고 항목 ${index + 1}\n설명을 입력하세요`, {
     x: 4, y: 75, w: 92, h: 16, columns: 3, gapX: 2.5, gapY: 2
   });
-}
-
-function addDetailMetricsLayout(page, count) {
-  addResponsiveCards(page, count, "detail-metric-card", (index) => `${(index + 1) * 10}%\n상세 항목 ${index + 1}\n핵심 설명과 보조 내용을 입력하세요`, {
-    x: 4, y: 24, w: 92, h: 59, columns: 2, gapX: 2, gapY: 2
-  });
-  page.objects.push(createTextObject("tip-panel", "요약\n전체 안내\n설명을 입력하세요", 4, 87, 92, 7, { textAlign: "center" }));
 }
 
 function addProcessDiagram(page, count) {
@@ -1040,9 +993,9 @@ function addChart(page, variant) {
     chartType: variant,
     data: source.map(([label, value]) => ({ label, value })),
     x: 5,
-    y: 16,
+    y: 24,
     w: 90,
-    h: 79,
+    h: 71,
     item: false
   });
 }
@@ -1088,16 +1041,9 @@ function getItemCount(page) {
 
 function getLayoutDefaultCount(variant) {
   return {
-    cards: 4,
-    sideAccentGrid: 8,
-    mediaFeatures: 4,
-    compare: 2,
-    pairedCheckWarnings: 3,
-    bannerMetrics: 4,
-    metricsBottomBanner: 4,
-    focusCards: 3,
-    stepsMedia: 4,
-    processNotices: 7,
+    cards_1col: 2, cards_2col: 4, cards_3col: 3, cards_4col: 4,
+    sideAccent_1col: 2, sideAccent_2col: 4, sideAccent_3col: 3, sideAccent_4col: 4,
+    summaryLeft: 3, summaryRight: 3, summaryTop: 4, summaryBottom: 4,
     table: 3,
     tableStats: 3
   }[variant] || 3;
@@ -1109,7 +1055,7 @@ function getLayoutMinimumCount(variant) {
 
 function getLayoutMaximumCount(variant) {
   if (variant === "compare") return 4;
-  if (["bannerMetrics", "metricsBottomBanner", "stepsMedia", "tableStats", "mediaFeatures"].includes(variant)) return 6;
+  if (["bannerMetrics", "metricsBottomBanner", "tableStats"].includes(variant)) return 6;
   if (variant === "processNotices" || variant === "sideAccentGrid") return 10;
   if (variant === "focusCards" || variant === "pairedCheckWarnings") return 6;
   return MAX_ITEMS;
@@ -1298,6 +1244,72 @@ function removeItem() {
   render();
 }
 
+function getObjectHierarchyLevel(obj) {
+  if (typeof obj.mindLevel === "number") return `mind-${obj.mindLevel}`;
+  if (typeof obj.bulletLevel === "number") return `bullet-${obj.bulletLevel}`;
+  if (obj.role) return `role-${obj.role}`;
+  return "default";
+}
+
+function areSelectedObjectsSameLevel(mergeableCards) {
+  if (mergeableCards.length < 2) return false;
+  const firstLevel = getObjectHierarchyLevel(mergeableCards[0]);
+  return mergeableCards.every((obj) => getObjectHierarchyLevel(obj) === firstLevel);
+}
+
+function mergeSelectedCards() {
+  const page = currentPage();
+  if (page.type !== "content") return false;
+
+  const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
+  const mergeableCards = selectedObjects.filter((obj) => obj.type === "text" || obj.item || obj.role);
+
+  if (mergeableCards.length < 2 || !areSelectedObjectsSameLevel(mergeableCards)) return false;
+
+  const minX = Math.min(...mergeableCards.map((obj) => Number(obj.x)));
+  const minY = Math.min(...mergeableCards.map((obj) => Number(obj.y)));
+  const maxX = Math.max(...mergeableCards.map((obj) => Number(obj.x) + Number(obj.w)));
+  const maxY = Math.max(...mergeableCards.map((obj) => Number(obj.y) + Number(obj.h)));
+
+  const width = Math.max(10, maxX - minX);
+  const height = Math.max(10, maxY - minY);
+
+  const combinedText = mergeableCards
+    .map((obj) => (obj.text || "").trim())
+    .filter(Boolean)
+    .join("\n\n");
+
+  const baseObj = mergeableCards[0];
+  snapshot();
+
+  const mergedCard = {
+    id: createId("card"),
+    type: "text",
+    role: baseObj.role || "card",
+    text: combinedText,
+    x: minX,
+    y: minY,
+    w: width,
+    h: height,
+    item: true
+  };
+
+  const cardWithImage = mergeableCards.find((obj) => obj.imageSrc);
+  if (cardWithImage) {
+    mergedCard.imageSrc = cardWithImage.imageSrc;
+  }
+
+  const mergedIds = new Set(mergeableCards.map((obj) => obj.id));
+  page.objects = page.objects.filter((obj) => !mergedIds.has(obj.id));
+  page.objects.push(mergedCard);
+
+  state.selectedIds = new Set([mergedCard.id]);
+  state.guides = [];
+  hideTextToolbar();
+  render();
+  return true;
+}
+
 function changeSelectedBulletHierarchy(direction) {
   const page = currentPage();
   const selected = getSelectedActionObject(page);
@@ -1376,49 +1388,61 @@ function renderControls() {
 
   $("#templateSection").hidden = isCover;
   $("#itemSection").hidden = false;
-  $("#templateSelect").value = page.template || "";
-  const isObject = page.template === "object";
-  $("#objectOptions").hidden = !isObject;
-
-  if (isObject) {
-    const layoutSec = $("#layoutVariantSection");
-    const diagramSec = $("#diagramVariantSection");
-    const chartSec = $("#chartVariantSection");
-
-    if (layoutSec) layoutSec.hidden = false;
-    if (diagramSec) diagramSec.hidden = false;
-    if (chartSec) chartSec.hidden = false;
+  const currentBadge = $("#templateCurrentBadge");
+  if (currentBadge) {
+    let tName = "개조식";
+    if (page.template === "bullet") tName = "개조식";
+    else if (page.template === "mindmap") tName = "마인드맵";
+    else if (page.template === "object") {
+      if (page.objectCategory === "layout") tName = layouts[page.variant]?.name || "레이아웃";
+      else if (page.objectCategory === "diagram") tName = diagrams[page.variant]?.name || "다이어그램";
+      else if (page.objectCategory === "chart") tName = charts[page.variant]?.name || "차트";
+    }
+    currentBadge.innerHTML = `현재 템플릿: <strong>${tName}</strong>`;
   }
 
+  document.querySelectorAll("[data-template-id]").forEach((button) => {
+    const selected = page.template === button.dataset.templateId;
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
   document.querySelectorAll("[data-layout-variant]").forEach((button) => {
-    const selected = page.objectCategory === "layout" && button.dataset.layoutVariant === page.variant;
+    const selected = page.template === "object" && page.objectCategory === "layout" && button.dataset.layoutVariant === page.variant;
     button.classList.toggle("is-selected", selected);
     button.setAttribute("aria-pressed", String(selected));
   });
-  $("#layoutVariantCurrent").textContent = page.objectCategory === "layout"
-    ? layouts[page.variant]?.name || "레이아웃 선택"
-    : "레이아웃 선택";
   document.querySelectorAll("[data-diagram-variant]").forEach((button) => {
-    const selected = page.objectCategory === "diagram" && button.dataset.diagramVariant === page.variant;
+    const selected = page.template === "object" && page.objectCategory === "diagram" && button.dataset.diagramVariant === page.variant;
     button.classList.toggle("is-selected", selected);
     button.setAttribute("aria-pressed", String(selected));
   });
-  $("#diagramVariantCurrent").textContent = page.objectCategory === "diagram"
-    ? diagrams[page.variant]?.name || "다이어그램 선택"
-    : "다이어그램 선택";
   document.querySelectorAll("[data-chart-variant]").forEach((button) => {
-    const selected = page.objectCategory === "chart" && button.dataset.chartVariant === page.variant;
+    const selected = page.template === "object" && page.objectCategory === "chart" && button.dataset.chartVariant === page.variant;
     button.classList.toggle("is-selected", selected);
     button.setAttribute("aria-pressed", String(selected));
   });
-  $("#chartVariantCurrent").textContent = page.objectCategory === "chart"
-    ? charts[page.variant]?.name || "차트 선택"
-    : "차트 선택";
   const itemCount = getItemCount(page);
   const selected = getSelectedActionObject(page);
   const selectedTable = selected?.type === "table" ? selected : null;
   const selectedChart = selected?.type === "chart" ? selected : null;
   const isChart = page.objectCategory === "chart";
+
+  const cardImgInsertBtn = $("#cardImageInsertButton");
+  const cardImgRemoveBtn = $("#cardImageRemoveButton");
+  const mergeCardsBtn = $("#mergeCardsButton");
+
+  if (mergeCardsBtn) {
+    const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
+    const mergeableCards = selectedObjects.filter((obj) => obj.type === "text" || obj.item || obj.role);
+    mergeCardsBtn.disabled = mergeableCards.length < 2 || !areSelectedObjectsSameLevel(mergeableCards);
+  }
+
+  if (cardImgInsertBtn && cardImgRemoveBtn) {
+    const isObjectSelected = Boolean(selected && selected.type !== "image" && selected.type !== "table" && selected.type !== "chart");
+    cardImgInsertBtn.disabled = !isObjectSelected;
+    cardImgInsertBtn.textContent = selected?.imageSrc ? "📷 카드 이미지 수정" : "📷 카드 이미지 삽입";
+    cardImgRemoveBtn.hidden = !selected?.imageSrc;
+  }
   $("#tableAxisLabel").hidden = !selectedTable;
   $("#tableAxisSelect").value = tableManagementAxis;
   $("#addItemButton").disabled = (!isCover && !page.template) || !canAddItem(page, selected);
@@ -1474,8 +1498,8 @@ function renderStage() {
     return;
   }
 
-  renderConnections(page);
   renderAlignmentGuides();
+  renderConnections(page);
   page.objects.forEach((object) => stage.append(createObjectElement(object)));
   renderFixedOverlayLayer();
   stage.classList.toggle("is-anim-mode", isAnimMode);
@@ -1525,6 +1549,17 @@ function createObjectElement(object) {
     track.className = "scale-track-core";
     element.append(track);
   } else {
+    if (object.imageSrc) {
+      const imgBox = document.createElement("div");
+      imgBox.className = "card-image-box";
+      const img = new Image();
+      img.className = "card-embedded-image";
+      img.src = object.imageSrc;
+      imgBox.append(img);
+      element.append(imgBox);
+      element.classList.add("has-embedded-image");
+    }
+
     const text = document.createElement("div");
     text.className = `canvas-text ${object.role}`;
     if (STRUCTURED_LAYOUT_ROLES.has(object.role)) {
@@ -2080,28 +2115,34 @@ function renderConnections(page) {
     const root = page.objects.find((object) => object.root);
     page.objects.filter((object) => object.role === "mind-node").forEach((node) => {
       const parent = page.objects.find((object) => object.id === node.parentId) || root;
-      drawConnection(parent, node);
+      drawConnection(parent, node, stage);
     });
   }
-  if (page.template === "object" && page.objectCategory === "diagram" && page.variant === "timeline") {
-    renderTimelinePath(page);
+
+  const variant = page.variant;
+  if (variant === "timeline") {
+    renderTimelinePath(page, stage);
   }
-  if (page.template === "object" && page.objectCategory === "diagram" && ["process", "cycle", "chain"].includes(page.variant)) {
-    const nodes = page.objects.filter((object) => object.node).sort((a, b) => a.sequence - b.sequence);
+
+  if (["process", "cycle", "chain", "ribbonArrow"].includes(variant)) {
+    const nodes = page.objects.filter((object) => object.item || object.node || object.role === "diagram-node" || object.role === "chain-node" || object.role === "cycle-node" || object.role === "ribbon-step").sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
     nodes.forEach((node, index) => {
-      const next = nodes[index + 1] || (page.variant === "cycle" ? nodes[0] : null);
-      if (next) drawConnection(node, next);
+      const next = nodes[index + 1] || (variant === "cycle" ? nodes[0] : null);
+      if (next) drawConnection(node, next, stage);
     });
   }
-  if (page.template === "object" && page.objectCategory === "diagram" && page.variant === "connectedCircles") {
-    const nodes = page.objects.filter((object) => object.role === "connected-circle").sort((a, b) => a.sequence - b.sequence);
+
+  if (variant === "connectedCircles") {
+    const nodes = page.objects.filter((object) => object.role === "connected-circle" || object.node).sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
     const center = nodes[0];
-    nodes.slice(1).forEach((node) => drawConnection(center, node));
+    if (center) {
+      nodes.slice(1).forEach((node) => drawConnection(center, node, stage));
+    }
   }
 }
 
-function renderTimelinePath(page) {
-  const nodes = page.objects.filter((object) => object.role === "timeline-node").sort((a, b) => a.sequence - b.sequence);
+function renderTimelinePath(page, targetContainer = $("#pageCanvas") || stage) {
+  const nodes = page.objects.filter((object) => object.role === "timeline-node" || object.node).sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
   if (!nodes.length) return;
   const namespace = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(namespace, "svg");
@@ -2149,24 +2190,35 @@ function renderTimelinePath(page) {
   startDot.setAttribute("r", "1");
   startDot.setAttribute("class", "timeline-start-dot");
   svg.append(startDot);
-  stage.append(svg);
+  targetContainer.append(svg);
 }
 
-function drawConnection(from, to) {
+function drawConnection(from, to, targetContainer = stage) {
   if (!from || !to) return;
-  const stageWidth = stage.clientWidth || 1600;
-  const stageHeight = stage.clientHeight || 900;
-  const fromX = from.x + from.w / 2;
-  const fromY = from.y + from.h / 2;
-  const dx = (to.x + to.w / 2 - fromX) / 100 * stageWidth;
-  const dy = (to.y + to.h / 2 - fromY) / 100 * stageHeight;
+  const container = targetContainer || stage;
+  const containerWidth = container.clientWidth || 1600;
+  const containerHeight = container.clientHeight || 900;
+
+  const fromX = Number(from.x) + Number(from.w) / 2;
+  const fromY = Number(from.y) + Number(from.h) / 2;
+  const toX = Number(to.x) + Number(to.w) / 2;
+  const toY = Number(to.y) + Number(to.h) / 2;
+
+  const dx = (toX - fromX) / 100 * containerWidth;
+  const dy = (toY - fromY) / 100 * containerHeight;
+  const length = Math.hypot(dx, dy) / containerWidth * 100;
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
   const line = document.createElement("div");
   line.className = "connection";
   line.style.left = `${fromX}%`;
   line.style.top = `${fromY}%`;
-  line.style.width = `${Math.hypot(dx, dy) / stageWidth * 100}%`;
-  line.style.transform = `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)`;
-  stage.append(line);
+  line.style.width = `${length}%`;
+  line.style.transform = `rotate(${angle}deg)`;
+  line.style.backgroundColor = "var(--content-accent, #2563eb)";
+  line.style.height = "3px";
+  line.style.zIndex = "1";
+  container.append(line);
 }
 
 function fitAllText() {
@@ -2305,48 +2357,90 @@ function clamp(min, value, max) {
 }
 
 function populateVariantSelects() {
-  $("#layoutVariantGrid").innerHTML = Object.entries(layouts).map(([value, item]) => `
-    <button class="layout-variant-button" type="button" data-layout-variant="${value}" aria-pressed="false" aria-label="${item.name}">
-      ${getLayoutThumbnailMarkup(value)}
-      <span class="layout-variant-name">${item.name}</span>
+  const textGrid = $("#catGrid_text");
+  const cardGrid = $("#catGrid_card");
+  const compareGrid = $("#catGrid_compare");
+  const diagramGrid = $("#catGrid_diagram");
+  const chartGrid = $("#catGrid_chart");
+
+  if (!textGrid) return;
+
+  textGrid.innerHTML = `
+    <button class="layout-variant-button" type="button" data-template-id="bullet" aria-pressed="false" aria-label="개조식">
+      <span class="layout-thumbnail"><span></span><span></span><span></span></span>
+      <span class="layout-variant-name">개조식</span>
+    </button>
+    <button class="layout-variant-button" type="button" data-template-id="mindmap" aria-pressed="false" aria-label="마인드맵">
+      <span class="diagram-thumbnail connected-thumb"><span></span><span></span><span></span></span>
+      <span class="layout-variant-name">마인드맵</span>
+    </button>
+  `;
+
+  cardGrid.innerHTML = [
+    ["cards_1col", "sideAccent_1col"],
+    ["cards_2col", "sideAccent_2col"],
+    ["cards_3col", "sideAccent_3col"],
+    ["cards_4col", "sideAccent_4col"]
+  ].flat().map((key) => `
+    <button class="layout-variant-button" type="button" data-layout-variant="${key}" aria-pressed="false" aria-label="${layouts[key].name}">
+      ${getLayoutThumbnailMarkup(key)}
+      <span class="layout-variant-name">${layouts[key].name}</span>
     </button>
   `).join("");
-  $("#diagramVariantGrid").innerHTML = Object.entries(diagrams).map(([value, item]) => `
+
+  compareGrid.innerHTML = ["summaryLeft", "summaryRight", "summaryTop", "summaryBottom"].map((key) => `
+    <button class="layout-variant-button" type="button" data-layout-variant="${key}" aria-pressed="false" aria-label="${layouts[key].name}">
+      ${getLayoutThumbnailMarkup(key)}
+      <span class="layout-variant-name">${layouts[key].name}</span>
+    </button>
+  `).join("");
+
+  diagramGrid.innerHTML = Object.entries(diagrams).map(([value, item]) => `
     <button class="layout-variant-button" type="button" data-diagram-variant="${value}" aria-pressed="false" aria-label="${item.name}">
       ${getDiagramThumbnailMarkup(value)}
       <span class="layout-variant-name">${item.name}</span>
     </button>
   `).join("");
-  $("#chartVariantGrid").innerHTML = Object.entries(charts).map(([value, item]) => `
-    <button class="layout-variant-button" type="button" data-chart-variant="${value}" aria-pressed="false" aria-label="${item.name}">
-      ${getChartThumbnailMarkup(value)}
-      <span class="layout-variant-name">${item.name}</span>
-    </button>
-  `).join("");
+
+  chartGrid.innerHTML = [
+    ...["table", "tableStats"].map((key) => `
+      <button class="layout-variant-button" type="button" data-layout-variant="${key}" aria-pressed="false" aria-label="${layouts[key].name}">
+        ${getLayoutThumbnailMarkup(key)}
+        <span class="layout-variant-name">${layouts[key].name}</span>
+      </button>
+    `),
+    ...Object.entries(charts).map(([value, item]) => `
+      <button class="layout-variant-button" type="button" data-chart-variant="${value}" aria-pressed="false" aria-label="${item.name}">
+        ${getChartThumbnailMarkup(value)}
+        <span class="layout-variant-name">${item.name}</span>
+      </button>
+    `)
+  ].join("");
 }
 
 function getLayoutThumbnailMarkup(variant) {
-  const block = '<span></span>';
-  const dark = '<span class="thumb-dark"></span>';
-  const four = `<span class="thumb-row thumb-four">${block.repeat(4)}</span>`;
-  const seven = `<span class="thumb-row thumb-seven">${block.repeat(7)}</span>`;
-  const three = `<span class="thumb-row thumb-three">${block.repeat(3)}</span>`;
-  const two = `<span class="thumb-row thumb-two">${block.repeat(2)}</span>`;
-  const previews = {
-    cards: `<span class="layout-thumbnail cards">${block.repeat(4)}</span>`,
-    sideAccentGrid: `<span class="layout-thumbnail side-accent-grid"><span class="thumb-row thumb-two thumb-four-rows">${block.repeat(8)}</span></span>`,
-    mediaFeatures: `<span class="layout-thumbnail media-features">${dark}<span class="thumb-row thumb-two thumb-two-rows">${block.repeat(4)}</span></span>`,
-    compare: `<span class="layout-thumbnail compare-summary">${two}${dark}</span>`,
-    pairedCheckWarnings: `<span class="layout-thumbnail paired-check-warnings">${three}${three}</span>`,
-    bannerMetrics: `<span class="layout-thumbnail banner-metrics">${dark}${four}</span>`,
-    metricsBottomBanner: `<span class="layout-thumbnail banner-metrics">${four}${dark}</span>`,
-    focusCards: `<span class="layout-thumbnail focus-cards">${dark}${three}</span>`,
-    stepsMedia: `<span class="layout-thumbnail steps-media">${four}${dark}</span>`,
-    processNotices: `<span class="layout-thumbnail process-notices">${seven}${two}${block}</span>`,
-    table: `<span class="layout-thumbnail table-thumb">${block.repeat(4)}</span>`,
-    tableStats: `<span class="layout-thumbnail table-stats"><span class="thumb-table"></span><span class="thumb-row thumb-three-rows">${block.repeat(3)}</span></span>`
-  };
-  return previews[variant] || `<span class="layout-thumbnail">${block}</span>`;
+  // 1. Basic Card Grids (기본 카드 1~4열)
+  if (variant === "cards_1col") return '<span class="layout-thumbnail card-thumb-box"><span class="thumb-card-single"><i></i><i></i></span></span>';
+  if (variant === "cards_2col") return '<span class="layout-thumbnail card-thumb-box"><span class="thumb-card-grid col-2"><span class="t-card"></span><span class="t-card"></span></span></span>';
+  if (variant === "cards_3col") return '<span class="layout-thumbnail card-thumb-box"><span class="thumb-card-grid col-3"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span></span>';
+  if (variant === "cards_4col") return '<span class="layout-thumbnail card-thumb-box"><span class="thumb-card-grid col-4"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span></span>';
+
+  // 2. Side Accent Card Grids (측면 강조 카드 1~4열)
+  if (variant === "sideAccent_1col") return '<span class="layout-thumbnail card-thumb-box"><span class="thumb-card-single side-accent"><i></i><i></i></span></span>';
+  if (variant === "sideAccent_2col") return '<span class="layout-thumbnail card-thumb-box"><span class="thumb-card-grid col-2 side-accent"><span class="t-card"></span><span class="t-card"></span></span></span>';
+  if (variant === "sideAccent_3col") return '<span class="layout-thumbnail card-thumb-box"><span class="thumb-card-grid col-3 side-accent"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span></span>';
+  if (variant === "sideAccent_4col") return '<span class="layout-thumbnail card-thumb-box"><span class="thumb-card-grid col-4 side-accent"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span></span>';
+
+  // 3. Summary & Highlight Layouts (요약 및 강조 4종)
+  if (variant === "summaryLeft") return '<span class="layout-thumbnail summary-thumb-left"><span class="t-dark-panel">요약</span><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span></span></span>';
+  if (variant === "summaryRight") return '<span class="layout-thumbnail summary-thumb-right"><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span></span><span class="t-dark-panel">요약</span></span>';
+  if (variant === "summaryTop") return '<span class="layout-thumbnail summary-thumb-top"><span class="t-dark-banner">요약 배너</span><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span></span>';
+  if (variant === "summaryBottom") return '<span class="layout-thumbnail summary-thumb-bottom"><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span><span class="t-dark-banner">요약 배너</span></span>';
+
+  if (variant === "table") return '<span class="layout-thumbnail card-thumb-box"><span class="thumb-card-grid col-3"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span></span>';
+  if (variant === "tableStats") return '<span class="layout-thumbnail summary-thumb-right"><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span></span><span class="t-dark-panel">지표</span></span>';
+
+  return '<span class="layout-thumbnail card-thumb-box"><span class="thumb-card-single"><i></i></span></span>';
 }
 
 function getDiagramThumbnailMarkup(variant) {
@@ -2614,75 +2708,72 @@ $("#resetPaletteButton")?.addEventListener("click", () => {
   });
 });
 
-$("#templateSelect").addEventListener("change", (event) => {
+$("#unifiedTemplateContainer")?.addEventListener("click", (event) => {
+  const btnText = event.target.closest("[data-template-id]");
+  const btnLayout = event.target.closest("[data-layout-variant]");
+  const btnDiagram = event.target.closest("[data-diagram-variant]");
+  const btnChart = event.target.closest("[data-chart-variant]");
+
   const page = currentPage();
-  if (page.type !== "content" || !event.target.value) return;
-  snapshot();
-  buildTemplate(page, event.target.value);
-  state.selectedIds.clear();
-  hideTextToolbar();
-  render();
+  if (page.type !== "content") return;
+
+  if (btnText) {
+    snapshot();
+    buildTemplate(page, btnText.dataset.templateId);
+    state.selectedIds.clear();
+    hideTextToolbar();
+    render();
+    return;
+  }
+  if (btnLayout) {
+    snapshot();
+    changeLayoutVariantPreservingContent(page, btnLayout.dataset.layoutVariant);
+    state.selectedIds.clear();
+    hideTextToolbar();
+    render();
+    return;
+  }
+  if (btnDiagram) {
+    snapshot();
+    changeDiagramVariantPreservingContent(page, btnDiagram.dataset.diagramVariant);
+    state.selectedIds.clear();
+    hideTextToolbar();
+    render();
+    return;
+  }
+  if (btnChart) {
+    snapshot();
+    changeChartVariantPreservingContent(page, btnChart.dataset.chartVariant);
+    state.selectedIds.clear();
+    hideTextToolbar();
+    render();
+    return;
+  }
 });
 
-$("#layoutVariantGrid").addEventListener("click", (event) => {
-  const button = event.target.closest("[data-layout-variant]");
-  if (!button) return;
-  const page = currentPage();
-  snapshot();
-  changeLayoutVariantPreservingContent(page, button.dataset.layoutVariant);
-  state.selectedIds.clear();
-  hideTextToolbar();
-  render();
+const categoryToggles = [
+  { toggle: "#catToggle_text", grid: "#catGrid_text" },
+  { toggle: "#catToggle_card", grid: "#catGrid_card" },
+  { toggle: "#catToggle_compare", grid: "#catGrid_compare" },
+  { toggle: "#catToggle_diagram", grid: "#catGrid_diagram" },
+  { toggle: "#catToggle_chart", grid: "#catGrid_chart" }
+];
+
+categoryToggles.forEach(({ toggle, grid }) => {
+  $(toggle)?.addEventListener("click", () => {
+    categoryToggles.forEach(({ toggle: t, grid: g }) => {
+      const isTarget = t === toggle;
+      const toggleEl = $(t);
+      const gridEl = $(g);
+      if (toggleEl && gridEl) {
+        const expand = isTarget ? gridEl.hidden : false;
+        gridEl.hidden = !expand;
+        toggleEl.setAttribute("aria-expanded", String(expand));
+      }
+    });
+  });
 });
 
-$("#layoutVariantToggle").addEventListener("click", () => {
-  const toggle = $("#layoutVariantToggle");
-  const grid = $("#layoutVariantGrid");
-  const expanded = toggle.getAttribute("aria-expanded") !== "true";
-  toggle.setAttribute("aria-expanded", String(expanded));
-  toggle.setAttribute("aria-label", expanded ? "레이아웃 목록 접기" : "레이아웃 목록 펼치기");
-  grid.hidden = !expanded;
-});
-
-$("#diagramVariantGrid").addEventListener("click", (event) => {
-  const button = event.target.closest("[data-diagram-variant]");
-  if (!button) return;
-  const page = currentPage();
-  snapshot();
-  changeDiagramVariantPreservingContent(page, button.dataset.diagramVariant);
-  state.selectedIds.clear();
-  hideTextToolbar();
-  render();
-});
-
-$("#diagramVariantToggle").addEventListener("click", () => {
-  const toggle = $("#diagramVariantToggle");
-  const grid = $("#diagramVariantGrid");
-  const expanded = toggle.getAttribute("aria-expanded") !== "true";
-  toggle.setAttribute("aria-expanded", String(expanded));
-  toggle.setAttribute("aria-label", expanded ? "다이어그램 목록 접기" : "다이어그램 목록 펼치기");
-  grid.hidden = !expanded;
-});
-
-$("#chartVariantGrid").addEventListener("click", (event) => {
-  const button = event.target.closest("[data-chart-variant]");
-  if (!button) return;
-  const page = currentPage();
-  snapshot();
-  changeChartVariantPreservingContent(page, button.dataset.chartVariant);
-  state.selectedIds.clear();
-  hideTextToolbar();
-  render();
-});
-
-$("#chartVariantToggle").addEventListener("click", () => {
-  const toggle = $("#chartVariantToggle");
-  const grid = $("#chartVariantGrid");
-  const expanded = toggle.getAttribute("aria-expanded") !== "true";
-  toggle.setAttribute("aria-expanded", String(expanded));
-  toggle.setAttribute("aria-label", expanded ? "차트 목록 접기" : "차트 목록 펼치기");
-  grid.hidden = !expanded;
-});
 
 $("#addPageButton").addEventListener("click", () => {
   snapshot();
@@ -2729,11 +2820,40 @@ document.querySelectorAll("[data-text-align]").forEach((button) => {
 $("#autoTextSizeButton").addEventListener("click", () => updateActiveTextStyle("fontSize", null));
 $("#closeTextToolbarButton").addEventListener("click", hideTextToolbar);
 
+$("#mergeCardsButton")?.addEventListener("click", () => {
+  mergeSelectedCards();
+});
+$("#cardImageInsertButton")?.addEventListener("click", () => {
+  $("#imageInput").click();
+});
+$("#cardImageRemoveButton")?.addEventListener("click", () => {
+  const page = currentPage();
+  const selected = getSelectedActionObject(page);
+  if (selected && selected.imageSrc) {
+    snapshot();
+    delete selected.imageSrc;
+    render();
+  }
+});
+
 $("#imageInput").addEventListener("change", (event) => {
   const files = [...event.target.files];
   if (!files.length) return;
-  snapshot();
   const targetPage = currentPage();
+  const selected = getSelectedActionObject(targetPage);
+  if (selected && selected.type !== "image" && selected.type !== "table" && selected.type !== "chart") {
+    const file = files[0];
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      snapshot();
+      selected.imageSrc = String(reader.result);
+      event.target.value = "";
+      render();
+    });
+    reader.readAsDataURL(file);
+    return;
+  }
+  snapshot();
   let completed = 0;
   files.forEach((file, index) => {
     const reader = new FileReader();
@@ -3006,6 +3126,13 @@ document.addEventListener("keydown", (event) => {
     }
     toggleAnimMode(!isAnimMode);
     return;
+  }
+
+  if (key === "m" && !modifier && !editingText && !["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) {
+    if (mergeSelectedCards()) {
+      event.preventDefault();
+      return;
+    }
   }
 
   if (event.key === "Escape") {
