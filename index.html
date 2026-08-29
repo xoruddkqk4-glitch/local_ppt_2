@@ -25,27 +25,13 @@
   </header>
   <main class="workspace">
     <aside class="editor-panel">
-      <section class="panel-section">
-        <div class="section-heading"><span>01</span><h1>디자인</h1></div>
-        <label class="select-label">프레젠테이션 전체 디자인
-          <select id="designSelect">
-            <optgroup label="기존 디자인">
-              <option value="bauhaus">Bauhaus</option>
-              <option value="clay">Claymorphism</option>
-              <option value="brutal">Neo-Brutalism</option>
-              <option value="skeuo">Skeuomorphism</option>
-              <option value="swiss">Swiss Minimal</option>
-            </optgroup>
-            <optgroup label="깔끔하고 명확한 디자인">
-              <option value="swiss-grid">Swiss Grid Modern</option>
-              <option value="functional-bauhaus">Functional Bauhaus</option>
-              <option value="soft-minimal">Soft Layered Minimal</option>
-              <option value="controlled-brutal">Controlled Neo-Brutalism</option>
-              <option value="tactile-minimal">Tactile Product Minimal</option>
-            </optgroup>
-          </select>
-        </label>
+      <section id="designSection01" class="panel-section">
+        <div class="section-heading"><span>01</span><h1>디자인 & 스타일</h1></div>
         <p id="designHint" class="guide"></p>
+        <div class="panel-start-screen-box">
+          <p class="guide">디자인 테마(10종), 3색 커스텀 테마색, 6개 고정 문구는 아래 버튼을 눌러 모달에서 변경할 수 있습니다.</p>
+          <button id="openStyleModalFromPanel" class="button button-blue" type="button">디자인 & 스타일 변경</button>
+        </div>
       </section>
 
       <section id="templateSection" class="panel-section">
@@ -115,6 +101,10 @@
           <input id="imageInput" type="file" accept="image/*" multiple>
           <strong>이미지 선택</strong>
         </label>
+        <div class="anim-guide-box">
+          <button id="toggleAnimModeButton" class="button button-blue anim-mode-btn" type="button">애니메이션 지정 (단축키 A)</button>
+          <p class="guide"><kbd>A</kbd> 누른 뒤 개체 클릭: 순서 지정<br><kbd>Ctrl+클릭</kbd>: 이전과 동일 번호 부여<br><kbd>재클릭</kbd>: 번호 삭제 및 자동 재정렬</p>
+        </div>
         <p id="imageInfo" class="guide">여러 이미지를 한 번에 선택할 수 있습니다.</p>
       </section>
     </aside>
@@ -122,6 +112,10 @@
     <section class="stage-panel" aria-label="프레젠테이션 편집 영역">
       <div class="stage-toolbar">
         <div id="pageList" class="page-list"></div>
+      </div>
+      <div id="animModeBanner" class="anim-mode-banner" hidden aria-live="polite">
+        <strong>🎬 애니메이션 지정 모드 ON</strong>
+        <span>클릭: 순서 지정 · Ctrl+클릭: 동일 번호 · 클릭(재선택): 삭제/재정렬 · A/Esc: 종료</span>
       </div>
       <div id="textToolbar" class="text-toolbar" hidden aria-label="텍스트 서식">
         <strong>텍스트</strong>
@@ -181,19 +175,386 @@
         </div>
         <p id="intakeSelectionHint" class="intake-selection-hint" aria-live="polite">입력 방식을 선택하세요.</p>
         <div id="intakeSourceInput" class="intake-source-input" hidden>
-          <label id="intakeTextLabel" class="intake-field" hidden>내용
-          <textarea id="intakeText" rows="8" placeholder="핵심 내용, 수치, 대상 독자, 꼭 담아야 할 메시지를 붙여넣으세요."></textarea>
+          <label id="intakeProseTextLabel" class="intake-field" hidden>줄글 내용 입력
+            <textarea id="intakeProseText" rows="8" placeholder="핵심 내용, 수치, 대상 독자, 꼭 담아야 할 메시지를 줄글로 자유롭게 붙여넣으세요."></textarea>
           </label>
-        <label id="intakeFileLabel" class="intake-file" hidden>파일 선택
-          <input id="intakeFile" type="file" accept=".pdf,application/pdf">
-          <strong id="intakeFileName">PDF 파일 선택</strong>
-        </label>
-        <p id="intakeFileInfo" class="intake-file-info" hidden></p>
+          <label id="intakeOutlineTextLabel" class="intake-field" hidden>개요 내용 입력
+            <textarea id="intakeOutlineText" rows="10" placeholder="예:
+1. 시장 문제 및 타겟 고객 페인포인트
+   - 기존 솔루션의 비효율성 및 높은 도입 비용
+   - 타겟 고객이 겪는 핵심 불편사항 (Pain Points)
+   - 시장 규모 및 성장 가능성 (TAM / SAM / SOM)
+
+2. 핵심 해결 방안 및 제품 차별점
+   - AI 기반 프레젠테이션 자동 생성 솔루션
+   - 주요 핵심 기능 3가지 (자동 레이아웃, 실시간 편집, 테마 커스텀)
+   - 경쟁사 대비 차별화 요소 및 기술적 우위
+
+3. 비즈니스 모델 및 성과 목표
+   - B2B SaaS 구독형 수익 모델 구조
+   - 1차년도 목표 매출 및 고객 유치 로드맵
+   - 단계별 실행 계획 (Go-to-Market 전략)"></textarea>
+          </label>
+          <label id="intakeFileLabel" class="intake-file" hidden>파일 선택
+            <input id="intakeFile" type="file" accept=".pdf,application/pdf">
+            <strong id="intakeFileName">PDF 파일 선택</strong>
+          </label>
+          <p id="intakeFileInfo" class="intake-file-info" hidden></p>
         </div>
         <p id="aiIntakeStatus" class="ai-intake-status" aria-live="polite"></p>
-        <button id="generatePresentationButton" class="button button-dark intake-generate" type="submit" aria-valuemin="0" aria-valuemax="100">AI로 슬라이드 만들기</button>
+        <button id="generatePresentationButton" class="button button-dark intake-generate" type="submit" aria-valuemin="0" aria-valuemax="100" style="width:100%; margin-top:14px; padding:12px; font-size:15px; font-weight:950;">AI로 슬라이드 만들기</button>
+
+        <div id="intakeStyleSettings" class="intake-style-settings">
+          <div class="intake-style-header">
+            <span class="required-badge">다음 단계 설정</span>
+            <strong>디자인 & 테마 스타일 설정 (생성 전 필수 확인)</strong>
+            <small>선택한 디자인 섬네일과 강조색, 고정 문구가 프레젠테이션 전체에 반영됩니다.</small>
+          </div>
+          <div class="intake-style-container">
+            <div class="intake-design-row">
+              <div class="intake-left-column" style="display:flex; flex-direction:column; gap:12px;">
+                <div class="intake-style-block intake-design-select-block">
+                  <label class="intake-field">프레젠테이션 전체 디자인
+                    <select id="intakeDesignSelect">
+                      <optgroup label="기존 디자인">
+                        <option value="bauhaus" selected>Bauhaus</option>
+                        <option value="clay">Claymorphism</option>
+                        <option value="brutal">Neo-Brutalism</option>
+                        <option value="skeuo">Skeuomorphism</option>
+                        <option value="swiss">Swiss Minimal</option>
+                      </optgroup>
+                      <optgroup label="깔끔하고 명확한 디자인">
+                        <option value="swiss-grid">Swiss Grid Modern</option>
+                        <option value="functional-bauhaus">Functional Bauhaus</option>
+                        <option value="soft-minimal">Soft Layered Minimal</option>
+                        <option value="controlled-brutal">Controlled Neo-Brutalism</option>
+                        <option value="tactile-minimal">Tactile Product Minimal</option>
+                      </optgroup>
+                    </select>
+                  </label>
+                  <p id="intakeDesignHint" class="guide"></p>
+                </div>
+
+                <div class="intake-style-block intake-palette-block">
+                  <div class="palette-header">
+                    <strong class="option-group-title">커스텀 테마 색상 (3가지)</strong>
+                    <button id="intakeResetPaletteButton" class="text-link" type="button">기본 색상 복원</button>
+                  </div>
+                  <div class="palette-inputs">
+                    <div class="color-picker-row">
+                      <span class="color-rank-label">1순위</span>
+                      <input id="intakeColorPicker1" type="color" value="#e11d48">
+                      <input id="intakeColorHex1" type="text" class="color-hex-input" placeholder="#HEX" value="#e11d48" maxlength="7">
+                      <span id="intakeColorSwatch1" class="color-swatch-chip" style="background:#e11d48"></span>
+                    </div>
+                    <div class="color-picker-row">
+                      <span class="color-rank-label">2순위</span>
+                      <input id="intakeColorPicker2" type="color" value="#2563eb">
+                      <input id="intakeColorHex2" type="text" class="color-hex-input" placeholder="#HEX" value="#2563eb" maxlength="7">
+                      <span id="intakeColorSwatch2" class="color-swatch-chip" style="background:#2563eb"></span>
+                    </div>
+                    <div class="color-picker-row">
+                      <span class="color-rank-label">3순위</span>
+                      <input id="intakeColorPicker3" type="color" value="#f59e0b">
+                      <input id="intakeColorHex3" type="text" class="color-hex-input" placeholder="#HEX" value="#f59e0b" maxlength="7">
+                      <span id="intakeColorSwatch3" class="color-swatch-chip" style="background:#f59e0b"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="intake-style-block intake-design-thumb-block">
+                <strong class="option-group-title">디자인 미리보기 (개요식 템플릿)</strong>
+                <div id="intakeDesignThumbnail" class="design-thumbnail-preview"></div>
+              </div>
+            </div>
+          </div>
+          <div class="intake-overlay-block">
+            <div class="overlay-header-row" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <strong class="option-group-title" style="margin:0;">6개 고정 위치 문구 설정</strong>
+              <label class="overlay-title-toggle-label" style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; cursor:pointer;">
+                <input id="intakeOverlayApplyToTitle" type="checkbox">
+                <span>Title PAGE 01 (표지)에도 적용</span>
+              </label>
+            </div>
+            <div class="fixed-overlay-grid">
+              <div class="overlay-config-card">
+                <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="overlay-pos-label">Top-Left</span>
+                  <select class="overlay-preset-select" data-target="intakeOverlayText_tl">
+                    <option value="">-- 입력선택 --</option>
+                    <option value="{page} / {total}">페이지 (1 / 5)</option>
+                    <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                  </select>
+                </div>
+                <input id="intakeOverlayText_tl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <div class="overlay-style-row">
+                  <select id="intakeOverlaySize_tl" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
+                  <select id="intakeOverlayWeight_tl" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                </div>
+              </div>
+              <div class="overlay-config-card">
+                <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="overlay-pos-label">Top-Center</span>
+                  <select class="overlay-preset-select" data-target="intakeOverlayText_tc">
+                    <option value="">-- 입력선택 --</option>
+                    <option value="{page} / {total}">페이지 (1 / 5)</option>
+                    <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                  </select>
+                </div>
+                <input id="intakeOverlayText_tc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <div class="overlay-style-row">
+                  <select id="intakeOverlaySize_tc" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
+                  <select id="intakeOverlayWeight_tc" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                </div>
+              </div>
+              <div class="overlay-config-card">
+                <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="overlay-pos-label">Top-Right</span>
+                  <select class="overlay-preset-select" data-target="intakeOverlayText_tr">
+                    <option value="">-- 입력선택 --</option>
+                    <option value="{page} / {total}">페이지 (1 / 5)</option>
+                    <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                  </select>
+                </div>
+                <input id="intakeOverlayText_tr" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <div class="overlay-style-row">
+                  <select id="intakeOverlaySize_tr" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
+                  <select id="intakeOverlayWeight_tr" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                </div>
+              </div>
+              <div class="overlay-config-card">
+                <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="overlay-pos-label">Bottom-Left</span>
+                  <select class="overlay-preset-select" data-target="intakeOverlayText_bl">
+                    <option value="">-- 입력선택 --</option>
+                    <option value="{page} / {total}">페이지 (1 / 5)</option>
+                    <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                  </select>
+                </div>
+                <input id="intakeOverlayText_bl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <div class="overlay-style-row">
+                  <select id="intakeOverlaySize_bl" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
+                  <select id="intakeOverlayWeight_bl" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                </div>
+              </div>
+              <div class="overlay-config-card">
+                <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="overlay-pos-label">Bottom-Center</span>
+                  <select class="overlay-preset-select" data-target="intakeOverlayText_bc">
+                    <option value="">-- 입력선택 --</option>
+                    <option value="{page} / {total}">페이지 (1 / 5)</option>
+                    <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                  </select>
+                </div>
+                <input id="intakeOverlayText_bc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <div class="overlay-style-row">
+                  <select id="intakeOverlaySize_bc" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
+                  <select id="intakeOverlayWeight_bc" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                </div>
+              </div>
+              <div class="overlay-config-card">
+                <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="overlay-pos-label">Bottom-Right</span>
+                  <select class="overlay-preset-select" data-target="intakeOverlayText_br">
+                    <option value="">-- 입력선택 --</option>
+                    <option value="{page} / {total}">페이지 (1 / 5)</option>
+                    <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                  </select>
+                </div>
+                <input id="intakeOverlayText_br" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <div class="overlay-style-row">
+                  <select id="intakeOverlaySize_br" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
+                  <select id="intakeOverlayWeight_br" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button id="startPresentationWithStyleButton" class="button button-dark start-with-style-btn" type="submit">✨ 선택한 디자인 & 스타일로 프레젠테이션 시작하기</button>
+        </div>
       </form>
       <input id="intakeProjectFile" type="file" accept=".txt,.json,text/plain,application/json" hidden>
+    </div>
+  </section>
+  <section id="styleConfigModal" class="ai-intake" hidden role="dialog" aria-modal="true" aria-labelledby="styleModalTitle">
+    <div class="ai-intake-card style-modal-card">
+      <div class="ai-intake-heading style-modal-heading" style="display:flex; align-items:flex-start; justify-content:space-between;">
+        <div>
+          <p class="ai-eyebrow">LOCAL PPT · DESIGN SYSTEM</p>
+          <h2 id="styleModalTitle" style="margin:0; font-size:20px; font-weight:900;">디자인 & 테마 스타일 변경</h2>
+          <p style="margin-top:4px;">현재 프레젠테이션의 데이터는 그대로 유지되며 디자인, 테마색, 고정 문구만 즉시 반영됩니다.</p>
+        </div>
+        <button id="closeStyleModalButton" class="text-link" type="button" style="font-size:24px; font-weight:900; line-height:1; padding:0 4px;">×</button>
+      </div>
+
+      <div class="intake-style-settings" style="margin-top:12px;">
+        <div class="intake-style-container">
+          <div class="intake-design-row">
+            <div class="intake-left-column" style="display:flex; flex-direction:column; gap:12px;">
+              <div class="intake-style-block intake-design-select-block">
+                <label class="intake-field">프레젠테이션 전체 디자인
+                  <select id="modalDesignSelect">
+                    <optgroup label="기존 디자인">
+                      <option value="bauhaus" selected>Bauhaus</option>
+                      <option value="clay">Claymorphism</option>
+                      <option value="brutal">Neo-Brutalism</option>
+                      <option value="skeuo">Skeuomorphism</option>
+                      <option value="swiss">Swiss Minimal</option>
+                    </optgroup>
+                    <optgroup label="깔끔하고 명확한 디자인">
+                      <option value="swiss-grid">Swiss Grid Modern</option>
+                      <option value="functional-bauhaus">Functional Bauhaus</option>
+                      <option value="soft-minimal">Soft Layered Minimal</option>
+                      <option value="controlled-brutal">Controlled Neo-Brutalism</option>
+                      <option value="tactile-minimal">Tactile Product Minimal</option>
+                    </optgroup>
+                  </select>
+                </label>
+                <p id="modalDesignHint" class="guide"></p>
+              </div>
+
+              <div class="intake-style-block intake-palette-block">
+                <div class="palette-header">
+                  <strong class="option-group-title">커스텀 테마 색상 (3가지)</strong>
+                  <button id="modalResetPaletteButton" class="text-link" type="button">기본 색상 복원</button>
+                </div>
+                <div class="palette-inputs">
+                  <div class="color-picker-row">
+                    <span class="color-rank-label">1순위</span>
+                    <input id="modalColorPicker1" type="color" value="#e11d48">
+                    <input id="modalColorHex1" type="text" class="color-hex-input" placeholder="#HEX" value="#e11d48" maxlength="7">
+                    <span id="modalColorSwatch1" class="color-swatch-chip" style="background:#e11d48"></span>
+                  </div>
+                  <div class="color-picker-row">
+                    <span class="color-rank-label">2순위</span>
+                    <input id="modalColorPicker2" type="color" value="#2563eb">
+                    <input id="modalColorHex2" type="text" class="color-hex-input" placeholder="#HEX" value="#2563eb" maxlength="7">
+                    <span id="modalColorSwatch2" class="color-swatch-chip" style="background:#2563eb"></span>
+                  </div>
+                  <div class="color-picker-row">
+                    <span class="color-rank-label">3순위</span>
+                    <input id="modalColorPicker3" type="color" value="#f59e0b">
+                    <input id="modalColorHex3" type="text" class="color-hex-input" placeholder="#HEX" value="#f59e0b" maxlength="7">
+                    <span id="modalColorSwatch3" class="color-swatch-chip" style="background:#f59e0b"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="intake-style-block intake-design-thumb-block">
+              <strong class="option-group-title">디자인 미리보기 (개요식 템플릿)</strong>
+              <div id="modalDesignThumbnail" class="design-thumbnail-preview"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="intake-overlay-block">
+          <div class="overlay-header-row" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <strong class="option-group-title" style="margin:0;">6개 고정 위치 문구 설정</strong>
+            <label class="overlay-title-toggle-label" style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; cursor:pointer;">
+              <input id="modalOverlayApplyToTitle" type="checkbox">
+              <span>Title PAGE 01 (표지)에도 적용</span>
+            </label>
+          </div>
+          <div class="fixed-overlay-grid">
+            <div class="overlay-config-card">
+              <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="overlay-pos-label">Top-Left</span>
+                <select class="overlay-preset-select" data-target="modalOverlayText_tl">
+                  <option value="">-- 입력선택 --</option>
+                  <option value="{page} / {total}">페이지 (1 / 5)</option>
+                  <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                </select>
+              </div>
+              <input id="modalOverlayText_tl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+              <div class="overlay-style-row">
+                <select id="modalOverlaySize_tl" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
+                <select id="modalOverlayWeight_tl" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+              </div>
+            </div>
+            <div class="overlay-config-card">
+              <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="overlay-pos-label">Top-Center</span>
+                <select class="overlay-preset-select" data-target="modalOverlayText_tc">
+                  <option value="">-- 입력선택 --</option>
+                  <option value="{page} / {total}">페이지 (1 / 5)</option>
+                  <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                </select>
+              </div>
+              <input id="modalOverlayText_tc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+              <div class="overlay-style-row">
+                <select id="modalOverlaySize_tc" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
+                <select id="modalOverlayWeight_tc" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+              </div>
+            </div>
+            <div class="overlay-config-card">
+              <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="overlay-pos-label">Top-Right</span>
+                <select class="overlay-preset-select" data-target="modalOverlayText_tr">
+                  <option value="">-- 입력선택 --</option>
+                  <option value="{page} / {total}">페이지 (1 / 5)</option>
+                  <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                </select>
+              </div>
+              <input id="modalOverlayText_tr" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+              <div class="overlay-style-row">
+                <select id="modalOverlaySize_tr" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
+                <select id="modalOverlayWeight_tr" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+              </div>
+            </div>
+            <div class="overlay-config-card">
+              <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="overlay-pos-label">Bottom-Left</span>
+                <select class="overlay-preset-select" data-target="modalOverlayText_bl">
+                  <option value="">-- 입력선택 --</option>
+                  <option value="{page} / {total}">페이지 (1 / 5)</option>
+                  <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                </select>
+              </div>
+              <input id="modalOverlayText_bl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+              <div class="overlay-style-row">
+                <select id="modalOverlaySize_bl" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
+                <select id="modalOverlayWeight_bl" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+              </div>
+            </div>
+            <div class="overlay-config-card">
+              <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="overlay-pos-label">Bottom-Center</span>
+                <select class="overlay-preset-select" data-target="modalOverlayText_bc">
+                  <option value="">-- 입력선택 --</option>
+                  <option value="{page} / {total}">페이지 (1 / 5)</option>
+                  <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                </select>
+              </div>
+              <input id="modalOverlayText_bc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+              <div class="overlay-style-row">
+                <select id="modalOverlaySize_bc" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
+                <select id="modalOverlayWeight_bc" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+              </div>
+            </div>
+            <div class="overlay-config-card">
+              <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="overlay-pos-label">Bottom-Right</span>
+                <select class="overlay-preset-select" data-target="modalOverlayText_br">
+                  <option value="">-- 입력선택 --</option>
+                  <option value="{page} / {total}">페이지 (1 / 5)</option>
+                  <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                </select>
+              </div>
+              <input id="modalOverlayText_br" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+              <div class="overlay-style-row">
+                <select id="modalOverlaySize_br" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
+                <select id="modalOverlayWeight_br" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions-row" style="margin-top:16px; display:flex; gap:10px; justify-content:flex-end;">
+          <button id="cancelStyleModalButton" class="button" type="button">취소</button>
+          <button id="applyStyleModalButton" class="button button-dark" type="button" style="padding:10px 24px; font-weight:900;">✨ 적용하기</button>
+        </div>
+      </div>
     </div>
   </section>
   <script src="templates/schema.js?v=20260828-charts1"></script>

@@ -37,8 +37,22 @@ let copiedFromPageId = null;
 let pasteOffsetCount = 0;
 let copiedPage = null;
 
+function defaultFixedOverlays() {
+  return {
+    applyToTitle: false,
+    tl: { text: "", size: "13px", weight: "700" },
+    tc: { text: "", size: "13px", weight: "700" },
+    tr: { text: "", size: "13px", weight: "700" },
+    bl: { text: "", size: "13px", weight: "700" },
+    bc: { text: "", size: "13px", weight: "700" },
+    br: { text: "", size: "13px", weight: "700" }
+  };
+}
+
 const state = {
   design: "bauhaus",
+  customPalette: null,
+  fixedOverlays: defaultFixedOverlays(),
   pages: [createCoverPage()],
   currentPageIndex: 0,
   selectedIds: new Set(),
@@ -46,6 +60,62 @@ const state = {
   guides: [],
   history: []
 };
+
+function getCurrentPalette() {
+  if (Array.isArray(state.customPalette) && state.customPalette.length === 3) {
+    return state.customPalette;
+  }
+  const designMeta = designs[state.design];
+  if (designMeta && Array.isArray(designMeta.defaultColors)) {
+    return designMeta.defaultColors;
+  }
+  return ["#e11d48", "#2563eb", "#f59e0b"];
+}
+
+function applyThemePalette() {
+  const [c1, c2, c3] = getCurrentPalette();
+  document.body.style.setProperty("--content-accent", c1);
+  document.body.style.setProperty("--content-accent-2", c2);
+  document.body.style.setProperty("--content-accent-3", c3);
+}
+
+function renderFixedOverlayLayer() {
+  const curPage = state.pages[state.currentPageIndex];
+  if (curPage && curPage.type === "cover" && !state.fixedOverlays?.applyToTitle) {
+    return;
+  }
+  const positions = [
+    { key: "tl", className: "pos-tl" },
+    { key: "tc", className: "pos-tc" },
+    { key: "tr", className: "pos-tr" },
+    { key: "bl", className: "pos-bl" },
+    { key: "bc", className: "pos-bc" },
+    { key: "br", className: "pos-br" }
+  ];
+  const layer = document.createElement("div");
+  layer.className = "fixed-overlay-layer";
+  let hasText = false;
+  positions.forEach(({ key, className }) => {
+    const cfg = state.fixedOverlays?.[key];
+    if (cfg && cfg.text && cfg.text.trim()) {
+      hasText = true;
+      let rawText = cfg.text.trim();
+      const currentPageNum = state.currentPageIndex + 1;
+      const totalPageNum = state.pages.length;
+      rawText = rawText.replace(/{page}/g, currentPageNum).replace(/{total}/g, totalPageNum);
+
+      const item = document.createElement("div");
+      item.className = `fixed-overlay-item ${className}`;
+      item.textContent = rawText;
+      item.style.fontSize = cfg.size || "13px";
+      item.style.fontWeight = cfg.weight || "700";
+      layer.append(item);
+    }
+  });
+  if (hasText) {
+    stage.append(layer);
+  }
+}
 
 function createId(prefix = "object") {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -70,14 +140,16 @@ function createCoverPage() {
 }
 
 function createContentPage() {
-  return {
+  const page = {
     id: createId("page"),
     type: "content",
-    template: null,
+    template: "object",
     objectCategory: "layout",
     variant: "cards",
     objects: []
   };
+  buildTemplate(page, "object");
+  return page;
 }
 
 function currentPage() {
@@ -87,6 +159,8 @@ function currentPage() {
 function snapshot() {
   state.history.push(JSON.stringify({
     design: state.design,
+    customPalette: state.customPalette,
+    fixedOverlays: state.fixedOverlays,
     pages: state.pages,
     currentPageIndex: state.currentPageIndex
   }));
@@ -99,6 +173,8 @@ function undo() {
   if (!value) return;
   const restored = JSON.parse(value);
   state.design = restored.design;
+  state.customPalette = restored.customPalette || null;
+  state.fixedOverlays = restored.fixedOverlays || defaultFixedOverlays();
   state.pages = restored.pages;
   state.currentPageIndex = restored.currentPageIndex;
   state.selectedIds.clear();
@@ -1251,6 +1327,7 @@ function changeSelectedBulletHierarchy(direction) {
 function render() {
   if (state.activeTextObjectId && !currentPage().objects.some((object) => object.id === state.activeTextObjectId)) hideTextToolbar();
   document.body.dataset.design = state.design;
+  applyThemePalette();
   renderControls();
   renderPages();
   renderStage();
@@ -1260,9 +1337,45 @@ function render() {
 function renderControls() {
   const page = currentPage();
   const isCover = page.type === "cover";
-  $("#designSelect").value = state.design;
-  $("#designSelect").disabled = !isCover;
-  $("#designHint").textContent = isCover ? (designs[state.design] || "") : "디자인은 PAGE 01에서만 변경할 수 있습니다.";
+  const designSelect = $("#designSelect");
+  if (designSelect) {
+    designSelect.value = state.design;
+    designSelect.disabled = !isCover;
+  }
+  const designHint = $("#designHint");
+  if (designHint) {
+    designHint.textContent = isCover ? (designs[state.design]?.description || designs[state.design] || "") : "디자인 및 테마 설정은 시작 화면 모달에서 지정됩니다.";
+  }
+  const designSec01 = $("#designSection01");
+  if (designSec01) designSec01.hidden = !isCover;
+  const paletteSec = $("#paletteSection");
+  if (paletteSec) paletteSec.hidden = !isCover;
+  const overlaySec = $("#fixedOverlaySection");
+  if (overlaySec) overlaySec.hidden = !isCover;
+
+  if (isCover) {
+    const palette = getCurrentPalette();
+    [1, 2, 3].forEach((index) => {
+      const hex = palette[index - 1];
+      const picker = $(`#colorPicker${index}`);
+      const hexInput = $(`#colorHex${index}`);
+      const swatch = $(`#colorSwatch${index}`);
+      if (picker) picker.value = hex;
+      if (hexInput && document.activeElement !== hexInput) hexInput.value = hex;
+      if (swatch) swatch.style.background = hex;
+    });
+
+    ["tl", "tc", "tr", "bl", "bc", "br"].forEach((pos) => {
+      const cfg = state.fixedOverlays?.[pos] || { text: "", size: "13px", weight: "700" };
+      const textInput = $(`#overlayText_${pos}`);
+      const sizeSelect = $(`#overlaySize_${pos}`);
+      const weightSelect = $(`#overlayWeight_${pos}`);
+      if (textInput && document.activeElement !== textInput) textInput.value = cfg.text || "";
+      if (sizeSelect) sizeSelect.value = cfg.size || "13px";
+      if (weightSelect) weightSelect.value = cfg.weight || "700";
+    });
+  }
+
   $("#templateSection").hidden = isCover;
   $("#itemSection").hidden = false;
   $("#templateSelect").value = page.template || "";
@@ -1311,6 +1424,11 @@ function renderControls() {
         : isChart ? `데이터 ${itemCount}개 · 2~8개까지 추가·삭제하고 숫자를 수정할 수 있습니다.`
         : selectedTable ? `테이블 ${tableManagementAxis === "column" ? "열" : "행"}을 관리합니다. 위 선택에서 대상을 바꿀 수 있습니다.`
         : page.template ? `현재 항목 ${itemCount}개 · 추가하거나 삭제할 항목 개체를 먼저 선택하세요.` : "본문 템플릿을 먼저 선택하세요.";
+  const animBtn = $("#toggleAnimModeButton");
+  if (animBtn) {
+    animBtn.classList.toggle("is-active", isAnimMode);
+    animBtn.textContent = isAnimMode ? "애니메이션 모드 종료 (A / Esc)" : "애니메이션 지정 (단축키 A)";
+  }
 }
 
 function renderPages() {
@@ -1349,6 +1467,13 @@ function renderStage() {
   renderConnections(page);
   renderAlignmentGuides();
   page.objects.forEach((object) => stage.append(createObjectElement(object)));
+  renderFixedOverlayLayer();
+  stage.classList.toggle("is-anim-mode", isAnimMode);
+  const animBanner = $("#animModeBanner");
+  if (animBanner) animBanner.hidden = !isAnimMode;
+  if (document.fullscreenElement === stage) {
+    updateFullscreenAnimState();
+  }
   requestAnimationFrame(fitAllText);
 }
 
@@ -1367,6 +1492,13 @@ function createObjectElement(object) {
   element.className = `canvas-object ${getObjectClass(object)} ${state.selectedIds.has(object.id) ? "is-selected" : ""}`;
   element.dataset.objectId = object.id;
   applyObjectBox(element, object);
+
+  if (typeof object.animOrder === "number" && object.animOrder > 0) {
+    const badge = document.createElement("span");
+    badge.className = "anim-badge";
+    badge.textContent = `A${object.animOrder}`;
+    element.append(badge);
+  }
 
   if (object.type === "image") {
     const image = new Image();
@@ -1420,7 +1552,15 @@ function createObjectElement(object) {
   handle.className = "resize-handle";
   handle.addEventListener("pointerdown", (event) => beginResize(event, object));
   element.append(handle);
-  element.addEventListener("pointerdown", (event) => beginDrag(event, object));
+  element.addEventListener("pointerdown", (event) => {
+    if (isAnimMode) {
+      event.preventDefault();
+      event.stopPropagation();
+      handleAnimModeClick(event, object);
+      return;
+    }
+    beginDrag(event, object);
+  });
   return element;
 }
 
@@ -2394,11 +2534,82 @@ $("#projectFileInput").addEventListener("change", (event) => {
 $("#saveProjectButton").addEventListener("click", saveCurrentProject);
 $("#saveAsProjectButton").addEventListener("click", saveProjectAs);
 
-$("#designSelect").addEventListener("change", (event) => {
+$("#designSelect")?.addEventListener("change", (event) => {
   if (state.currentPageIndex !== 0) return;
   snapshot();
   state.design = event.target.value;
+  state.customPalette = null;
   render();
+});
+
+$("#resetPaletteButton")?.addEventListener("click", () => {
+  snapshot();
+  state.customPalette = null;
+  render();
+});
+
+[1, 2, 3].forEach((index) => {
+  const picker = $(`#colorPicker${index}`);
+  const hexInput = $(`#colorHex${index}`);
+
+  picker?.addEventListener("input", (event) => {
+    const current = [...getCurrentPalette()];
+    current[index - 1] = event.target.value;
+    state.customPalette = current;
+    render();
+  });
+  picker?.addEventListener("change", () => snapshot());
+
+  hexInput?.addEventListener("input", (event) => {
+    let hex = event.target.value.trim();
+    if (!hex.startsWith("#")) hex = "#" + hex;
+    if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+      const current = [...getCurrentPalette()];
+      current[index - 1] = hex;
+      state.customPalette = current;
+      render();
+    }
+  });
+  hexInput?.addEventListener("change", (event) => {
+    let hex = event.target.value.trim();
+    if (!hex.startsWith("#")) hex = "#" + hex;
+    if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+      snapshot();
+      const current = [...getCurrentPalette()];
+      current[index - 1] = hex;
+      state.customPalette = current;
+      render();
+    } else {
+      event.target.value = getCurrentPalette()[index - 1];
+    }
+  });
+});
+
+["tl", "tc", "tr", "bl", "bc", "br"].forEach((pos) => {
+  const textInput = $(`#overlayText_${pos}`);
+  const sizeSelect = $(`#overlaySize_${pos}`);
+  const weightSelect = $(`#overlayWeight_${pos}`);
+
+  textInput?.addEventListener("input", (event) => {
+    if (!state.fixedOverlays[pos]) state.fixedOverlays[pos] = { text: "", size: "13px", weight: "700" };
+    state.fixedOverlays[pos].text = event.target.value;
+    renderStage();
+  });
+  textInput?.addEventListener("change", () => snapshot());
+
+  sizeSelect?.addEventListener("change", (event) => {
+    if (!state.fixedOverlays[pos]) state.fixedOverlays[pos] = { text: "", size: "13px", weight: "700" };
+    snapshot();
+    state.fixedOverlays[pos].size = event.target.value;
+    render();
+  });
+
+  weightSelect?.addEventListener("change", (event) => {
+    if (!state.fixedOverlays[pos]) state.fixedOverlays[pos] = { text: "", size: "13px", weight: "700" };
+    snapshot();
+    state.fixedOverlays[pos].weight = event.target.value;
+    render();
+  });
 });
 
 $("#templateSelect").addEventListener("change", (event) => {
@@ -2540,10 +2751,131 @@ $("#imageInput").addEventListener("change", (event) => {
   });
 });
 
+let fullscreenAnimStep = 0;
+let isAnimMode = false;
+
+function toggleAnimMode(active) {
+  isAnimMode = Boolean(active);
+  if (isAnimMode) {
+    state.selectedIds.clear();
+    state.guides = [];
+    hideTextToolbar();
+  }
+  render();
+}
+
+function handleAnimModeClick(event, object) {
+  const page = currentPage();
+  const hasOrder = typeof object.animOrder === "number" && object.animOrder > 0;
+  snapshot();
+  if (hasOrder) {
+    const deletedOrder = object.animOrder;
+    delete object.animOrder;
+    page.objects.forEach((obj) => {
+      if (typeof obj.animOrder === "number" && obj.animOrder > deletedOrder) {
+        obj.animOrder -= 1;
+      }
+    });
+  } else {
+    if (event.ctrlKey || event.metaKey) {
+      const maxOrder = getMaxAnimOrder(page);
+      object.animOrder = maxOrder > 0 ? maxOrder : 1;
+    } else {
+      object.animOrder = getMaxAnimOrder(page) + 1;
+    }
+  }
+  render();
+}
+
+$("#toggleAnimModeButton")?.addEventListener("click", () => {
+  toggleAnimMode(!isAnimMode);
+});
+
+function getMaxAnimOrder(page = currentPage()) {
+  let max = 0;
+  if (!page || !Array.isArray(page.objects)) return max;
+  page.objects.forEach((object) => {
+    if (typeof object.animOrder === "number" && object.animOrder > max) {
+      max = object.animOrder;
+    }
+  });
+  return max;
+}
+
+function updateFullscreenAnimState() {
+  const isFullscreen = document.fullscreenElement === stage;
+  if (!isFullscreen) return;
+  const page = currentPage();
+  page.objects.forEach((object) => {
+    const element = stage.querySelector(`[data-object-id="${object.id}"]`);
+    if (!element) return;
+    if (typeof object.animOrder === "number" && object.animOrder > 0) {
+      if (object.animOrder > fullscreenAnimStep) {
+        element.classList.add("fullscreen-anim-hidden");
+        element.classList.remove("fullscreen-anim-visible");
+      } else {
+        element.classList.add("fullscreen-anim-visible");
+        element.classList.remove("fullscreen-anim-hidden");
+      }
+    } else {
+      element.classList.remove("fullscreen-anim-hidden", "fullscreen-anim-visible");
+    }
+  });
+}
+
+function navigateFullscreenNext() {
+  const maxOrder = getMaxAnimOrder();
+  if (fullscreenAnimStep < maxOrder) {
+    fullscreenAnimStep += 1;
+    updateFullscreenAnimState();
+    return true;
+  }
+  const moved = navigateFullscreenPage(1);
+  if (moved) {
+    fullscreenAnimStep = 0;
+    updateFullscreenAnimState();
+  }
+  return moved;
+}
+
+function navigateFullscreenPrev() {
+  if (fullscreenAnimStep > 0) {
+    fullscreenAnimStep -= 1;
+    updateFullscreenAnimState();
+    return true;
+  }
+  const moved = navigateFullscreenPage(-1);
+  if (moved) {
+    fullscreenAnimStep = getMaxAnimOrder();
+    updateFullscreenAnimState();
+  }
+  return moved;
+}
+
 $("#fullscreenButton").addEventListener("click", () => {
   if (document.fullscreenElement) document.exitFullscreen();
   else stage.requestFullscreen();
 });
+
+document.addEventListener("fullscreenchange", () => {
+  if (document.fullscreenElement === stage) {
+    fullscreenAnimStep = 0;
+    updateFullscreenAnimState();
+  } else {
+    fullscreenAnimStep = 0;
+    stage.querySelectorAll(".fullscreen-anim-hidden, .fullscreen-anim-visible").forEach((element) => {
+      element.classList.remove("fullscreen-anim-hidden", "fullscreen-anim-visible");
+    });
+  }
+});
+
+stage.addEventListener("click", (event) => {
+  if (document.fullscreenElement === stage) {
+    event.preventDefault();
+    event.stopPropagation();
+    navigateFullscreenNext();
+  }
+}, true);
 
 function isTextInputTarget(target) {
   const tagName = target?.tagName;
@@ -2648,11 +2980,44 @@ document.addEventListener("keydown", (event) => {
   const modifier = event.ctrlKey || event.metaKey;
   const key = event.key.toLowerCase();
   const editingText = isTextInputTarget(document.activeElement);
-  if (document.fullscreenElement === stage && !editingText && ["ArrowLeft", "ArrowRight"].includes(event.key)) {
+
+  if (document.fullscreenElement === stage) {
+    if (["ArrowRight", " ", "PageDown"].includes(event.key)) {
+      event.preventDefault();
+      navigateFullscreenNext();
+      return;
+    }
+    if (["ArrowLeft", "PageUp"].includes(event.key)) {
+      event.preventDefault();
+      navigateFullscreenPrev();
+      return;
+    }
+  }
+
+  if (key === "a" && !modifier && !editingText && !["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) {
     event.preventDefault();
-    navigateFullscreenPage(event.key === "ArrowLeft" ? -1 : 1);
+    if (event.shiftKey) {
+      snapshot();
+      currentPage().objects.forEach((object) => delete object.animOrder);
+      render();
+      return;
+    }
+    toggleAnimMode(!isAnimMode);
     return;
   }
+
+  if (event.key === "Escape") {
+    if (isAnimMode) {
+      toggleAnimMode(false);
+      return;
+    }
+    state.selectedIds.clear();
+    state.guides = [];
+    hideTextToolbar();
+    renderStage();
+    return;
+  }
+
   if (modifier && key === "c" && !editingText && copySelectedObjects()) {
     event.preventDefault();
     return;
@@ -2825,8 +3190,10 @@ function createAiContentPage(slide) {
 }
 
 window.LocalPptApp = {
-  startBlank() {
-    state.design = "bauhaus";
+  startBlank(options = {}) {
+    state.design = options.design || "bauhaus";
+    state.customPalette = options.customPalette || null;
+    state.fixedOverlays = options.fixedOverlays || defaultFixedOverlays();
     state.pages = [createCoverPage()];
     state.currentPageIndex = 0;
     state.selectedIds.clear();
@@ -2836,11 +3203,13 @@ window.LocalPptApp = {
     render();
   },
   loadProjectFile,
-  applyAiPresentation(presentation) {
+  applyAiPresentation(presentation, options = {}) {
     const title = String(presentation?.title || "AI PRESENTATION").trim().slice(0, 90) || "AI PRESENTATION";
     const slides = Array.isArray(presentation?.slides) ? presentation.slides.slice(0, 30) : [];
     if (!slides.length) throw new Error("AI 응답에 만들 슬라이드가 없습니다.");
-    state.design = "bauhaus";
+    state.design = options.design || "bauhaus";
+    state.customPalette = options.customPalette || null;
+    state.fixedOverlays = options.fixedOverlays || defaultFixedOverlays();
     const cover = createCoverPage();
     cover.objects.find((object) => object.role === "cover-title").text = title;
     cover.objects.find((object) => object.role === "cover-subtitle").text = String(presentation?.subtitle || "AI가 생성한 프레젠테이션 초안").trim().slice(0, 160);
@@ -2853,6 +3222,20 @@ window.LocalPptApp = {
     currentProjectFileName = "local-ppt.txt";
     document.title = "Local PPT 2";
     hideTextToolbar();
+    render();
+  },
+  getOptions() {
+    return {
+      design: state.design,
+      customPalette: getCurrentPalette(),
+      fixedOverlays: state.fixedOverlays
+    };
+  },
+  updateOptions(options = {}) {
+    snapshot();
+    if (options.design) state.design = options.design;
+    if (options.customPalette) state.customPalette = options.customPalette;
+    if (options.fixedOverlays) state.fixedOverlays = options.fixedOverlays;
     render();
   }
 };
