@@ -90,15 +90,15 @@
 
   function getIntakeFixedOverlays() {
     const overlays = {
-      applyToTitle: $("#intakeOverlayApplyToTitle")?.checked || $("#modalOverlayApplyToTitle")?.checked || false
+      applyToTitle: Boolean($("#intakeOverlayApplyToTitle")?.checked)
     };
     ["tl", "tc", "tr", "bl", "bc", "br"].forEach((pos) => {
-      const img = overlayImages.intake[pos] || overlayImages.modal[pos] || "";
+      const img = overlayImages.intake[pos] || "";
       overlays[pos] = {
-        text: $(`#intakeOverlayText_${pos}`)?.value || $(`#modalOverlayText_${pos}`)?.value || "",
+        text: $(`#intakeOverlayText_${pos}`)?.value || "",
         image: img,
-        size: $(`#intakeOverlaySize_${pos}`)?.value || $(`#modalOverlaySize_${pos}`)?.value || "13px",
-        weight: $(`#intakeOverlayWeight_${pos}`)?.value || $(`#modalOverlayWeight_${pos}`)?.value || "700"
+        size: $(`#intakeOverlaySize_${pos}`)?.value || "13px",
+        weight: $(`#intakeOverlayWeight_${pos}`)?.value || "700"
       };
     });
     return overlays;
@@ -309,10 +309,14 @@
   }
 
   function getModalFixedOverlays() {
-    const overlays = {};
+    const overlays = {
+      applyToTitle: Boolean($("#modalOverlayApplyToTitle")?.checked)
+    };
     ["tl", "tc", "tr", "bl", "bc", "br"].forEach((pos) => {
+      const img = overlayImages.modal[pos] || "";
       overlays[pos] = {
         text: $(`#modalOverlayText_${pos}`)?.value || "",
+        image: img,
         size: $(`#modalOverlaySize_${pos}`)?.value || "13px",
         weight: $(`#modalOverlayWeight_${pos}`)?.value || "700"
       };
@@ -322,14 +326,31 @@
 
   function setModalFixedOverlays(overlays) {
     if (!overlays) return;
+    const modalTitleToggle = $("#modalOverlayApplyToTitle");
+    if (modalTitleToggle) modalTitleToggle.checked = !!overlays.applyToTitle;
+
     ["tl", "tc", "tr", "bl", "bc", "br"].forEach((pos) => {
-      const cfg = overlays[pos] || { text: "", size: "13px", weight: "700" };
+      const cfg = overlays[pos] || { text: "", image: "", size: "13px", weight: "700" };
       const textInput = $(`#modalOverlayText_${pos}`);
       const sizeSelect = $(`#modalOverlaySize_${pos}`);
       const weightSelect = $(`#modalOverlayWeight_${pos}`);
+      const prevBox = $(`#modalOverlayImgPrev_${pos}`);
+      const imgTag = $(`#modalOverlayImg_${pos}`);
+
       if (textInput) textInput.value = cfg.text || "";
       if (sizeSelect) sizeSelect.value = cfg.size || "13px";
       if (weightSelect) weightSelect.value = cfg.weight || "700";
+
+      if (cfg.image) {
+        overlayImages.modal[pos] = cfg.image;
+        if (imgTag) imgTag.src = cfg.image;
+        if (prevBox) { prevBox.hidden = false; prevBox.style.display = "flex"; }
+        if (textInput) { textInput.hidden = true; textInput.style.display = "none"; }
+      } else {
+        overlayImages.modal[pos] = "";
+        if (prevBox) { prevBox.hidden = true; prevBox.style.display = "none"; }
+        if (textInput) { textInput.hidden = false; textInput.style.display = "block"; }
+      }
     });
   }
 
