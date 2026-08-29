@@ -35,13 +35,12 @@ Template decision rules
 - Do not default every slide to bullet. Also do not force a visual when it makes the information less clear.
 
 Layout guidance
-- cards, cardsAccent, focusCards, sideAccentGrid: parallel topics or grouped facts.
-- compare, compareSummary: two to four comparable alternatives.
-- table, tableStats, tableDualNotices: detailed values or data that must be read precisely.
-- bannerMetrics, detailMetrics: KPIs and headline metrics.
-- stepsMedia, processNotices, stepsNotices: ordered steps with supporting notes.
-- scaleDefinitions: levels, ranges, or maturity stages.
-- conceptNotices, iconGridAlert, dualOverviewFeatures, mediaFeatures, pairedCheckWarnings: concepts, features, benefits, cautions, or paired checks.
+- cards, sideAccentGrid, focusCards: parallel topics or grouped facts.
+- compare: two to four comparable alternatives with summary.
+- table, tableStats: detailed values or data that must be read precisely.
+- bannerMetrics, metricsBottomBanner: KPIs and headline metrics with banner.
+- stepsMedia, processNotices: ordered steps with supporting notes.
+- mediaFeatures, pairedCheckWarnings: concepts, features, benefits, or paired checks.
 
 Diagram guidance
 - process, chain, ribbonArrow: ordered flow or cause-to-result sequence.
@@ -65,7 +64,7 @@ Chart guidance
 - For spreadsheet input, inspect headers and row/column relationships. Use charts for as many meaningful numeric comparisons or trends as the requested slide count reasonably allows, while reserving tables for precision and text slides for conclusions. Do not chart identifiers, phone numbers, codes, years used only as labels, or other non-measures.
 
 Allowed variants
-- layout: cards, cardsAccent, table, compare, bannerMetrics, stepsMedia, tableStats, mediaFeatures, compareSummary, scaleDefinitions, processNotices, iconGridAlert, tableDualNotices, stepsNotices, conceptNotices, dualOverviewFeatures, focusCards, sideAccentGrid, pairedCheckWarnings, detailMetrics.
+- layout: cards, sideAccentGrid, mediaFeatures, compare, pairedCheckWarnings, bannerMetrics, metricsBottomBanner, focusCards, stepsMedia, processNotices, table, tableStats.
 - diagram: process, timeline, pyramid, cycle, chain, ribbonArrow, funnel, venn, target, connectedCircles, quadrant, vs.
 - chart: column, line, pie, bar, area.
 

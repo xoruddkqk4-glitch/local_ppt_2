@@ -19,11 +19,11 @@ const STRUCTURED_LAYOUT_ROLES = new Set([
   "notice-panel", "warning-panel", "tip-panel", "focus-panel",
   "checklist-card", "warning-summary-card", "detail-metric-card"
 ]);
-const TABLE_LAYOUT_VARIANTS = new Set(["table", "tableDualNotices"]);
+const TABLE_LAYOUT_VARIANTS = new Set(["table", "tableStats"]);
 const ITEM_COUNT_ROLE_BY_VARIANT = { pairedCheckWarnings: "checklist-card" };
 const AI_TEMPLATES = new Set(["bullet", "mindmap", "object"]);
 const AI_OBJECT_VARIANTS = {
-  layout: new Set(["cards", "cardsAccent", "table", "compare", "bannerMetrics", "stepsMedia", "tableStats", "mediaFeatures", "compareSummary", "scaleDefinitions", "processNotices", "iconGridAlert", "tableDualNotices", "stepsNotices", "conceptNotices", "dualOverviewFeatures", "focusCards", "sideAccentGrid", "pairedCheckWarnings", "detailMetrics"]),
+  layout: new Set(["cards", "sideAccentGrid", "mediaFeatures", "compare", "pairedCheckWarnings", "bannerMetrics", "metricsBottomBanner", "focusCards", "stepsMedia", "processNotices", "table", "tableStats"]),
   diagram: new Set(["process", "timeline", "pyramid", "cycle", "chain", "ribbonArrow", "funnel", "venn", "target", "connectedCircles", "quadrant", "vs"]),
   chart: new Set(["column", "line", "pie", "bar", "area"])
 };
@@ -359,25 +359,17 @@ function buildObjectTemplate(page, itemCount) {
 
   if (page.objectCategory === "layout") {
     if (page.variant === "cards") addCardLayout(page, count);
-    if (page.variant === "cardsAccent") addSideAccentCardLayout(page, count);
-    if (page.variant === "table") addTableLayout(page, count);
-    if (page.variant === "compare") addCompareLayout(page, Math.max(2, count));
-    if (page.variant === "bannerMetrics") addBannerMetricsLayout(page, count);
-    if (page.variant === "stepsMedia") addStepsMediaLayout(page, count);
-    if (page.variant === "tableStats") addTableStatsLayout(page, count);
-    if (page.variant === "mediaFeatures") addMediaFeaturesLayout(page, count);
-    if (page.variant === "compareSummary") addCompareSummaryLayout(page);
-    if (page.variant === "scaleDefinitions") addScaleDefinitionsLayout(page, count);
-    if (page.variant === "processNotices") addProcessNoticesLayout(page, count);
-    if (page.variant === "iconGridAlert") addIconGridAlertLayout(page, count);
-    if (page.variant === "tableDualNotices") addTableDualNoticesLayout(page, count);
-    if (page.variant === "stepsNotices") addStepsNoticesLayout(page, count);
-    if (page.variant === "conceptNotices") addConceptNoticesLayout(page, count);
-    if (page.variant === "dualOverviewFeatures") addDualOverviewFeaturesLayout(page, count);
-    if (page.variant === "focusCards") addFocusCardsLayout(page, count);
     if (page.variant === "sideAccentGrid") addSideAccentGridLayout(page, count);
+    if (page.variant === "mediaFeatures") addMediaFeaturesLayout(page, count);
+    if (page.variant === "compare") addCompareSummaryLayout(page);
     if (page.variant === "pairedCheckWarnings") addPairedCheckWarningsLayout(page, count);
-    if (page.variant === "detailMetrics") addDetailMetricsLayout(page, count);
+    if (page.variant === "bannerMetrics") addBannerMetricsLayout(page, count);
+    if (page.variant === "metricsBottomBanner") addMetricsBottomBannerLayout(page, count);
+    if (page.variant === "focusCards") addFocusCardsLayout(page, count);
+    if (page.variant === "stepsMedia") addStepsMediaLayout(page, count);
+    if (page.variant === "processNotices") addProcessNoticesLayout(page, count);
+    if (page.variant === "table") addTableLayout(page, count);
+    if (page.variant === "tableStats") addTableStatsLayout(page, count);
   } else if (page.objectCategory === "diagram") {
     if (page.variant === "process") addProcessDiagram(page, count);
     if (page.variant === "timeline") addTimelineDiagram(page, count);
@@ -613,18 +605,10 @@ function changeChartVariantPreservingContent(page, variant) {
   if (!chart) return;
   if (data.length >= CHART_MIN_ITEMS) chart.data = data.slice(0, CHART_MAX_ITEMS);
   chart.sourceBlocks = sourceBlocks;
-  if (sourceBlocks.length) {
-    chart.h = 57;
-    page.objects.push(createTextObject(
-      "chart-context",
-      sourceBlocks.map((block) => block.text).join(" · "),
-      7,
-      85,
-      86,
-      9,
-      { textAlign: "left" }
-    ));
-  }
+  chart.x = 5;
+  chart.y = 16;
+  chart.w = 90;
+  chart.h = 79;
 }
 
 function getVariantTitle(page) {
@@ -713,6 +697,11 @@ function addResponsiveCards(page, count, role, textFactory, area) {
 function addBannerMetricsLayout(page, count) {
   addLayoutBanner(page, "핵심 안내 문구를 입력하세요", 24, 12);
   addResponsiveCards(page, count, "metric-card", (index) => `${index + 1}00%\n지표 ${index + 1}\n간단한 설명을 입력하세요`, { x: 8, y: 42, w: 84, h: 42, gapX: 2, gapY: 3 });
+}
+
+function addMetricsBottomBannerLayout(page, count) {
+  addResponsiveCards(page, count, "metric-card", (index) => `${index + 1}00%\n지표 ${index + 1}\n간단한 설명을 입력하세요`, { x: 8, y: 24, w: 84, h: 42, gapX: 2, gapY: 3 });
+  addLayoutBanner(page, "핵심 요약 배너 문구를 입력하세요", 72, 12);
 }
 
 function addStepsMediaLayout(page, count) {
@@ -1050,10 +1039,10 @@ function addChart(page, variant) {
     role: `chart-${variant}`,
     chartType: variant,
     data: source.map(([label, value]) => ({ label, value })),
-    x: 7,
-    y: 25,
-    w: 86,
-    h: 68,
+    x: 5,
+    y: 16,
+    w: 90,
+    h: 79,
     item: false
   });
 }
@@ -1100,43 +1089,29 @@ function getItemCount(page) {
 function getLayoutDefaultCount(variant) {
   return {
     cards: 4,
-    cardsAccent: 3,
-    table: 3,
-    compare: 2,
-    bannerMetrics: 4,
-    stepsMedia: 4,
-    tableStats: 3,
-    mediaFeatures: 4,
-    compareSummary: 2,
-    scaleDefinitions: 4,
-    processNotices: 7,
-    iconGridAlert: 6,
-    tableDualNotices: 5,
-    stepsNotices: 3,
-    conceptNotices: 3,
-    dualOverviewFeatures: 4,
-    focusCards: 3,
     sideAccentGrid: 8,
+    mediaFeatures: 4,
+    compare: 2,
     pairedCheckWarnings: 3,
-    detailMetrics: 4
+    bannerMetrics: 4,
+    metricsBottomBanner: 4,
+    focusCards: 3,
+    stepsMedia: 4,
+    processNotices: 7,
+    table: 3,
+    tableStats: 3
   }[variant] || 3;
 }
 
 function getLayoutMinimumCount(variant) {
-  return ["compare", "compareSummary"].includes(variant) ? 2 : 1;
+  return variant === "compare" ? 2 : 1;
 }
 
 function getLayoutMaximumCount(variant) {
-  if (variant === "compareSummary") return 2;
   if (variant === "compare") return 4;
-  if (["bannerMetrics", "stepsMedia", "tableStats", "mediaFeatures", "scaleDefinitions", "stepsNotices", "conceptNotices"].includes(variant)) return 6;
-  if (variant === "processNotices") return 10;
-  if (variant === "iconGridAlert") return 9;
-  if (variant === "dualOverviewFeatures") return 8;
-  if (variant === "focusCards") return 6;
-  if (variant === "sideAccentGrid") return 10;
-  if (variant === "pairedCheckWarnings") return 6;
-  if (variant === "detailMetrics") return 6;
+  if (["bannerMetrics", "metricsBottomBanner", "stepsMedia", "tableStats", "mediaFeatures"].includes(variant)) return 6;
+  if (variant === "processNotices" || variant === "sideAccentGrid") return 10;
+  if (variant === "focusCards" || variant === "pairedCheckWarnings") return 6;
   return MAX_ITEMS;
 }
 
@@ -1188,12 +1163,12 @@ function getSelectedActionObject(page) {
   if (page.template === "object" && page.objectCategory === "layout" && TABLE_LAYOUT_VARIANTS.has(page.variant)) {
     return page.objects.find((object) => object.type === "table") || null;
   }
-  if (state.selectedIds.size !== 1) return null;
+  if (state.selectedIds.size === 0) return null;
   const selected = page.objects.find((object) => state.selectedIds.has(object.id));
   if (!selected) return null;
   if (page.type === "cover") return selected.role === "cover-item" ? selected : null;
   if (page.template === "mindmap") return selected.root || selected.role === "mind-node" ? selected : null;
-  return selected.item ? selected : null;
+  return selected;
 }
 
 function canAddItem(page, selected) {
@@ -1212,6 +1187,10 @@ function canAddItem(page, selected) {
 }
 
 function canRemoveItem(page, selected) {
+  if (state.selectedIds.size > 0) {
+    if (page.template === "mindmap" && selected && selected.root) return false;
+    return true;
+  }
   if (!selected) return false;
   if (page.type === "cover") return true;
   if (selected.type === "chart") return getChartData(selected).length > CHART_MIN_ITEMS;
@@ -1220,12 +1199,7 @@ function canRemoveItem(page, selected) {
     return tableManagementAxis === "column" ? columnCount > 2 : selected.cells.length > 2;
   }
   if (page.template === "mindmap") return !selected.root;
-  const minimum = page.template === "object" && page.objectCategory === "layout"
-    ? getLayoutMinimumCount(page.variant)
-    : page.template === "object" && page.objectCategory === "diagram"
-      ? getDiagramMinimumCount(page.variant)
-      : MIN_ITEMS;
-  return getItemCount(page) > minimum;
+  return true;
 }
 
 function addItem() {
@@ -1274,18 +1248,23 @@ function removeItem() {
   const count = getItemCount(page);
   const selected = getSelectedActionObject(page);
   if ((page.type !== "cover" && page.type !== "content") || !canRemoveItem(page, selected)) return;
+
+  const targetIds = new Set(state.selectedIds);
+  if (selected && selected.id) targetIds.add(selected.id);
+  if (targetIds.size === 0) return;
+
   snapshot();
 
   if (page.type === "cover") {
-    page.objects = page.objects.filter((object) => object.id !== selected.id);
+    page.objects = page.objects.filter((object) => !targetIds.has(object.id));
     layoutCoverItems(page);
     state.selectedIds.clear();
   } else if (page.template === "bullet") {
-    page.objects = page.objects.filter((object) => object.id !== selected.id);
+    page.objects = page.objects.filter((object) => !targetIds.has(object.id));
     layoutBulletItems(page);
     state.selectedIds.clear();
   } else if (page.template === "mindmap") {
-    const deletedIds = new Set([selected.id]);
+    const deletedIds = new Set(targetIds);
     let foundChild = true;
     while (foundChild) {
       foundChild = false;
@@ -1297,15 +1276,22 @@ function removeItem() {
       });
     }
     page.objects = page.objects.filter((object) => !deletedIds.has(object.id));
-    state.selectedIds = selected.parentId ? new Set([selected.parentId]) : new Set();
-  } else if (selected.type === "chart") {
+    state.selectedIds.clear();
+  } else if (selected && selected.type === "chart") {
     selected.data = getChartData(selected);
     selected.data.pop();
-  } else if (selected.type === "table") {
+  } else if (selected && selected.type === "table") {
     if (tableManagementAxis === "column") selected.cells.forEach((row) => row.pop());
     else selected.cells.pop();
   } else {
-    rebuildObjectTemplatePreservingContent(page, count - 1, selected);
+    const selectedObjects = page.objects.filter((object) => targetIds.has(object.id));
+    const removeCount = selectedObjects.length || 1;
+    const newCount = Math.max(1, count - removeCount);
+
+    page.objects = page.objects.filter((object) => !targetIds.has(object.id));
+    if (page.template === "object") {
+      rebuildObjectTemplatePreservingContent(page, newCount, selectedObjects[0] || selected);
+    }
     state.selectedIds.clear();
   }
   hideTextToolbar();
@@ -1391,7 +1377,19 @@ function renderControls() {
   $("#templateSection").hidden = isCover;
   $("#itemSection").hidden = false;
   $("#templateSelect").value = page.template || "";
-  $("#objectOptions").hidden = page.template !== "object";
+  const isObject = page.template === "object";
+  $("#objectOptions").hidden = !isObject;
+
+  if (isObject) {
+    const layoutSec = $("#layoutVariantSection");
+    const diagramSec = $("#diagramVariantSection");
+    const chartSec = $("#chartVariantSection");
+
+    if (layoutSec) layoutSec.hidden = false;
+    if (diagramSec) diagramSec.hidden = false;
+    if (chartSec) chartSec.hidden = false;
+  }
+
   document.querySelectorAll("[data-layout-variant]").forEach((button) => {
     const selected = page.objectCategory === "layout" && button.dataset.layoutVariant === page.variant;
     button.classList.toggle("is-selected", selected);
@@ -2336,25 +2334,17 @@ function getLayoutThumbnailMarkup(variant) {
   const two = `<span class="thumb-row thumb-two">${block.repeat(2)}</span>`;
   const previews = {
     cards: `<span class="layout-thumbnail cards">${block.repeat(4)}</span>`,
-    cardsAccent: `<span class="layout-thumbnail cards-accent">${block.repeat(3)}</span>`,
-    table: `<span class="layout-thumbnail table-thumb">${block.repeat(4)}</span>`,
-    compare: `<span class="layout-thumbnail">${two}</span>`,
-    bannerMetrics: `<span class="layout-thumbnail banner-metrics">${dark}${four}</span>`,
-    stepsMedia: `<span class="layout-thumbnail steps-media">${four}${dark}</span>`,
-    tableStats: `<span class="layout-thumbnail table-stats"><span class="thumb-table"></span><span class="thumb-row thumb-three-rows">${block.repeat(3)}</span></span>`,
-    mediaFeatures: `<span class="layout-thumbnail media-features">${dark}<span class="thumb-row thumb-two thumb-two-rows">${block.repeat(4)}</span></span>`,
-    compareSummary: `<span class="layout-thumbnail compare-summary">${two}${dark}</span>`,
-    scaleDefinitions: `<span class="layout-thumbnail scale-definitions">${dark}<span class="thumb-scale"></span>${four}</span>`,
-    processNotices: `<span class="layout-thumbnail process-notices">${seven}${two}${block}</span>`,
-    iconGridAlert: `<span class="layout-thumbnail icon-grid-alert"><span class="thumb-row thumb-three thumb-two-rows">${block.repeat(6)}</span>${dark}</span>`,
-    tableDualNotices: `<span class="layout-thumbnail table-dual-notices"><span class="thumb-table"></span>${two}</span>`,
-    stepsNotices: `<span class="layout-thumbnail steps-notices">${three}${dark}${block}</span>`,
-    conceptNotices: `<span class="layout-thumbnail concept-notices">${three}${two}${dark}</span>`,
-    dualOverviewFeatures: `<span class="layout-thumbnail dual-overview-features">${two}${four}${dark}</span>`,
-    focusCards: `<span class="layout-thumbnail focus-cards">${dark}${three}</span>`,
     sideAccentGrid: `<span class="layout-thumbnail side-accent-grid"><span class="thumb-row thumb-two thumb-four-rows">${block.repeat(8)}</span></span>`,
+    mediaFeatures: `<span class="layout-thumbnail media-features">${dark}<span class="thumb-row thumb-two thumb-two-rows">${block.repeat(4)}</span></span>`,
+    compare: `<span class="layout-thumbnail compare-summary">${two}${dark}</span>`,
     pairedCheckWarnings: `<span class="layout-thumbnail paired-check-warnings">${three}${three}</span>`,
-    detailMetrics: `<span class="layout-thumbnail detail-metrics"><span class="thumb-row thumb-two thumb-two-rows">${block.repeat(4)}</span>${dark}</span>`
+    bannerMetrics: `<span class="layout-thumbnail banner-metrics">${dark}${four}</span>`,
+    metricsBottomBanner: `<span class="layout-thumbnail banner-metrics">${four}${dark}</span>`,
+    focusCards: `<span class="layout-thumbnail focus-cards">${dark}${three}</span>`,
+    stepsMedia: `<span class="layout-thumbnail steps-media">${four}${dark}</span>`,
+    processNotices: `<span class="layout-thumbnail process-notices">${seven}${two}${block}</span>`,
+    table: `<span class="layout-thumbnail table-thumb">${block.repeat(4)}</span>`,
+    tableStats: `<span class="layout-thumbnail table-stats"><span class="thumb-table"></span><span class="thumb-row thumb-three-rows">${block.repeat(3)}</span></span>`
   };
   return previews[variant] || `<span class="layout-thumbnail">${block}</span>`;
 }
@@ -3175,7 +3165,13 @@ function createAiObjectPage(slide) {
 
   if (category === "chart") {
     const chart = page.objects.find((object) => object.type === "chart");
-    if (chart) chart.data = chartData;
+    if (chart) {
+      chart.data = chartData;
+      chart.x = 5;
+      chart.y = 16;
+      chart.w = 90;
+      chart.h = 79;
+    }
   }
 
   const table = page.objects.find((object) => object.type === "table");
