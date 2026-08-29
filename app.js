@@ -392,7 +392,7 @@ function buildObjectTemplate(page, itemCount) {
   }
 }
 
-const RELAYOUT_TEXT_PROPERTIES = ["text", "textColor", "fontSize", "textAlign", "color"];
+const RELAYOUT_TEXT_PROPERTIES = ["text", "textColor", "fontSize", "textAlign", "color", "animOrder"];
 const LAYOUT_CONTENT_EXCLUDED_ROLES = new Set(["page-title", "media-placeholder", "vs-label", "chart-context"]);
 
 function copyRelayoutTextProperties(target, source) {
@@ -468,6 +468,68 @@ function getLayoutContentSnapshot(page) {
     tableCells: page.objects.find((object) => object.type === "table")?.cells.map((row) => [...row]) || null,
     chartData
   };
+}
+
+function applyBulletTemplatePreservingContent(page) {
+  const snapshotContent = getLayoutContentSnapshot(page);
+  const images = page.objects.filter((object) => object.type === "image");
+  const titleText = snapshotContent.title?.text || "개조식 본문";
+
+  page.template = "bullet";
+  page.objectCategory = null;
+  page.variant = null;
+
+  const title = createTextObject("page-title", titleText, 7, 7, 86, 16, { textAlign: "left" });
+  const blocks = snapshotContent.blocks.length
+    ? snapshotContent.blocks
+    : [{ text: "첫 번째 핵심 내용" }, { text: "두 번째 핵심 내용" }];
+
+  const bulletItems = blocks.map((block) => (
+    createTextObject("bullet-item", String(block.text || "").trim(), 12, 0, 75, 9, {
+      item: true,
+      bulletLevel: clamp(1, Number(block.bulletLevel) || 1, 4),
+      textColor: block.textColor,
+      fontSize: block.fontSize,
+      animOrder: block.animOrder
+    })
+  ));
+
+  page.objects = [title, ...bulletItems, ...images];
+  layoutBulletItems(page);
+}
+
+function applyMindmapTemplatePreservingContent(page) {
+  const snapshotContent = getLayoutContentSnapshot(page);
+  const images = page.objects.filter((object) => object.type === "image");
+  const rootText = snapshotContent.title?.text || snapshotContent.blocks[0]?.text || "CENTRAL IDEA";
+
+  page.template = "mindmap";
+  page.objectCategory = "diagram";
+  page.variant = "connectedCircles";
+
+  const root = createTextObject("mind-root", rootText, 42, 45, 16, 14, {
+    item: false, node: true, root: true, mindLevel: 1
+  });
+
+  const remainingBlocks = snapshotContent.title
+    ? snapshotContent.blocks
+    : snapshotContent.blocks.slice(1);
+
+  const sourceBlocks = remainingBlocks.length
+    ? remainingBlocks
+    : [{ text: "CONTEXT" }, { text: "METHOD" }, { text: "PROCESS" }, { text: "RESULT" }];
+
+  const nodes = sourceBlocks.map((block, index) => {
+    const parentId = root.id;
+    const node = createMindNode(String(block.text || "").trim() || `노드 ${index + 1}`, parentId, 2);
+    if (typeof block.animOrder === "number" && block.animOrder > 0) {
+      node.animOrder = block.animOrder;
+    }
+    return node;
+  });
+
+  page.objects = [root, ...nodes, ...images];
+  layoutMindmapTree(page);
 }
 
 function restoreSnapshotTitle(page, snapshotContent) {
@@ -1916,7 +1978,7 @@ function beginTextEdit(event, object, wrapper, text) {
   selection.addRange(range);
 
   const finish = () => {
-    object.text = text.innerText.trim() || "텍스트";
+    object.text = text.innerText.trim() || (object.role === "shape-box" ? "" : "텍스트");
     text.contentEditable = "false";
     wrapper.classList.remove("is-editing");
     renderStage();
@@ -1962,6 +2024,14 @@ function showTextToolbar(object, textElement) {
   $("#textSizeInput").value = Math.round(object.fontSize || Number.parseFloat(getComputedStyle(textElement).fontSize) || 28);
   toolbar.querySelectorAll("[data-text-align]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.textAlign === getTextAlign(object));
+  });
+
+  const palette = getCurrentPalette();
+  toolbar.querySelectorAll(".theme-color-btn").forEach((btn, idx) => {
+    const color = palette[idx] || "#2563eb";
+    btn.style.backgroundColor = color;
+    btn.dataset.colorHex = color;
+    btn.title = `테마 ${idx + 1}순위 색상 (${color}) 적용`;
   });
 }
 
@@ -2176,9 +2246,15 @@ function renderConnections(page) {
   if (page.template === "mindmap") {
     const root = page.objects.find((object) => object.root);
     page.objects.filter((object) => object.role === "mind-node").forEach((node) => {
-      const parent = page.objects.find((object) => object.id === node.parentId) || root;
-      drawConnection(parent, node, stage);
+      let parent = page.objects.find((object) => object.id === node.parentId);
+      if (!parent && node.mindLevel === 2) {
+        parent = root;
+      }
+      if (parent) {
+        drawConnection(parent, node, stage);
+      }
     });
+    return;
   }
 
   const variant = page.variant;
@@ -2195,7 +2271,7 @@ function renderConnections(page) {
   }
 
   if (variant === "connectedCircles") {
-    const nodes = page.objects.filter((object) => object.role === "connected-circle" || object.node).sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
+    const nodes = page.objects.filter((object) => object.role === "connected-circle" || (object.node && !object.role)).sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
     const center = nodes[0];
     if (center) {
       nodes.slice(1).forEach((node) => drawConnection(center, node, stage));
@@ -2242,6 +2318,9 @@ function renderTimelinePath(page, targetContainer = $("#pageCanvas") || stage) {
     path.setAttribute("d", `M ${startX} ${baseline} Q ${centers[index]} ${controlY} ${endX} ${baseline}`);
     path.setAttribute("class", "timeline-curve");
     path.setAttribute("marker-end", "url(#timeline-arrow)");
+    if (typeof node.animOrder === "number" && node.animOrder > 0) {
+      path.dataset.animOrder = node.animOrder;
+    }
     svg.append(path);
   });
 
@@ -2280,6 +2359,14 @@ function drawConnection(from, to, targetContainer = stage) {
   line.style.backgroundColor = "var(--content-accent, #2563eb)";
   line.style.height = "3px";
   line.style.zIndex = "1";
+
+  const animOrder = typeof to.animOrder === "number" && to.animOrder > 0
+    ? to.animOrder
+    : (typeof from.animOrder === "number" && from.animOrder > 0 ? from.animOrder : null);
+  if (typeof animOrder === "number" && animOrder > 0) {
+    line.dataset.animOrder = animOrder;
+  }
+
   container.append(line);
 }
 
@@ -2781,7 +2868,14 @@ $("#unifiedTemplateContainer")?.addEventListener("click", (event) => {
 
   if (btnText) {
     snapshot();
-    buildTemplate(page, btnText.dataset.templateId);
+    const templateId = btnText.dataset.templateId;
+    if (templateId === "bullet") {
+      applyBulletTemplatePreservingContent(page);
+    } else if (templateId === "mindmap") {
+      applyMindmapTemplatePreservingContent(page);
+    } else {
+      buildTemplate(page, templateId);
+    }
     state.selectedIds.clear();
     hideTextToolbar();
     render();
@@ -2863,6 +2957,19 @@ $("#bgColorInput")?.addEventListener("change", (event) => {
   selectedObjects.forEach((item) => { item.bgColor = event.target.value; });
   renderStage();
 });
+document.querySelectorAll(".theme-color-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const color = btn.dataset.colorHex || getCurrentPalette()[Number(btn.dataset.colorIndex) || 0];
+    if (!color) return;
+    const page = currentPage();
+    const selectedObjects = page.objects.filter((item) => state.selectedIds.has(item.id));
+    if (!selectedObjects.length) return;
+    snapshot();
+    selectedObjects.forEach((item) => { item.bgColor = color; });
+    if ($("#bgColorInput")) $("#bgColorInput").value = normalizeColor(color);
+    renderStage();
+  });
+});
 function commitTextSizeInput(input) {
   const parsed = Number(input.value);
   if (!Number.isFinite(parsed)) {
@@ -2901,7 +3008,7 @@ $("#addShapeObjectButton")?.addEventListener("click", () => {
   const page = currentPage();
   if (page.type === "cover") return;
   snapshot();
-  page.objects.push(createTextObject("shape-box", "도형 개체", 40, 45, 20, 18, { item: false, textAlign: "center", shapeType: "rectangle", bgColor: "#2563eb", textColor: "#ffffff" }));
+  page.objects.push(createTextObject("shape-box", "", 40, 45, 20, 18, { item: false, textAlign: "center", shapeType: "rectangle", bgColor: "#2563eb", textColor: "#ffffff" }));
   render();
 });
 document.querySelectorAll(".shape-select-btn").forEach((btn) => {
@@ -2911,13 +3018,13 @@ document.querySelectorAll(".shape-select-btn").forEach((btn) => {
     if (page.type === "cover") return;
     snapshot();
     const configMap = {
-      rectangle: { name: "사각형", bg: "#2563eb", text: "#ffffff" },
-      circle: { name: "동그라미", bg: "#ef4444", text: "#ffffff" },
-      triangle: { name: "세모", bg: "#10b981", text: "#ffffff" },
-      star: { name: "별표", bg: "#f59e0b", text: "#1e293b" }
+      rectangle: { bg: "#2563eb", text: "#ffffff" },
+      circle: { bg: "#ef4444", text: "#ffffff" },
+      triangle: { bg: "#10b981", text: "#ffffff" },
+      star: { bg: "#f59e0b", text: "#1e293b" }
     };
     const config = configMap[shapeType] || configMap.rectangle;
-    page.objects.push(createTextObject("shape-box", config.name, 40, 45, 20, 18, {
+    page.objects.push(createTextObject("shape-box", "", 40, 45, 20, 18, {
       item: false,
       textAlign: "center",
       shapeType,
@@ -3045,6 +3152,19 @@ function updateFullscreenAnimState() {
       }
     } else {
       element.classList.remove("fullscreen-anim-hidden", "fullscreen-anim-visible");
+    }
+  });
+
+  stage.querySelectorAll(".connection, .timeline-curve, [data-anim-order]").forEach((element) => {
+    const order = Number(element.dataset.animOrder);
+    if (Number.isFinite(order) && order > 0) {
+      if (order > fullscreenAnimStep) {
+        element.classList.add("fullscreen-anim-hidden");
+        element.classList.remove("fullscreen-anim-visible");
+      } else {
+        element.classList.add("fullscreen-anim-visible");
+        element.classList.remove("fullscreen-anim-hidden");
+      }
     }
   });
 }

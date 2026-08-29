@@ -166,6 +166,12 @@
         <strong>개체 서식</strong>
         <label>글자색 <input id="textColorInput" type="color" value="#151515" aria-label="텍스트 색상"></label>
         <label>배경색 <input id="bgColorInput" type="color" value="#ffffff" aria-label="개체 배경색"></label>
+        <div id="themeBgColorPalette" class="theme-bg-color-palette" aria-label="테마 3색 퀵 선택">
+          <span style="font-size:11px; font-weight:850; color:#475569; white-space:nowrap;">테마색:</span>
+          <button class="theme-color-btn" data-color-index="0" type="button" title="테마 1순위 색상 적용"></button>
+          <button class="theme-color-btn" data-color-index="1" type="button" title="테마 2순위 색상 적용"></button>
+          <button class="theme-color-btn" data-color-index="2" type="button" title="테마 3순위 색상 적용"></button>
+        </div>
         <div class="text-align-group" aria-label="텍스트 정렬">
           <button class="text-tool-button" type="button" data-text-align="left" aria-label="왼쪽 정렬">L</button>
           <button class="text-tool-button" type="button" data-text-align="center" aria-label="가운데 정렬">C</button>
@@ -474,6 +480,29 @@
         </div>
       </form>
       <input id="intakeProjectFile" type="file" accept=".txt,.json,text/plain,application/json" hidden>
+    </div>
+  </section>
+
+  <!-- AI Slide & Template Review Modal -->
+  <section id="aiReviewModal" class="ai-intake" hidden role="dialog" aria-modal="true" aria-labelledby="aiReviewTitle">
+    <div class="ai-intake-card review-modal-card" style="max-width: 860px; width: 92vw; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="ai-intake-heading" style="display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 12px; border-bottom: 2px solid var(--ink);">
+        <div>
+          <p class="ai-eyebrow">LOCAL PPT · AI REVIEW & TEMPLATE SELECTOR</p>
+          <h2 id="aiReviewTitle" style="margin: 0; font-size: 20px; font-weight: 900;">🤖 AI 슬라이드 검토 및 템플릿 선택</h2>
+          <p style="margin-top: 4px; font-size: 13px;">AI가 생성한 슬라이드 제목과 추천 템플릿을 검토하고, 각 슬라이드에 반영할 템플릿을 자유롭게 변경할 수 있습니다.</p>
+        </div>
+        <button id="closeAiReviewModalButton" class="text-link" type="button" style="font-size: 24px; font-weight: 900; line-height: 1; padding: 0 4px;">×</button>
+      </div>
+
+      <div id="aiReviewSlideList" class="review-slide-list" style="flex: 1; overflow-y: auto; margin-top: 14px; padding-right: 6px; display: flex; flex-direction: column; gap: 14px;">
+        <!-- Dynamic Slide Cards populated via javascript -->
+      </div>
+
+      <div class="modal-actions-row" style="margin-top: 16px; padding-top: 14px; border-top: 2px solid var(--ink); display: flex; gap: 10px; justify-content: flex-end; align-items: center;">
+        <button id="cancelAiReviewButton" class="button" type="button">취소</button>
+        <button id="confirmAiReviewButton" class="button button-dark" type="button" style="padding: 10px 24px; font-weight: 900;">✨ 확인 (슬라이드 생성)</button>
+      </div>
     </div>
   </section>
   <section id="styleConfigModal" class="ai-intake" hidden role="dialog" aria-modal="true" aria-labelledby="styleModalTitle">

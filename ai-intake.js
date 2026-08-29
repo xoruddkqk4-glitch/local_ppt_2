@@ -511,6 +511,158 @@
   }
   let pendingAiPresentation = null;
 
+  const reviewModal = $("#aiReviewModal");
+  const reviewSlideList = $("#aiReviewSlideList");
+
+  function openAiReviewModal(presentation) {
+    if (!reviewModal || !presentation || !Array.isArray(presentation.slides)) return;
+    pendingAiPresentation = presentation;
+    renderAiReviewSlides();
+    reviewModal.hidden = false;
+  }
+
+  function closeAiReviewModal() {
+    if (reviewModal) reviewModal.hidden = true;
+  }
+
+  function getSelectedTemplateVariantKey(slide) {
+    if (slide.template === "bullet") return "bullet";
+    if (slide.template === "mindmap") return "mindmap";
+    return slide.variant || "cards_2col";
+  }
+
+  function setSlideTemplateVariant(slide, variantKey) {
+    if (variantKey === "bullet") {
+      slide.template = "bullet";
+      slide.category = null;
+      slide.variant = null;
+    } else if (variantKey === "mindmap") {
+      slide.template = "mindmap";
+      slide.category = null;
+      slide.variant = null;
+    } else if (["cards_1col", "cards_2col", "cards_3col", "cards_4col", "sideAccent_1col", "sideAccent_2col", "sideAccent_3col", "sideAccent_4col", "summaryLeft", "summaryRight", "summaryTop", "summaryBottom", "table", "tableStats"].includes(variantKey)) {
+      slide.template = "object";
+      slide.category = "layout";
+      slide.variant = variantKey;
+    } else if (["process", "timeline", "pyramid", "cycle", "chain", "ribbonArrow", "funnel", "venn", "target", "connectedCircles", "quadrant", "vs"].includes(variantKey)) {
+      slide.template = "object";
+      slide.category = "diagram";
+      slide.variant = variantKey;
+    } else if (["column", "bar", "line", "area", "pie"].includes(variantKey)) {
+      slide.template = "object";
+      slide.category = "chart";
+      slide.variant = variantKey;
+    }
+  }
+
+  function renderAiReviewSlides() {
+    if (!reviewSlideList || !pendingAiPresentation) return;
+    const slides = pendingAiPresentation.slides;
+
+    reviewSlideList.innerHTML = slides.map((slide, index) => {
+      const currentKey = getSelectedTemplateVariantKey(slide);
+      const itemsText = Array.isArray(slide.items) && slide.items.length ? slide.items.join(" · ") : "상세 내용";
+
+      return `
+        <div class="review-slide-item-card" data-slide-index="${index}" style="padding: 14px; border: 2px solid var(--ink); border-radius: 8px; background: #ffffff; box-shadow: 3px 3px 0 var(--ink); display: flex; flex-direction: column; gap: 10px;">
+          <div class="review-slide-header" style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+            <span class="review-slide-badge" style="display: inline-flex; align-items: center; padding: 4px 10px; background: var(--blue, #2563eb); color: #ffffff; font-weight: 900; font-size: 12px; border-radius: 4px;">슬라이드 ${String(index + 1).padStart(2, "0")}</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <label style="font-size: 12.5px; font-weight: 850;">반영 템플릿:</label>
+              <select class="review-template-select" data-slide-index="${index}" style="padding: 6px 10px; border: 2px solid var(--ink); border-radius: 6px; font-weight: 800; font-size: 13px;">
+                <optgroup label="📁 텍스트 & 구조화">
+                  <option value="bullet" ${currentKey === 'bullet' ? 'selected' : ''}>개조식 (bullet)</option>
+                  <option value="mindmap" ${currentKey === 'mindmap' ? 'selected' : ''}>마인드맵 (mindmap)</option>
+                </optgroup>
+                <optgroup label="📁 카드 & 레이아웃">
+                  <option value="cards_1col" ${currentKey === 'cards_1col' ? 'selected' : ''}>기본 카드 1열 그리드</option>
+                  <option value="cards_2col" ${currentKey === 'cards_2col' ? 'selected' : ''}>기본 카드 2열 그리드</option>
+                  <option value="cards_3col" ${currentKey === 'cards_3col' ? 'selected' : ''}>기본 카드 3열 그리드</option>
+                  <option value="cards_4col" ${currentKey === 'cards_4col' ? 'selected' : ''}>기본 카드 4열 그리드</option>
+                  <option value="sideAccent_1col" ${currentKey === 'sideAccent_1col' ? 'selected' : ''}>측면 강조 카드 1열 그리드</option>
+                  <option value="sideAccent_2col" ${currentKey === 'sideAccent_2col' ? 'selected' : ''}>측면 강조 카드 2열 그리드</option>
+                  <option value="sideAccent_3col" ${currentKey === 'sideAccent_3col' ? 'selected' : ''}>측면 강조 카드 3열 그리드</option>
+                  <option value="sideAccent_4col" ${currentKey === 'sideAccent_4col' ? 'selected' : ''}>측면 강조 카드 4열 그리드</option>
+                </optgroup>
+                <optgroup label="📁 요약 및 강조">
+                  <option value="summaryLeft" ${currentKey === 'summaryLeft' ? 'selected' : ''}>왼쪽 요약</option>
+                  <option value="summaryRight" ${currentKey === 'summaryRight' ? 'selected' : ''}>오른쪽 요약</option>
+                  <option value="summaryTop" ${currentKey === 'summaryTop' ? 'selected' : ''}>위쪽 요약</option>
+                  <option value="summaryBottom" ${currentKey === 'summaryBottom' ? 'selected' : ''}>아래쪽 요약</option>
+                </optgroup>
+                <optgroup label="📁 프로세스 & 비주얼">
+                  <option value="process" ${currentKey === 'process' ? 'selected' : ''}>프로세스 흐름</option>
+                  <option value="timeline" ${currentKey === 'timeline' ? 'selected' : ''}>타임라인</option>
+                  <option value="pyramid" ${currentKey === 'pyramid' ? 'selected' : ''}>피라미드</option>
+                  <option value="cycle" ${currentKey === 'cycle' ? 'selected' : ''}>순환 흐름</option>
+                  <option value="chain" ${currentKey === 'chain' ? 'selected' : ''}>사슬 연쇄</option>
+                  <option value="ribbonArrow" ${currentKey === 'ribbonArrow' ? 'selected' : ''}>리본 화살표</option>
+                  <option value="funnel" ${currentKey === 'funnel' ? 'selected' : ''}>깔때기</option>
+                  <option value="venn" ${currentKey === 'venn' ? 'selected' : ''}>벤 다이어그램</option>
+                  <option value="target" ${currentKey === 'target' ? 'selected' : ''}>과녁 목표</option>
+                  <option value="connectedCircles" ${currentKey === 'connectedCircles' ? 'selected' : ''}>연결된 위성</option>
+                  <option value="quadrant" ${currentKey === 'quadrant' ? 'selected' : ''}>2x2 사분면</option>
+                  <option value="vs" ${currentKey === 'vs' ? 'selected' : ''}>VS 대조</option>
+                </optgroup>
+                <optgroup label="📁 데이터 차트 & 테이블">
+                  <option value="table" ${currentKey === 'table' ? 'selected' : ''}>기본 데이터 테이블</option>
+                  <option value="tableStats" ${currentKey === 'tableStats' ? 'selected' : ''}>테이블 & 요약 지표</option>
+                  <option value="column" ${currentKey === 'column' ? 'selected' : ''}>세로 막대 차트</option>
+                  <option value="bar" ${currentKey === 'bar' ? 'selected' : ''}>가로 막대 차트</option>
+                  <option value="line" ${currentKey === 'line' ? 'selected' : ''}>꺾은선 차트</option>
+                  <option value="area" ${currentKey === 'area' ? 'selected' : ''}>영역 차트</option>
+                  <option value="pie" ${currentKey === 'pie' ? 'selected' : ''}>원형 차트</option>
+                </optgroup>
+              </select>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <input type="text" class="review-slide-title-input" data-slide-index="${index}" value="${slide.title || '핵심 주제'}" placeholder="슬라이드 제목" style="padding: 8px 10px; border: 1.5px solid var(--ink); border-radius: 6px; font-weight: 850; font-size: 14px; width: 100%;">
+            <div class="review-slide-items-preview" style="font-size: 12px; color: #334155; background: #f8fafc; padding: 8px 10px; border-radius: 6px; border: 1px solid #cbd5e1; line-height: 1.4;">
+              <strong>미리보기:</strong> ${itemsText}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    reviewSlideList.querySelectorAll(".review-template-select").forEach((select) => {
+      select.addEventListener("change", (event) => {
+        const idx = Number(event.target.dataset.slideIndex);
+        if (slides[idx]) {
+          setSlideTemplateVariant(slides[idx], event.target.value);
+        }
+      });
+    });
+
+    reviewSlideList.querySelectorAll(".review-slide-title-input").forEach((input) => {
+      input.addEventListener("input", (event) => {
+        const idx = Number(event.target.dataset.slideIndex);
+        if (slides[idx]) {
+          slides[idx].title = event.target.value;
+        }
+      });
+    });
+  }
+
+  $("#confirmAiReviewButton")?.addEventListener("click", () => {
+    if (pendingAiPresentation) {
+      window.LocalPptApp.applyAiPresentation(pendingAiPresentation, getIntakeStartOptions());
+      closeAiReviewModal();
+      openStyleModal();
+    }
+  });
+
+  $("#cancelAiReviewButton")?.addEventListener("click", () => {
+    closeAiReviewModal();
+    if (intake) intake.hidden = false;
+  });
+
+  $("#closeAiReviewModalButton")?.addEventListener("click", () => {
+    closeAiReviewModal();
+    if (intake) intake.hidden = false;
+  });
+
   async function generate(event) {
     if (event) event.preventDefault();
     const provider = selectedProvider(), apiKey = provider === "openai" ? $("#openaiApiKey").value.trim() : $("#anthropicApiKey").value.trim(), model = provider === "openai" ? $("#openaiModel").value : $("#anthropicModel").value, slideCount = Number($("#aiSlideCount").value);
@@ -530,10 +682,10 @@
       const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || "AI 요청에 실패했습니다.");
       setProgress(98, "생성 완료 준비 중");
       pendingAiPresentation = result.presentation;
-      setProgress(100, "슬라이드 생성 완료 (100%)");
+      setProgress(100, "슬라이드 분석 완료!");
       completed = true;
-      setStatus("✨ AI 슬라이드가 성공적으로 생성되었습니다! 아래에서 원하는 디자인과 스타일을 확인·변경한 후 '프레젠테이션 시작하기'를 누르세요.");
-      scrollToStylePanel();
+      openAiReviewModal(pendingAiPresentation);
+      intake.hidden = true;
     } catch (error) {
       pendingAiPresentation = null;
       const message = /failed to fetch|networkerror/i.test(String(error?.message || ""))
@@ -550,8 +702,9 @@
 
   function showStartScreen() {
     pendingAiPresentation = null;
-    intake.hidden = false; sourceType = null; sourceInput.hidden = true; selectionHint.textContent = "입력 방식을 선택하세요.";
-    document.querySelectorAll("[data-intake-action]").forEach((button) => button.classList.remove("is-selected")); setStatus();
+    intake.hidden = false;
+    selectSource("prose");
+    setStatus();
     if (window.LocalPptApp?.getOptions) {
       const opts = window.LocalPptApp.getOptions();
       if ($("#intakeDesignSelect")) $("#intakeDesignSelect").value = opts.design || "bauhaus";
@@ -582,16 +735,10 @@
 
   $("#startPresentationWithStyleButton")?.addEventListener("click", async (event) => {
     if (pendingAiPresentation) {
-      window.LocalPptApp.applyAiPresentation(pendingAiPresentation, getIntakeStartOptions());
-      pendingAiPresentation = null;
+      openAiReviewModal(pendingAiPresentation);
       intake.hidden = true;
     } else if (sourceType === "prose" || sourceType === "outline" || sourceType === "pdf" || sourceType === "spreadsheet") {
       await generate(event);
-      if (pendingAiPresentation) {
-        window.LocalPptApp.applyAiPresentation(pendingAiPresentation, getIntakeStartOptions());
-        pendingAiPresentation = null;
-        intake.hidden = true;
-      }
     } else {
       window.LocalPptApp.startBlank(getIntakeStartOptions());
       intake.hidden = true;
@@ -604,4 +751,7 @@
   fileInput.addEventListener("change", () => { const file = fileInput.files[0]; fileName.textContent = file ? file.name : (sourceType === "pdf" ? "PDF 파일 선택" : "엑셀 파일 선택"); });
   [$("#openaiApiKey"), $("#anthropicApiKey")].forEach((input) => input.addEventListener("input", updateProviderChoice));
   form.addEventListener("submit", generate);
+
+  // Initialize intake screen with default prose selection visible
+  selectSource("prose");
 })();
