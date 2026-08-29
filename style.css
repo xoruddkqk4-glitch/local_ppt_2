@@ -553,14 +553,40 @@ body[data-design="tactile-minimal"] .resize-handle { width:13px; height:13px; ri
 .color-hex-input { width:80px; padding:3px 6px; border:1px solid var(--ink); font-family:monospace; font-size:12px; font-weight:800; text-transform:uppercase; }
 .color-swatch-chip { width:24px; height:24px; border:1px solid var(--ink); border-radius:4px; box-shadow:1px 1px 0 var(--ink); flex:none; }
 
-/* 6 Fixed Overlays Config in Left Panel */
+/* 6 Fixed Overlays Config Panels - Refined Modern UI */
 .fixed-overlay-section { margin-top:16px; padding-top:12px; border-top:1px solid #15151520; }
-.fixed-overlay-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
-.overlay-config-card { display:flex; flex-direction:column; gap:4px; padding:8px; border:1px solid var(--ink); background:#fff; }
-.overlay-pos-label { font-size:10px; font-weight:900; color:var(--ink); }
-.overlay-text-input { width:100%; padding:3px 6px; border:1px solid #b7b7b2; font-size:11px; font-weight:700; }
-.overlay-style-row { display:flex; gap:4px; }
-.overlay-preset-select { padding:1px 4px; border:1px solid #b7b7b2; font-size:10px; font-weight:700; background:#fff; border-radius:3px; cursor:pointer; }
+.fixed-overlay-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:10px; }
+@media (max-width:850px) { .intake-overlay-block .fixed-overlay-grid { grid-template-columns:1fr; } }
+
+.overlay-config-card {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:10px 12px;
+  border:1px solid #e2e8f0;
+  background:#fdfdfe;
+  border-radius:8px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.02);
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+.overlay-config-card:hover {
+  border-color:#cbd5e1;
+  box-shadow:0 3px 8px rgba(0,0,0,0.04);
+}
+.overlay-card-header { display:flex; justify-content:space-between; align-items:center; }
+.overlay-pos-label { font-size:11px; font-weight:900; color:#0f172a; letter-spacing:-0.01em; background:#f1f5f9; padding:2px 7px; border-radius:4px; font-family:monospace; }
+.overlay-preset-select { padding:3px 6px; border:1px solid #cbd5e1; font-size:11px; font-weight:800; background:#ffffff; color:#334155; border-radius:5px; cursor:pointer; }
+.overlay-preset-select:hover { border-color:#2563eb; }
+.overlay-input-wrap { position:relative; width:100%; }
+.overlay-text-input { width:100%; padding:5px 8px; border:1px solid #cbd5e1; font-size:11.5px; font-weight:700; border-radius:5px; background:#ffffff; color:#1e293b; transition:border-color .15s, box-shadow .15s; }
+.overlay-text-input:focus { border-color:#2563eb; outline:none; box-shadow:0 0 0 2px rgba(37,99,235,0.15); }
+.overlay-style-row { display:flex; gap:6px; }
+.overlay-select { flex:1; padding:4px 6px; border:1px solid #cbd5e1; font-size:10.5px; font-weight:800; background:#ffffff; color:#334155; border-radius:5px; cursor:pointer; }
+.overlay-select:focus { border-color:#2563eb; outline:none; }
+.overlay-img-preview { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 8px; border:1px dashed #2563eb; background:#eff6ff; border-radius:5px; margin-top:2px; }
+.overlay-img-preview[hidden], .overlay-text-input[hidden] { display:none !important; }
+.overlay-img-preview img { max-height:24px; max-width:120px; object-fit:contain; }
+.remove-overlay-img-btn { border:none; background:#ef4444; color:#fff; border-radius:50%; width:18px; height:18px; font-size:11px; font-weight:900; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 .overlay-title-toggle-label input[type="checkbox"] { width:14px; height:14px; cursor:pointer; accent-color:var(--ink); }
 
 /* Stage Fixed Overlays Layer */
@@ -572,6 +598,7 @@ body[data-design="tactile-minimal"] .resize-handle { width:13px; height:13px; ri
 .fixed-overlay-item.pos-bl { bottom:12px; left:16px; text-align:left; }
 .fixed-overlay-item.pos-bc { bottom:12px; left:50%; transform:translateX(-50%); text-align:center; }
 .fixed-overlay-item.pos-br { bottom:12px; right:16px; text-align:right; }
+.fixed-overlay-item.fixed-overlay-img { max-height:28px; width:auto; object-fit:contain; opacity:.95; }
 
 /* Start Screen Modal Style Settings */
 .intake-style-settings { margin-top:20px; padding:16px; border:2px solid var(--ink); background:linear-gradient(135deg,#fcfcf9,#f4f5f0); }

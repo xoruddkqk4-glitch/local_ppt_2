@@ -94,15 +94,27 @@ function renderFixedOverlayLayer() {
   ];
   const layer = document.createElement("div");
   layer.className = "fixed-overlay-layer";
-  let hasText = false;
+  let hasItem = false;
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   positions.forEach(({ key, className }) => {
     const cfg = state.fixedOverlays?.[key];
-    if (cfg && cfg.text && cfg.text.trim()) {
-      hasText = true;
+    if (cfg && cfg.image) {
+      hasItem = true;
+      const img = document.createElement("img");
+      img.className = `fixed-overlay-item ${className} fixed-overlay-img`;
+      img.src = cfg.image;
+      layer.append(img);
+    } else if (cfg && cfg.text && cfg.text.trim()) {
+      hasItem = true;
       let rawText = cfg.text.trim();
       const currentPageNum = state.currentPageIndex + 1;
       const totalPageNum = state.pages.length;
-      rawText = rawText.replace(/{page}/g, currentPageNum).replace(/{total}/g, totalPageNum);
+      rawText = rawText
+        .replace(/{page}/g, currentPageNum)
+        .replace(/{total}/g, totalPageNum)
+        .replace(/{date}/g, todayStr);
 
       const item = document.createElement("div");
       item.className = `fixed-overlay-item ${className}`;
@@ -112,7 +124,7 @@ function renderFixedOverlayLayer() {
       layer.append(item);
     }
   });
-  if (hasText) {
+  if (hasItem) {
     stage.append(layer);
   }
 }

@@ -35,7 +35,7 @@
       </section>
 
       <section id="templateSection" class="panel-section">
-        <div class="section-heading"><span>02</span><h2>본문 템플릿</h2></div>
+        <div class="section-heading"><span>01</span><h2>본문 템플릿</h2></div>
         <label class="select-label">템플릿
           <select id="templateSelect">
             <option value="">템플릿을 선택하세요</option>
@@ -85,7 +85,7 @@
       </section>
 
       <section id="itemSection" class="panel-section">
-        <div class="section-heading"><span>03</span><h2>항목 관리</h2></div>
+        <div class="section-heading"><span>02</span><h2>항목 관리</h2></div>
         <p id="itemHint" class="guide">오른쪽 개체를 더블클릭하면 내용을 직접 수정할 수 있습니다.</p>
         <div class="action-grid">
           <button id="addItemButton" class="button">+ 항목</button>
@@ -202,7 +202,7 @@
           <p id="intakeFileInfo" class="intake-file-info" hidden></p>
         </div>
         <p id="aiIntakeStatus" class="ai-intake-status" aria-live="polite"></p>
-        <button id="generatePresentationButton" class="button button-dark intake-generate" type="submit" aria-valuemin="0" aria-valuemax="100" style="width:100%; margin-top:14px; padding:12px; font-size:15px; font-weight:950;">AI로 슬라이드 만들기</button>
+        <button id="generatePresentationButton" class="button button-dark intake-generate" type="submit" aria-valuemin="0" aria-valuemax="100" style="width:100%; margin-top:14px; padding:12px; font-size:15px; font-weight:950;">✨ AI로 슬라이드 만들기</button>
 
         <div id="intakeStyleSettings" class="intake-style-settings">
           <div class="intake-style-header">
@@ -278,91 +278,145 @@
               </label>
             </div>
             <div class="fixed-overlay-grid">
+              <!-- Top-Left -->
               <div class="overlay-config-card">
-                <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="overlay-card-header">
                   <span class="overlay-pos-label">Top-Left</span>
-                  <select class="overlay-preset-select" data-target="intakeOverlayText_tl">
-                    <option value="">-- 입력선택 --</option>
-                    <option value="{page} / {total}">페이지 (1 / 5)</option>
-                    <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                  <select class="overlay-preset-select" data-prefix="intake" data-pos="tl">
+                    <option value="">무입력</option>
+                    <option value="{page} / {total}">페이지 정보</option>
+                    <option value="{date}">날짜 정보</option>
+                    <option value="add_image">🖼️ 이미지 추가</option>
                   </select>
                 </div>
-                <input id="intakeOverlayText_tl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <div class="overlay-input-wrap">
+                  <input id="intakeOverlayText_tl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                  <input id="intakeOverlayFile_tl" type="file" accept="image/*" class="overlay-file-input" hidden>
+                  <div id="intakeOverlayImgPrev_tl" class="overlay-img-preview" hidden>
+                    <img id="intakeOverlayImg_tl" src="" alt="Overlay preview">
+                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="tl" title="이미지 삭제">✕</button>
+                  </div>
+                </div>
                 <div class="overlay-style-row">
                   <select id="intakeOverlaySize_tl" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
                   <select id="intakeOverlayWeight_tl" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
                 </div>
               </div>
+              <!-- Top-Center -->
               <div class="overlay-config-card">
-                <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="overlay-card-header">
                   <span class="overlay-pos-label">Top-Center</span>
-                  <select class="overlay-preset-select" data-target="intakeOverlayText_tc">
-                    <option value="">-- 입력선택 --</option>
-                    <option value="{page} / {total}">페이지 (1 / 5)</option>
-                    <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                  <select class="overlay-preset-select" data-prefix="intake" data-pos="tc">
+                    <option value="">무입력</option>
+                    <option value="{page} / {total}">페이지 정보</option>
+                    <option value="{date}">날짜 정보</option>
+                    <option value="add_image">🖼️ 이미지 추가</option>
                   </select>
                 </div>
-                <input id="intakeOverlayText_tc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <div class="overlay-input-wrap">
+                  <input id="intakeOverlayText_tc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                  <input id="intakeOverlayFile_tc" type="file" accept="image/*" class="overlay-file-input" hidden>
+                  <div id="intakeOverlayImgPrev_tc" class="overlay-img-preview" hidden>
+                    <img id="intakeOverlayImg_tc" src="" alt="Overlay preview">
+                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="tc" title="이미지 삭제">✕</button>
+                  </div>
+                </div>
                 <div class="overlay-style-row">
                   <select id="intakeOverlaySize_tc" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
                   <select id="intakeOverlayWeight_tc" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
                 </div>
               </div>
+              <!-- Top-Right -->
               <div class="overlay-config-card">
-                <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="overlay-card-header">
                   <span class="overlay-pos-label">Top-Right</span>
-                  <select class="overlay-preset-select" data-target="intakeOverlayText_tr">
-                    <option value="">-- 입력선택 --</option>
-                    <option value="{page} / {total}">페이지 (1 / 5)</option>
-                    <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                  <select class="overlay-preset-select" data-prefix="intake" data-pos="tr">
+                    <option value="">무입력</option>
+                    <option value="{page} / {total}">페이지 정보</option>
+                    <option value="{date}">날짜 정보</option>
+                    <option value="add_image">🖼️ 이미지 추가</option>
                   </select>
                 </div>
-                <input id="intakeOverlayText_tr" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <div class="overlay-input-wrap">
+                  <input id="intakeOverlayText_tr" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                  <input id="intakeOverlayFile_tr" type="file" accept="image/*" class="overlay-file-input" hidden>
+                  <div id="intakeOverlayImgPrev_tr" class="overlay-img-preview" hidden>
+                    <img id="intakeOverlayImg_tr" src="" alt="Overlay preview">
+                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="tr" title="이미지 삭제">✕</button>
+                  </div>
+                </div>
                 <div class="overlay-style-row">
                   <select id="intakeOverlaySize_tr" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
                   <select id="intakeOverlayWeight_tr" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
                 </div>
               </div>
+              <!-- Bottom-Left -->
               <div class="overlay-config-card">
-                <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="overlay-card-header">
                   <span class="overlay-pos-label">Bottom-Left</span>
-                  <select class="overlay-preset-select" data-target="intakeOverlayText_bl">
-                    <option value="">-- 입력선택 --</option>
-                    <option value="{page} / {total}">페이지 (1 / 5)</option>
-                    <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                  <select class="overlay-preset-select" data-prefix="intake" data-pos="bl">
+                    <option value="">무입력</option>
+                    <option value="{page} / {total}">페이지 정보</option>
+                    <option value="{date}">날짜 정보</option>
+                    <option value="add_image">🖼️ 이미지 추가</option>
                   </select>
                 </div>
-                <input id="intakeOverlayText_bl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <div class="overlay-input-wrap">
+                  <input id="intakeOverlayText_bl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                  <input id="intakeOverlayFile_bl" type="file" accept="image/*" class="overlay-file-input" hidden>
+                  <div id="intakeOverlayImgPrev_bl" class="overlay-img-preview" hidden>
+                    <img id="intakeOverlayImg_bl" src="" alt="Overlay preview">
+                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="bl" title="이미지 삭제">✕</button>
+                  </div>
+                </div>
                 <div class="overlay-style-row">
                   <select id="intakeOverlaySize_bl" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
                   <select id="intakeOverlayWeight_bl" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
                 </div>
               </div>
+              <!-- Bottom-Center -->
               <div class="overlay-config-card">
-                <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="overlay-card-header">
                   <span class="overlay-pos-label">Bottom-Center</span>
-                  <select class="overlay-preset-select" data-target="intakeOverlayText_bc">
-                    <option value="">-- 입력선택 --</option>
-                    <option value="{page} / {total}">페이지 (1 / 5)</option>
-                    <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                  <select class="overlay-preset-select" data-prefix="intake" data-pos="bc">
+                    <option value="">무입력</option>
+                    <option value="{page} / {total}">페이지 정보</option>
+                    <option value="{date}">날짜 정보</option>
+                    <option value="add_image">🖼️ 이미지 추가</option>
                   </select>
                 </div>
-                <input id="intakeOverlayText_bc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <div class="overlay-input-wrap">
+                  <input id="intakeOverlayText_bc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                  <input id="intakeOverlayFile_bc" type="file" accept="image/*" class="overlay-file-input" hidden>
+                  <div id="intakeOverlayImgPrev_bc" class="overlay-img-preview" hidden>
+                    <img id="intakeOverlayImg_bc" src="" alt="Overlay preview">
+                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="bc" title="이미지 삭제">✕</button>
+                  </div>
+                </div>
                 <div class="overlay-style-row">
                   <select id="intakeOverlaySize_bc" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
                   <select id="intakeOverlayWeight_bc" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
                 </div>
               </div>
+              <!-- Bottom-Right -->
               <div class="overlay-config-card">
-                <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="overlay-card-header">
                   <span class="overlay-pos-label">Bottom-Right</span>
-                  <select class="overlay-preset-select" data-target="intakeOverlayText_br">
-                    <option value="">-- 입력선택 --</option>
-                    <option value="{page} / {total}">페이지 (1 / 5)</option>
-                    <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                  <select class="overlay-preset-select" data-prefix="intake" data-pos="br">
+                    <option value="">무입력</option>
+                    <option value="{page} / {total}">페이지 정보</option>
+                    <option value="{date}">날짜 정보</option>
+                    <option value="add_image">🖼️ 이미지 추가</option>
                   </select>
                 </div>
-                <input id="intakeOverlayText_br" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <div class="overlay-input-wrap">
+                  <input id="intakeOverlayText_br" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                  <input id="intakeOverlayFile_br" type="file" accept="image/*" class="overlay-file-input" hidden>
+                  <div id="intakeOverlayImgPrev_br" class="overlay-img-preview" hidden>
+                    <img id="intakeOverlayImg_br" src="" alt="Overlay preview">
+                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="br" title="이미지 삭제">✕</button>
+                  </div>
+                </div>
                 <div class="overlay-style-row">
                   <select id="intakeOverlaySize_br" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
                   <select id="intakeOverlayWeight_br" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
@@ -457,91 +511,145 @@
             </label>
           </div>
           <div class="fixed-overlay-grid">
+            <!-- Top-Left -->
             <div class="overlay-config-card">
-              <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="overlay-card-header">
                 <span class="overlay-pos-label">Top-Left</span>
-                <select class="overlay-preset-select" data-target="modalOverlayText_tl">
-                  <option value="">-- 입력선택 --</option>
-                  <option value="{page} / {total}">페이지 (1 / 5)</option>
-                  <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                <select class="overlay-preset-select" data-prefix="modal" data-pos="tl">
+                  <option value="">무입력</option>
+                  <option value="{page} / {total}">페이지 정보</option>
+                  <option value="{date}">날짜 정보</option>
+                  <option value="add_image">🖼️ 이미지 추가</option>
                 </select>
               </div>
-              <input id="modalOverlayText_tl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+              <div class="overlay-input-wrap">
+                <input id="modalOverlayText_tl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <input id="modalOverlayFile_tl" type="file" accept="image/*" class="overlay-file-input" hidden>
+                <div id="modalOverlayImgPrev_tl" class="overlay-img-preview" hidden>
+                  <img id="modalOverlayImg_tl" src="" alt="Overlay preview">
+                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="tl" title="이미지 삭제">✕</button>
+                </div>
+              </div>
               <div class="overlay-style-row">
                 <select id="modalOverlaySize_tl" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
                 <select id="modalOverlayWeight_tl" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
               </div>
             </div>
+            <!-- Top-Center -->
             <div class="overlay-config-card">
-              <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="overlay-card-header">
                 <span class="overlay-pos-label">Top-Center</span>
-                <select class="overlay-preset-select" data-target="modalOverlayText_tc">
-                  <option value="">-- 입력선택 --</option>
-                  <option value="{page} / {total}">페이지 (1 / 5)</option>
-                  <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                <select class="overlay-preset-select" data-prefix="modal" data-pos="tc">
+                  <option value="">무입력</option>
+                  <option value="{page} / {total}">페이지 정보</option>
+                  <option value="{date}">날짜 정보</option>
+                  <option value="add_image">🖼️ 이미지 추가</option>
                 </select>
               </div>
-              <input id="modalOverlayText_tc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+              <div class="overlay-input-wrap">
+                <input id="modalOverlayText_tc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <input id="modalOverlayFile_tc" type="file" accept="image/*" class="overlay-file-input" hidden>
+                <div id="modalOverlayImgPrev_tc" class="overlay-img-preview" hidden>
+                  <img id="modalOverlayImg_tc" src="" alt="Overlay preview">
+                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="tc" title="이미지 삭제">✕</button>
+                </div>
+              </div>
               <div class="overlay-style-row">
                 <select id="modalOverlaySize_tc" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
                 <select id="modalOverlayWeight_tc" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
               </div>
             </div>
+            <!-- Top-Right -->
             <div class="overlay-config-card">
-              <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="overlay-card-header">
                 <span class="overlay-pos-label">Top-Right</span>
-                <select class="overlay-preset-select" data-target="modalOverlayText_tr">
-                  <option value="">-- 입력선택 --</option>
-                  <option value="{page} / {total}">페이지 (1 / 5)</option>
-                  <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                <select class="overlay-preset-select" data-prefix="modal" data-pos="tr">
+                  <option value="">무입력</option>
+                  <option value="{page} / {total}">페이지 정보</option>
+                  <option value="{date}">날짜 정보</option>
+                  <option value="add_image">🖼️ 이미지 추가</option>
                 </select>
               </div>
-              <input id="modalOverlayText_tr" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+              <div class="overlay-input-wrap">
+                <input id="modalOverlayText_tr" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <input id="modalOverlayFile_tr" type="file" accept="image/*" class="overlay-file-input" hidden>
+                <div id="modalOverlayImgPrev_tr" class="overlay-img-preview" hidden>
+                  <img id="modalOverlayImg_tr" src="" alt="Overlay preview">
+                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="tr" title="이미지 삭제">✕</button>
+                </div>
+              </div>
               <div class="overlay-style-row">
                 <select id="modalOverlaySize_tr" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
                 <select id="modalOverlayWeight_tr" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
               </div>
             </div>
+            <!-- Bottom-Left -->
             <div class="overlay-config-card">
-              <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="overlay-card-header">
                 <span class="overlay-pos-label">Bottom-Left</span>
-                <select class="overlay-preset-select" data-target="modalOverlayText_bl">
-                  <option value="">-- 입력선택 --</option>
-                  <option value="{page} / {total}">페이지 (1 / 5)</option>
-                  <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                <select class="overlay-preset-select" data-prefix="modal" data-pos="bl">
+                  <option value="">무입력</option>
+                  <option value="{page} / {total}">페이지 정보</option>
+                  <option value="{date}">날짜 정보</option>
+                  <option value="add_image">🖼️ 이미지 추가</option>
                 </select>
               </div>
-              <input id="modalOverlayText_bl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+              <div class="overlay-input-wrap">
+                <input id="modalOverlayText_bl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <input id="modalOverlayFile_bl" type="file" accept="image/*" class="overlay-file-input" hidden>
+                <div id="modalOverlayImgPrev_bl" class="overlay-img-preview" hidden>
+                  <img id="modalOverlayImg_bl" src="" alt="Overlay preview">
+                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="bl" title="이미지 삭제">✕</button>
+                </div>
+              </div>
               <div class="overlay-style-row">
                 <select id="modalOverlaySize_bl" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
                 <select id="modalOverlayWeight_bl" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
               </div>
             </div>
+            <!-- Bottom-Center -->
             <div class="overlay-config-card">
-              <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="overlay-card-header">
                 <span class="overlay-pos-label">Bottom-Center</span>
-                <select class="overlay-preset-select" data-target="modalOverlayText_bc">
-                  <option value="">-- 입력선택 --</option>
-                  <option value="{page} / {total}">페이지 (1 / 5)</option>
-                  <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                <select class="overlay-preset-select" data-prefix="modal" data-pos="bc">
+                  <option value="">무입력</option>
+                  <option value="{page} / {total}">페이지 정보</option>
+                  <option value="{date}">날짜 정보</option>
+                  <option value="add_image">🖼️ 이미지 추가</option>
                 </select>
               </div>
-              <input id="modalOverlayText_bc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+              <div class="overlay-input-wrap">
+                <input id="modalOverlayText_bc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <input id="modalOverlayFile_bc" type="file" accept="image/*" class="overlay-file-input" hidden>
+                <div id="modalOverlayImgPrev_bc" class="overlay-img-preview" hidden>
+                  <img id="modalOverlayImg_bc" src="" alt="Overlay preview">
+                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="bc" title="이미지 삭제">✕</button>
+                </div>
+              </div>
               <div class="overlay-style-row">
                 <select id="modalOverlaySize_bc" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
                 <select id="modalOverlayWeight_bc" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
               </div>
             </div>
+            <!-- Bottom-Right -->
             <div class="overlay-config-card">
-              <div class="overlay-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="overlay-card-header">
                 <span class="overlay-pos-label">Bottom-Right</span>
-                <select class="overlay-preset-select" data-target="modalOverlayText_br">
-                  <option value="">-- 입력선택 --</option>
-                  <option value="{page} / {total}">페이지 (1 / 5)</option>
-                  <option value="PAGE {page}">페이지 (PAGE 1)</option>
+                <select class="overlay-preset-select" data-prefix="modal" data-pos="br">
+                  <option value="">무입력</option>
+                  <option value="{page} / {total}">페이지 정보</option>
+                  <option value="{date}">날짜 정보</option>
+                  <option value="add_image">🖼️ 이미지 추가</option>
                 </select>
               </div>
-              <input id="modalOverlayText_br" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+              <div class="overlay-input-wrap">
+                <input id="modalOverlayText_br" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <input id="modalOverlayFile_br" type="file" accept="image/*" class="overlay-file-input" hidden>
+                <div id="modalOverlayImgPrev_br" class="overlay-img-preview" hidden>
+                  <img id="modalOverlayImg_br" src="" alt="Overlay preview">
+                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="br" title="이미지 삭제">✕</button>
+                </div>
+              </div>
               <div class="overlay-style-row">
                 <select id="modalOverlaySize_br" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
                 <select id="modalOverlayWeight_br" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>

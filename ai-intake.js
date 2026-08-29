@@ -10,7 +10,7 @@
   const styleModal = $("#styleConfigModal");
   let sourceType = null;
   let progressTimer = null;
-  const generateButtonLabel = "AI로 슬라이드 만들기";
+  const generateButtonLabel = "✨ AI로 슬라이드 만들기";
   const startButtonLabel = "✨ 선택한 디자인 & 스타일로 프레젠테이션 시작하기";
   const sourceLabels = { prose: "줄글 붙여넣기", outline: "개요 붙여넣기", pdf: "PDF 파일 업로드", spreadsheet: "엑셀 파일 업로드" };
 
@@ -83,15 +83,22 @@
     });
   }
 
+  const overlayImages = {
+    intake: { tl: "", tc: "", tr: "", bl: "", bc: "", br: "" },
+    modal: { tl: "", tc: "", tr: "", bl: "", bc: "", br: "" }
+  };
+
   function getIntakeFixedOverlays() {
     const overlays = {
       applyToTitle: $("#intakeOverlayApplyToTitle")?.checked || $("#modalOverlayApplyToTitle")?.checked || false
     };
     ["tl", "tc", "tr", "bl", "bc", "br"].forEach((pos) => {
+      const img = overlayImages.intake[pos] || overlayImages.modal[pos] || "";
       overlays[pos] = {
-        text: $(`#intakeOverlayText_${pos}`)?.value || "",
-        size: $(`#intakeOverlaySize_${pos}`)?.value || "13px",
-        weight: $(`#intakeOverlayWeight_${pos}`)?.value || "700"
+        text: $(`#intakeOverlayText_${pos}`)?.value || $(`#modalOverlayText_${pos}`)?.value || "",
+        image: img,
+        size: $(`#intakeOverlaySize_${pos}`)?.value || $(`#modalOverlaySize_${pos}`)?.value || "13px",
+        weight: $(`#intakeOverlayWeight_${pos}`)?.value || $(`#modalOverlayWeight_${pos}`)?.value || "700"
       };
     });
     return overlays;
@@ -104,25 +111,87 @@
     if (titleToggle) titleToggle.checked = !!overlays.applyToTitle;
     if (modalTitleToggle) modalTitleToggle.checked = !!overlays.applyToTitle;
 
-    ["tl", "tc", "tr", "bl", "bc", "br"].forEach((pos) => {
-      const cfg = overlays[pos] || { text: "", size: "13px", weight: "700" };
-      const textInput = $(`#intakeOverlayText_${pos}`);
-      const sizeSelect = $(`#intakeOverlaySize_${pos}`);
-      const weightSelect = $(`#intakeOverlayWeight_${pos}`);
-      if (textInput) textInput.value = cfg.text || "";
-      if (sizeSelect) sizeSelect.value = cfg.size || "13px";
-      if (weightSelect) weightSelect.value = cfg.weight || "700";
+    ["intake", "modal"].forEach((prefix) => {
+      ["tl", "tc", "tr", "bl", "bc", "br"].forEach((pos) => {
+        const cfg = overlays[pos] || { text: "", image: "", size: "13px", weight: "700" };
+        const textInput = $(`#${prefix}OverlayText_${pos}`);
+        const sizeSelect = $(`#${prefix}OverlaySize_${pos}`);
+        const weightSelect = $(`#${prefix}OverlayWeight_${pos}`);
+        const prevBox = $(`#${prefix}OverlayImgPrev_${pos}`);
+        const imgTag = $(`#${prefix}OverlayImg_${pos}`);
+
+        if (textInput) textInput.value = cfg.text || "";
+        if (sizeSelect) sizeSelect.value = cfg.size || "13px";
+        if (weightSelect) weightSelect.value = cfg.weight || "700";
+
+        if (cfg.image) {
+          overlayImages[prefix][pos] = cfg.image;
+          if (imgTag) imgTag.src = cfg.image;
+          if (prevBox) { prevBox.hidden = false; prevBox.style.display = "flex"; }
+          if (textInput) { textInput.hidden = true; textInput.style.display = "none"; }
+        } else {
+          overlayImages[prefix][pos] = "";
+          if (prevBox) { prevBox.hidden = true; prevBox.style.display = "none"; }
+          if (textInput) { textInput.hidden = false; textInput.style.display = "block"; }
+        }
+      });
     });
   }
 
   document.addEventListener("change", (e) => {
     if (e.target && e.target.classList.contains("overlay-preset-select")) {
-      const targetId = e.target.dataset.target;
-      const targetInput = $(`#${targetId}`);
-      if (targetInput && e.target.value) {
-        targetInput.value = e.target.value;
-        e.target.value = "";
+      const prefix = e.target.dataset.prefix;
+      const pos = e.target.dataset.pos;
+      const val = e.target.value;
+      const textInput = $(`#${prefix}OverlayText_${pos}`);
+      const fileInput = $(`#${prefix}OverlayFile_${pos}`);
+      const prevBox = $(`#${prefix}OverlayImgPrev_${pos}`);
+
+      if (val === "add_image") {
+        if (fileInput) fileInput.click();
+      } else if (val === "") {
+        if (textInput) { textInput.value = ""; textInput.hidden = false; textInput.style.display = "block"; }
+        if (prevBox) { prevBox.hidden = true; prevBox.style.display = "none"; }
+        overlayImages[prefix][pos] = "";
+      } else {
+        if (textInput) { textInput.value = val; textInput.hidden = false; textInput.style.display = "block"; }
+        if (prevBox) { prevBox.hidden = true; prevBox.style.display = "none"; }
+        overlayImages[prefix][pos] = "";
       }
+    } else if (e.target && e.target.classList.contains("overlay-file-input")) {
+      const file = e.target.files?.[0];
+      const match = e.target.id.match(/(intake|modal)OverlayFile_(tl|tc|tr|bl|bc|br)/);
+      if (file && match) {
+        const prefix = match[1];
+        const pos = match[2];
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const dataUrl = ev.target.result;
+          overlayImages[prefix][pos] = dataUrl;
+          const imgTag = $(`#${prefix}OverlayImg_${pos}`);
+          const prevBox = $(`#${prefix}OverlayImgPrev_${pos}`);
+          const textInput = $(`#${prefix}OverlayText_${pos}`);
+          if (imgTag) imgTag.src = dataUrl;
+          if (prevBox) { prevBox.hidden = false; prevBox.style.display = "flex"; }
+          if (textInput) { textInput.value = ""; textInput.hidden = true; textInput.style.display = "none"; }
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    const removeBtn = e.target.closest(".remove-overlay-img-btn");
+    if (removeBtn) {
+      const prefix = removeBtn.dataset.prefix;
+      const pos = removeBtn.dataset.pos;
+      overlayImages[prefix][pos] = "";
+      const prevBox = $(`#${prefix}OverlayImgPrev_${pos}`);
+      const textInput = $(`#${prefix}OverlayText_${pos}`);
+      const select = $(`select.overlay-preset-select[data-prefix="${prefix}"][data-pos="${pos}"]`);
+      if (prevBox) { prevBox.hidden = true; prevBox.style.display = "none"; }
+      if (textInput) { textInput.value = ""; textInput.hidden = false; textInput.style.display = "block"; }
+      if (select) select.value = "";
     }
   });
 
@@ -440,6 +509,8 @@
     const content = sourceType === "pdf" ? await extractPdf(file) : await extractSpreadsheet(file);
     fileInfo.textContent = `${file.name} · 추출된 텍스트 ${content.length.toLocaleString()}자`; return content;
   }
+  let pendingAiPresentation = null;
+
   async function generate(event) {
     if (event) event.preventDefault();
     const provider = selectedProvider(), apiKey = provider === "openai" ? $("#openaiApiKey").value.trim() : $("#anthropicApiKey").value.trim(), model = provider === "openai" ? $("#openaiModel").value : $("#anthropicModel").value, slideCount = Number($("#aiSlideCount").value);
@@ -457,9 +528,14 @@
       const response = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider, model, apiKey, sourceType, content, slideCount }) });
       stopProgressTimer(); setProgress(93, "AI 응답 확인 중");
       const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || "AI 요청에 실패했습니다.");
-      setProgress(98, "편집기에 적용 중"); window.LocalPptApp.applyAiPresentation(result.presentation, getIntakeStartOptions());
-      setProgress(100, "슬라이드 생성 완료"); completed = true; intake.hidden = true;
+      setProgress(98, "생성 완료 준비 중");
+      pendingAiPresentation = result.presentation;
+      setProgress(100, "슬라이드 생성 완료 (100%)");
+      completed = true;
+      setStatus("✨ AI 슬라이드가 성공적으로 생성되었습니다! 아래에서 원하는 디자인과 스타일을 확인·변경한 후 '프레젠테이션 시작하기'를 누르세요.");
+      scrollToStylePanel();
     } catch (error) {
+      pendingAiPresentation = null;
       const message = /failed to fetch|networkerror/i.test(String(error?.message || ""))
         ? "로컬 AI 서버에 연결할 수 없습니다. 터미널에서 node server.js를 실행한 뒤 http://127.0.0.1:8765으로 접속하세요."
         : error.message || "AI PPT를 만들지 못했습니다.";
@@ -473,6 +549,7 @@
   }
 
   function showStartScreen() {
+    pendingAiPresentation = null;
     intake.hidden = false; sourceType = null; sourceInput.hidden = true; selectionHint.textContent = "입력 방식을 선택하세요.";
     document.querySelectorAll("[data-intake-action]").forEach((button) => button.classList.remove("is-selected")); setStatus();
     if (window.LocalPptApp?.getOptions) {
@@ -489,6 +566,7 @@
 
   document.querySelectorAll("[data-intake-action]").forEach((button) => button.addEventListener("click", () => {
     const action = button.dataset.intakeAction;
+    pendingAiPresentation = null;
     if (action === "empty") {
       sourceType = null;
       sourceInput.hidden = true;
@@ -502,9 +580,18 @@
     }
   }));
 
-  $("#startPresentationWithStyleButton")?.addEventListener("click", (event) => {
-    if (sourceType === "prose" || sourceType === "outline" || sourceType === "pdf" || sourceType === "spreadsheet") {
-      generate(event);
+  $("#startPresentationWithStyleButton")?.addEventListener("click", async (event) => {
+    if (pendingAiPresentation) {
+      window.LocalPptApp.applyAiPresentation(pendingAiPresentation, getIntakeStartOptions());
+      pendingAiPresentation = null;
+      intake.hidden = true;
+    } else if (sourceType === "prose" || sourceType === "outline" || sourceType === "pdf" || sourceType === "spreadsheet") {
+      await generate(event);
+      if (pendingAiPresentation) {
+        window.LocalPptApp.applyAiPresentation(pendingAiPresentation, getIntakeStartOptions());
+        pendingAiPresentation = null;
+        intake.hidden = true;
+      }
     } else {
       window.LocalPptApp.startBlank(getIntakeStartOptions());
       intake.hidden = true;
