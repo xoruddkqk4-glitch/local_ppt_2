@@ -26,40 +26,47 @@ Slide planning
 - Keep visible text concise and presentation-ready in Korean. Prefer short phrases over prose paragraphs.
 - Use 2-8 meaningful items on most slides. Do not create empty decorative objects merely to fill a layout.
 
-Template decision rules
-- bullet: findings, recommendations, summaries, or lists without a stronger spatial relationship.
-- mindmap: one central concept with parallel related branches. Put branch labels in items.
-- object/layout: grouped facts, KPI summaries, comparisons, definitions, tables, or structured content blocks.
-- object/diagram: sequences, timelines, hierarchies, cycles, funnels, relationships, classifications, or opposing choices.
-- object/chart: numeric comparisons, rankings, trends, or proportions supported by the source.
-- Do not default every slide to bullet. Also do not force a visual when it makes the information less clear.
+Template decision rules & matching criteria
+Compare the slide's key message and data structure against all 33 available templates, selecting the single variant that best conveys the information visually:
 
-Layout guidance
-- cards_1col, cards_2col, cards_3col, cards_4col: basic card grids (1 to 4 columns). Cards can also embed images.
-- sideAccent_1col, sideAccent_2col, sideAccent_3col, sideAccent_4col: side accent card grids with vertical theme accent bar.
-- summaryLeft, summaryRight, summaryTop, summaryBottom: summary & highlight layouts with summary panel/banner on left, right, top, or bottom.
-- table, tableStats: detailed values or data that must be read precisely.
+1. Text & Structure (2 templates):
+   - bullet: findings, recommendations, bulleted summaries, or generic lists.
+   - mindmap: one central concept with parallel branching sub-topics.
 
-Diagram guidance
-- process, chain, ribbonArrow: ordered flow or cause-to-result sequence.
-- timeline: chronological events or milestones.
-- cycle: repeating process.
-- pyramid: hierarchy or layered priorities.
-- funnel: progressive narrowing or conversion stages.
-- venn, connectedCircles: overlap or relationships.
-- target: concentric priority or goal structure.
-- quadrant: four-category classification across two dimensions.
-- vs: direct two-sided opposition.
+2. Card & Layout Grids (8 templates):
+   - cards_1col, cards_2col, cards_3col, cards_4col: 1 to 4 parallel content cards for equal-weight facts/topics.
+   - sideAccent_1col, sideAccent_2col, sideAccent_3col, sideAccent_4col: 1 to 4 cards with vertical theme accent bar for key feature highlights.
 
-Chart guidance
-- column: category comparison.
-- bar: ranking or categories with long labels.
-- line: time series or ordered trend.
-- area: magnitude over time when the filled volume adds meaning.
-- pie: non-negative part-to-whole data only when the values represent one complete total and there are at most six categories.
-- chartData must contain 2-8 points copied exactly from the source. Never derive or fabricate values unless the source explicitly provides the calculation result.
-- Use a table instead of a chart for negative values, mixed units, highly detailed data, or values that are not meaningfully comparable.
-- For spreadsheet input, inspect headers and row/column relationships. Use charts for as many meaningful numeric comparisons or trends as the requested slide count reasonably allows, while reserving tables for precision and text slides for conclusions. Do not chart identifiers, phone numbers, codes, years used only as labels, or other non-measures.
+3. Summary & Highlight Layouts (4 templates):
+   - summaryLeft: key summary/conclusion panel on the left + detail cards on the right.
+   - summaryRight: detail cards on the left + key summary/conclusion panel on the right.
+   - summaryTop: key summary banner on top + detail KPI cards below.
+   - summaryBottom: detail KPI cards on top + key conclusion summary banner below.
+
+4. Process & Visual Diagrams (12 templates):
+   - process, chain, ribbonArrow: ordered step-by-step flows or cause-and-effect sequences.
+   - timeline: chronological milestones or historical event paths.
+   - cycle: continuous repeating closed-loop processes.
+   - pyramid: hierarchical structure or layered priorities.
+   - funnel: progressive narrowing stages or conversion pipelines.
+   - venn, connectedCircles: overlapping relationships or central hub-and-spoke nodes.
+   - target: goal structures or concentric priority tiers.
+   - quadrant: 2x2 matrix classification across two axes.
+   - vs: direct two-way head-to-head opposition or before/after comparison.
+
+5. Data Charts & Tables (7 templates):
+   - column: vertical bar chart for category comparisons.
+   - bar: horizontal bar chart for rankings or long-labeled categories.
+   - line: line chart for time-series trends over time.
+   - area: area chart for cumulative magnitude trends over time.
+   - pie: pie chart for part-to-whole percentage proportions (up to 6 items).
+   - table: precise multi-column data table.
+   - tableStats: main data table paired with side/bottom summary metric panels.
+
+Matching Guidance
+- Analyze every slide's content type (data, sequence, hierarchy, matrix, summary, list).
+- Match content structure with the exact template variant that optimizes visual clarity and impact.
+- Do not default all slides to bullet; leverage diagrams, summary banners, card grids, and charts when input data provides appropriate context.
 
 Allowed variants
 - layout: cards_1col, cards_2col, cards_3col, cards_4col, sideAccent_1col, sideAccent_2col, sideAccent_3col, sideAccent_4col, summaryLeft, summaryRight, summaryTop, summaryBottom, table, tableStats.
