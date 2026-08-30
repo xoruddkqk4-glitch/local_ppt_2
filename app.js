@@ -1758,6 +1758,14 @@ function renderControls() {
     animBtn.classList.toggle("is-active", isAnimMode);
     animBtn.textContent = isAnimMode ? "애니메이션 모드 종료 (A / Esc)" : "애니메이션 지정 (단축키 A)";
   }
+
+  const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
+  if (selectedObjects.length === 1) {
+    const el = stage?.querySelector(`[data-object-id="${selectedObjects[0].id}"]`);
+    showTextToolbar(selectedObjects[0], el);
+  } else if (selectedObjects.length === 0) {
+    hideTextToolbar();
+  }
 }
 
 let draggedPageIndex = null;
@@ -2046,6 +2054,314 @@ function renderStage() {
   requestAnimationFrame(fitAllText);
 }
 
+let activeTimerInterval = null;
+
+function formatTimeMMSS(seconds) {
+  const s = Math.max(0, Math.floor(seconds));
+  const mins = Math.floor(s / 60);
+  const secs = s % 60;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function createTimerElement(object) {
+  const container = document.createElement("div");
+  container.className = "timer-object-card";
+  container.style.backgroundColor = object.bgColor || "#0f172a";
+  container.style.color = object.textColor || "#ffffff";
+
+  const isLoop = (object.mode !== "stopwatch");
+  const repeatCount = Math.max(1, Number(object.repeatCount) || 1);
+  const currentRepeat = Math.max(1, Number(object.currentRepeat) || 1);
+
+  // Top Header: Mode select, Repeat count input, Preset buttons
+  const header = document.createElement("div");
+  header.className = "timer-card-header";
+  header.addEventListener("pointerdown", (e) => e.stopPropagation());
+
+  const leftControls = document.createElement("div");
+  leftControls.style.display = "flex";
+  leftControls.style.alignItems = "center";
+  leftControls.style.gap = "6px";
+
+  const modeSelect = document.createElement("select");
+  modeSelect.ariaLabel = "타이머 모드 선택";
+  const optLoop = document.createElement("option");
+  optLoop.value = "loop";
+  optLoop.textContent = "⏱️ Loop 타이머";
+  const optStopwatch = document.createElement("option");
+  optStopwatch.value = "stopwatch";
+  optStopwatch.textContent = "⏱️ 스탑워치";
+  modeSelect.append(optLoop, optStopwatch);
+  modeSelect.value = object.mode || "loop";
+
+  modeSelect.addEventListener("change", (e) => {
+    e.stopPropagation();
+    snapshot();
+    object.mode = e.target.value;
+    object.isRunning = false;
+    if (object.mode === "loop") {
+      object.remainingSeconds = object.duration || 300;
+      object.currentRepeat = 1;
+    } else {
+      object.elapsedSeconds = 0;
+    }
+    renderStage();
+  });
+  leftControls.append(modeSelect);
+
+  const repeatWrap = document.createElement("label");
+  repeatWrap.className = "timer-repeat-wrap";
+  repeatWrap.style.fontSize = "11px";
+  repeatWrap.style.fontWeight = "800";
+  repeatWrap.style.display = isLoop ? "inline-flex" : "none";
+  repeatWrap.style.alignItems = "center";
+  repeatWrap.style.gap = "3px";
+  repeatWrap.textContent = "반복: ";
+
+  const repeatInput = document.createElement("input");
+  repeatInput.type = "number";
+  repeatInput.min = "1";
+  repeatInput.max = "99";
+  repeatInput.value = repeatCount;
+  repeatInput.style.width = "36px";
+  repeatInput.ariaLabel = "반복 횟수 입력";
+
+  repeatInput.addEventListener("change", (e) => {
+    e.stopPropagation();
+    snapshot();
+    const val = Math.max(1, Number(e.target.value) || 1);
+    object.repeatCount = val;
+    object.currentRepeat = 1;
+    renderStage();
+  });
+
+  const repeatSuffix = document.createElement("span");
+  repeatSuffix.textContent = `회 (${currentRepeat}/${repeatCount})`;
+  repeatSuffix.className = "timer-repeat-badge";
+
+  repeatWrap.append(repeatInput, repeatSuffix);
+  leftControls.append(repeatWrap);
+  header.append(leftControls);
+
+  // Preset Buttons Bar
+  const presetBar = document.createElement("div");
+  presetBar.className = "timer-preset-bar";
+
+  const presets = [
+    { label: "1분", sec: 60 },
+    { label: "3분", sec: 180 },
+    { label: "5분", sec: 300 },
+    { label: "10분", sec: 600 },
+    { label: "15분", sec: 900 },
+    { label: "20분", sec: 1200 },
+    { label: "30분", sec: 1800 }
+  ];
+
+  presets.forEach((p) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "timer-card-preset-btn";
+    btn.textContent = p.label;
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      snapshot();
+      object.duration = p.sec;
+      object.remainingSeconds = p.sec;
+      object.currentRepeat = 1;
+      object.isRunning = false;
+      renderStage();
+    });
+    presetBar.append(btn);
+  });
+  header.append(presetBar);
+  container.append(header);
+
+  // Digital Clock Display (80% container height)
+  const display = document.createElement("div");
+  display.className = "timer-digital-display";
+  display.style.color = object.isRunning ? "#facc15" : "#ffffff";
+
+  let displaySeconds = 0;
+  if (isLoop) {
+    displaySeconds = typeof object.remainingSeconds === "number" ? object.remainingSeconds : (object.duration || 300);
+  } else {
+    displaySeconds = typeof object.elapsedSeconds === "number" ? object.elapsedSeconds : 0;
+  }
+  display.textContent = formatTimeMMSS(displaySeconds);
+  container.append(display);
+
+  // Bottom Footer Controls
+  const ctrls = document.createElement("div");
+  ctrls.className = "timer-card-controls";
+  ctrls.addEventListener("pointerdown", (e) => e.stopPropagation());
+
+  const toggleBtn = document.createElement("button");
+  toggleBtn.type = "button";
+  toggleBtn.className = "timer-ctrl-btn timer-toggle-btn";
+  toggleBtn.textContent = object.isRunning ? "⏸ 일시정지" : "▶ 시작";
+  toggleBtn.style.background = object.isRunning ? "#ef4444" : "#22c55e";
+  toggleBtn.style.color = "#ffffff";
+
+  toggleBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleTimerRunning(object);
+  });
+
+  const resetBtn = document.createElement("button");
+  resetBtn.type = "button";
+  resetBtn.className = "timer-ctrl-btn timer-reset-btn";
+  resetBtn.textContent = "🔄 리셋";
+  resetBtn.style.background = "rgba(255,255,255,0.2)";
+  resetBtn.style.color = "#ffffff";
+
+  resetBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    resetTimerObject(object);
+  });
+
+  ctrls.append(toggleBtn, resetBtn);
+  container.append(ctrls);
+
+  if (object.isRunning) {
+    ensureTimerTicker();
+  }
+
+  return container;
+}
+
+function ensureTimerTicker() {
+  if (activeTimerInterval) return;
+  activeTimerInterval = setInterval(() => {
+    let stateChanged = false;
+    state.pages.forEach((page) => {
+      if (!page.objects) return;
+      page.objects.forEach((obj) => {
+        if (obj.type === "timer" && obj.isRunning) {
+          stateChanged = true;
+          if (obj.mode === "stopwatch") {
+            obj.elapsedSeconds = (obj.elapsedSeconds || 0) + 1;
+          } else {
+            if (typeof obj.remainingSeconds !== "number") obj.remainingSeconds = obj.duration || 300;
+            obj.remainingSeconds -= 1;
+            if (obj.remainingSeconds <= 0) {
+              const repeatCount = Math.max(1, Number(obj.repeatCount) || 1);
+              const currentRepeat = Math.max(1, Number(obj.currentRepeat) || 1);
+              if (currentRepeat < repeatCount) {
+                obj.currentRepeat = currentRepeat + 1;
+                obj.remainingSeconds = obj.duration || 300;
+              } else {
+                obj.remainingSeconds = 0;
+                obj.isRunning = false;
+                playTimerFinishBeep();
+              }
+            }
+          }
+        }
+      });
+    });
+
+    if (stateChanged) {
+      updateRunningTimerDisplays();
+    }
+  }, 1000);
+}
+
+function updateRunningTimerDisplays() {
+  state.pages.forEach((page) => {
+    if (!page.objects) return;
+    page.objects.forEach((obj) => {
+      if (obj.type === "timer") {
+        const elements = document.querySelectorAll(`[data-object-id="${obj.id}"]`);
+        elements.forEach((el) => {
+          const displayEl = el.querySelector(".timer-digital-display");
+          const toggleBtn = el.querySelector(".timer-toggle-btn");
+          const repeatBadge = el.querySelector(".timer-repeat-badge");
+
+          const isLoop = (obj.mode !== "stopwatch");
+          const displaySecs = isLoop ? (obj.remainingSeconds ?? obj.duration ?? 300) : (obj.elapsedSeconds ?? 0);
+
+          if (displayEl) {
+            displayEl.textContent = formatTimeMMSS(displaySecs);
+            displayEl.style.color = obj.isRunning ? "#facc15" : "#ffffff";
+          }
+          if (toggleBtn) {
+            toggleBtn.textContent = obj.isRunning ? "⏸ 일시정지" : "▶ 시작";
+            toggleBtn.style.background = obj.isRunning ? "#ef4444" : "#22c55e";
+          }
+          if (repeatBadge) {
+            repeatBadge.textContent = `회 (${obj.currentRepeat || 1}/${obj.repeatCount || 1})`;
+          }
+        });
+      }
+    });
+  });
+}
+
+function toggleTimerRunning(object) {
+  object.isRunning = !object.isRunning;
+  if (object.isRunning) {
+    if (object.mode !== "stopwatch" && (object.remainingSeconds === undefined || object.remainingSeconds <= 0)) {
+      object.remainingSeconds = object.duration || 300;
+      object.currentRepeat = 1;
+    }
+    ensureTimerTicker();
+  }
+  updateRunningTimerDisplays();
+}
+
+function resetTimerObject(object) {
+  object.isRunning = false;
+  object.remainingSeconds = object.duration || 300;
+  object.elapsedSeconds = 0;
+  object.currentRepeat = 1;
+  updateRunningTimerDisplays();
+}
+
+function playTimerFinishBeep() {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.6);
+  } catch (e) {}
+}
+
+function addTimerObject() {
+  const page = currentPage();
+  if (page.type !== "content" && page.type !== "cover") return;
+  snapshot();
+
+  const newTimer = {
+    id: createId("timer"),
+    type: "timer",
+    mode: "loop",
+    duration: 300,
+    repeatCount: 1,
+    currentRepeat: 1,
+    remainingSeconds: 300,
+    elapsedSeconds: 0,
+    isRunning: false,
+    x: 35,
+    y: 35,
+    w: 30,
+    h: 22,
+    bgColor: "#0f172a",
+    textColor: "#ffffff",
+    borderColor: "#3b82f6",
+    borderWidth: 2
+  };
+  page.objects.push(newTimer);
+  state.selectedIds.clear();
+  state.selectedIds.add(newTimer.id);
+  render();
+}
+
 function openImagePickerForObject(targetObject) {
   const fileInput = document.createElement("input");
   fileInput.type = "file";
@@ -2209,6 +2525,13 @@ function createObjectElement(object) {
     element.append(createTableElement(object));
   } else if (object.type === "chart") {
     element.append(createChartElement(object));
+  } else if (object.type === "timer") {
+    element.append(createTimerElement(object));
+    element.addEventListener("dblclick", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      showTextToolbar(object, element);
+    });
   } else if (object.type === "scale") {
     const track = document.createElement("span");
     track.className = "scale-track-core";
@@ -2569,43 +2892,60 @@ function insertEditableLineBreak(editable) {
 }
 
 function showTextToolbar(object, textElement) {
+  if (!object) return;
   const toolbar = $("#textToolbar");
+  if (!toolbar) return;
   toolbar.hidden = false;
-  $("#textColorInput").value = normalizeColor(object.textColor || getComputedStyle(textElement).color);
-  if ($("#bgColorInput")) {
-    $("#bgColorInput").value = normalizeColor(object.bgColor || getComputedStyle(textElement.parentElement || textElement).backgroundColor || "#ffffff");
-  }
-  if ($("#borderColorInput")) {
-    $("#borderColorInput").value = normalizeColor(object.borderColor || "#0f172a");
-  }
-  if ($("#borderWidthInput")) {
-    $("#borderWidthInput").value = object.borderWidth !== undefined ? object.borderWidth : 0;
-  }
-  if ($("#borderStyleSelect")) {
-    $("#borderStyleSelect").value = object.borderStyle || (object.borderWidth ? "solid" : "none");
-  }
-  $("#textSizeInput").value = Math.round(object.fontSize || Number.parseFloat(getComputedStyle(textElement).fontSize) || 28);
-  toolbar.querySelectorAll("[data-text-align]").forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.textAlign === getTextAlign(object));
-  });
+  state.activeTextObjectId = object.id;
 
-  const palette = getCurrentPalette();
-  toolbar.querySelectorAll(".theme-color-btn").forEach((btn) => {
-    const idx = Number(btn.dataset.colorIndex) || 0;
-    const color = palette[idx] || "#2563eb";
-    btn.style.backgroundColor = color;
-    btn.dataset.colorHex = color;
-    const targetName = { text: "글자색", bg: "배경색", border: "테두리색" }[btn.dataset.target] || "색상";
-    btn.title = `${targetName} 테마 ${idx + 1}순위 색상 (${color}) 적용`;
-  });
+  const isTimer = object.type === "timer";
+  if ($("#borderToolbarGroup")) $("#borderToolbarGroup").hidden = isTimer;
+  if ($("#alignToolbarGroup")) $("#alignToolbarGroup").hidden = isTimer;
+  if ($("#textSizeGroup")) $("#textSizeGroup").hidden = isTimer;
+
+  try {
+    if ($("#textColorInput")) {
+      $("#textColorInput").value = normalizeColor(object.textColor || (textElement ? getComputedStyle(textElement).color : "#ffffff") || "#ffffff");
+    }
+    if ($("#bgColorInput")) {
+      $("#bgColorInput").value = normalizeColor(object.bgColor || (textElement ? getComputedStyle(textElement.parentElement || textElement).backgroundColor : "#ffffff") || "#ffffff");
+    }
+    if ($("#borderColorInput")) {
+      $("#borderColorInput").value = normalizeColor(object.borderColor || "#0f172a");
+    }
+    if ($("#borderWidthInput")) {
+      $("#borderWidthInput").value = object.borderWidth !== undefined ? object.borderWidth : 0;
+    }
+    if ($("#borderStyleSelect")) {
+      $("#borderStyleSelect").value = object.borderStyle || (object.borderWidth ? "solid" : "none");
+    }
+    if ($("#textSizeInput")) {
+      $("#textSizeInput").value = Math.round(object.fontSize || (textElement ? Number.parseFloat(getComputedStyle(textElement).fontSize) : 28) || 28);
+    }
+    toolbar.querySelectorAll("[data-text-align]").forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.textAlign === getTextAlign(object));
+    });
+
+    const palette = getCurrentPalette();
+    toolbar.querySelectorAll(".theme-color-btn").forEach((btn) => {
+      const idx = Number(btn.dataset.colorIndex) || 0;
+      const color = palette[idx] || "#2563eb";
+      btn.style.backgroundColor = color;
+      btn.dataset.colorHex = color;
+      const targetName = { text: "글자색", bg: "배경색", border: "테두리색" }[btn.dataset.target] || "색상";
+      btn.title = `${targetName} 테마 ${idx + 1}순위 색상 (${color}) 적용`;
+    });
+  } catch (e) {}
 }
 
 function hideTextToolbar() {
   state.activeTextObjectId = null;
-  $("#textToolbar").hidden = true;
+  const toolbar = $("#textToolbar");
+  if (toolbar) toolbar.hidden = true;
 }
 
 function normalizeColor(value) {
+  if (!value) return "#ffffff";
   if (value.startsWith("#")) return value;
   const channels = value.match(/\d+/g)?.slice(0, 3).map(Number);
   if (!channels || channels.length < 3) return "#151515";
@@ -2614,16 +2954,15 @@ function normalizeColor(value) {
 
 function updateActiveTextStyle(property, value) {
   const page = currentPage();
-  const object = page.objects.find((item) => item.id === state.activeTextObjectId && item.type === "text");
-  if (!object) return;
+  const selectedObjects = page.objects.filter((item) => state.selectedIds.has(item.id));
+  if (!selectedObjects.length) return;
   snapshot();
-  const targets = property === "fontSize"
-    ? page.objects.filter((item) => item.type === "text" && getTextStageKey(item) === getTextStageKey(object))
-    : [object];
-  targets.forEach((target) => { target[property] = value; });
+  selectedObjects.forEach((target) => { target[property] = value; });
   renderStage();
-  const activeText = stage.querySelector(`[data-object-id="${object.id}"] .canvas-text`);
-  if (activeText) showTextToolbar(object, activeText);
+  if (selectedObjects.length === 1 && selectedObjects[0].type !== "timer") {
+    const el = stage.querySelector(`[data-object-id="${selectedObjects[0].id}"]`);
+    showTextToolbar(selectedObjects[0], el);
+  }
 }
 
 function beginCellEdit(event, object, rowIndex, columnIndex, cell) {
@@ -3527,6 +3866,50 @@ $("#bringToFrontBtn")?.addEventListener("click", bringToFrontSelectedObjects);
 $("#bringForwardBtn")?.addEventListener("click", bringForwardSelectedObjects);
 $("#sendBackwardBtn")?.addEventListener("click", sendBackwardSelectedObjects);
 $("#sendToBackBtn")?.addEventListener("click", sendToBackSelectedObjects);
+$("#addTimerObjectButton")?.addEventListener("click", addTimerObject);
+
+$("#timerModeSelect")?.addEventListener("change", (event) => {
+  const page = currentPage();
+  const selectedTimer = page.objects.find((o) => state.selectedIds.has(o.id) && o.type === "timer");
+  if (!selectedTimer) return;
+  snapshot();
+  selectedTimer.mode = event.target.value;
+  selectedTimer.isRunning = false;
+  if (selectedTimer.mode === "loop") {
+    selectedTimer.remainingSeconds = selectedTimer.duration || 300;
+    selectedTimer.currentRepeat = 1;
+  } else {
+    selectedTimer.elapsedSeconds = 0;
+  }
+  if ($("#timerRepeatLabel")) $("#timerRepeatLabel").hidden = (selectedTimer.mode === "stopwatch");
+  renderStage();
+});
+
+$("#timerRepeatInput")?.addEventListener("change", (event) => {
+  const page = currentPage();
+  const selectedTimer = page.objects.find((o) => state.selectedIds.has(o.id) && o.type === "timer");
+  if (!selectedTimer) return;
+  snapshot();
+  const val = Math.max(1, Number(event.target.value) || 1);
+  selectedTimer.repeatCount = val;
+  selectedTimer.currentRepeat = 1;
+  renderStage();
+});
+
+document.querySelectorAll(".timer-preset-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const sec = Number(btn.dataset.sec) || 300;
+    const page = currentPage();
+    const selectedTimer = page.objects.find((o) => state.selectedIds.has(o.id) && o.type === "timer");
+    if (!selectedTimer) return;
+    snapshot();
+    selectedTimer.duration = sec;
+    selectedTimer.remainingSeconds = sec;
+    selectedTimer.currentRepeat = 1;
+    selectedTimer.isRunning = false;
+    renderStage();
+  });
+});
 $("#tableAxisSelect").addEventListener("change", (event) => {
   tableManagementAxis = event.target.value;
   renderControls();
