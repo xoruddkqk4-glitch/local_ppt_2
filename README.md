@@ -516,6 +516,24 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **인라인 `!important` 배경색 적용 (`applyTextObjectStyle`)**: CSS 클래스의 고정 배경색 스타일(`background: #fff` 등)을 이겨내도록 인라인 `!important` 배경색을 적용하여 툴바 및 테마 3색 퀵 버튼에서 지정한 배경색이 모든 카드 개체에 100% 즉시 반영되도록 구현했습니다.
 - **SVG 도형 개체 4종 서식 전면 연동**: 도형 개체(사각형, 원, 삼각형, 별)에 대해 배경색(`fill`), 테두리색(`stroke`), 테두리 두께(`stroke-width`), 선 모양(`stroke-dasharray`), 글자색(`color`)이 실시간 동적 적용되도록 고도화했습니다.
 
+### 45. 마인드맵 최상위(중앙) 노드 텍스트 세로 중앙 정렬 및 디자인 테마 3색 파이프라인 연동
+- **세로 중앙 정렬 (`.mind-root .canvas-text`)**: 중앙 최상위 노드 텍스트 영역에 `display: flex !important; align-items: center !important; justify-content: center !important;` 정렬 구문을 적용하여 제목 문구가 세로 기준 100% 중앙 정렬되도록 보완했습니다.
+- **상단 서식 툴바 테마 3색 스와치 100% 실시간 연동**: 1~3단계 노드 배경색에 테마 1순위(`var(--content-accent)`), 2순위(`var(--content-accent-2)`), 3순위(`var(--content-accent-3)`) 팔레트 색상을 직접 배정하고 고대비 화이트 텍스트(`color: #ffffff !important`)를 적용하여 시독성을 완벽하게 확보했습니다.
+
+### 46. 마인드맵 방사형 2D 노드 충돌 회피 알고리즘 (Collision Resolution) 도입
+- **동적 충돌 이격 처리 (`resolveNodeOverlaps`)**: 마인드맵 가지 수나 텍스트 길이에 따라 노드 바운딩 박스가 포개지는 현상을 방지하기 위해 2D AABB 충돌 알고리즘을 도입했습니다. 겹침이 발생하면 마인드맵 노드를 캔버스 공간 상에서 자동으로 상하좌우로 이격 밀어내어 100% 겹침 없는 배치를 보장합니다.
+
+### 47. 한 페이지 최대 항목 한도 60개 확대 및 5단계(Level 1~5) 위계 확장
+- **최대 항목 60개 확대 (`MAX_ITEMS = 60`)**: 한 페이지 내에 추가할 수 있는 개조식 및 마인드맵 항목 개수를 12개/48개에서 60개까지 대폭 확대했습니다.
+- **5단계 깊이 위계 지원**: 개조식(`Tab`/`Shift+Tab`) 및 마인드맵 노드 계층을 5단계까지 확장하고 각 단계별 크기, 굵기, 색상 스펙을 체계적으로 구현했습니다.
+
+### 48. 개조식 ↔ 마인드맵 위계 단계별 어미(Parent) 노드 일관 매핑
+- **단계별 Parent 노드 추적 (`applyMindmapTemplatePreservingContent`)**: 개조식 4단계와 5단계 항목이 마인드맵으로 전환될 때 각각 개조식 3단계(마인드맵 4단계 노드) 및 4단계(마인드맵 5단계 노드) 항목을 정확히 어미 노드로 가리키도록 트리를 구축했습니다.
+
+### 49. 상단 툴바 텍스트 정렬 메뉴(L/C/R) 실시간 적용 및 이미지 개체 두께 0 테두리 완전 숨김
+- **동적 텍스트 정렬 (`applyTextObjectStyle`)**: CSS 고정 `justify-content` 속성을 해제하고 툴바의 `L`(왼쪽), `C`(중앙), `R`(오른쪽) 정렬 클릭 시 `text-align` 및 `justify-content` flex 속성을 `!important`로 적용하여 모든 개체의 문구 정렬이 실시간 적용되도록 보완했습니다.
+- **이미지 개체 테두리 0px 완전 숨김 (`applyImageObjectStyle`)**: 이미지 개체(`.object-image`)에 디자인 테마 기본 테두리가 덮어씌워져 보이던 현상을 해결하기 위해, 두께가 `0`이거나 선 모양이 `none`일 때 `border: none !important`를 강제 설정하여 슬라이드 및 전체 화면에서 테두리가 완벽히 숨겨지도록 구현했습니다.
+
 
 
 

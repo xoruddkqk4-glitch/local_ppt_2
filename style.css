@@ -249,13 +249,25 @@ body.is-fullscreen .canvas-object {
 .bullet-item .canvas-text { justify-content:flex-start; text-align:left; padding-left:16px; }
 .bullet-item { border-left:16px solid var(--content-accent); }
 .cover-item .canvas-text { justify-content:flex-start; text-align:left; }
-.node { display:flex; align-items:center; justify-content:center; border:3px solid var(--ink); border-radius:50%; background:var(--yellow); }
+.node { display:flex; align-items:center; justify-content:center; border:2px solid var(--ink); border-radius:12px; background:var(--content-accent); box-shadow:0 3px 8px rgba(0,0,0,0.08); transition:all .15s ease; }
 .node.red { background:var(--red); }
 .node.blue { background:var(--blue); }
-.node.mind-level-1 { border-radius:2px !important; background:var(--yellow); }
-.node.mind-level-2 { background:var(--red); }
-.node.mind-level-3 { background:var(--blue); }
-.node.mind-level-4 { background:var(--ink); color:#fff; }
+.node.mind-level-1,
+.mind-root { border-radius:14px !important; border-width:3px !important; background:var(--content-accent) !important; color:#ffffff !important; font-size:1.2em !important; font-weight:900 !important; }
+.node.mind-level-1 .canvas-text,
+.mind-root .canvas-text { color:#ffffff !important; display:flex !important; align-items:center !important; }
+
+.node.mind-level-2 { border-radius:12px !important; border-width:2px !important; background:var(--content-accent-2) !important; color:#ffffff !important; font-size:1.02em !important; font-weight:850 !important; }
+.node.mind-level-2 .canvas-text { color:#ffffff !important; display:flex !important; align-items:center !important; }
+
+.node.mind-level-3 { border-radius:10px !important; border-width:2px !important; background:var(--content-accent-3) !important; color:#ffffff !important; font-size:0.88em !important; font-weight:750 !important; }
+.node.mind-level-3 .canvas-text { color:#ffffff !important; display:flex !important; align-items:center !important; }
+
+.node.mind-level-4 { border-radius:8px !important; border-width:1.5px !important; background:var(--ink) !important; color:#ffffff !important; font-size:0.78em !important; font-weight:650 !important; }
+.node.mind-level-4 .canvas-text { color:#ffffff !important; display:flex !important; align-items:center !important; }
+
+.node.mind-level-5 { border-radius:6px !important; border-width:1.5px !important; background:#334155 !important; color:#ffffff !important; font-size:0.7em !important; font-weight:600 !important; }
+.node.mind-level-5 .canvas-text { color:#ffffff !important; display:flex !important; align-items:center !important; }
 .card { display:flex; align-items:center; justify-content:center; border:3px solid var(--ink); background:#fff; }
 .side-accent-card { border-left:6px solid var(--content-accent); }
 .side-accent-card .canvas-text { flex-direction:column; align-items:flex-start; justify-content:center !important; gap:.35em; padding:4px 10px 4px 18px; line-height:1.15; }
@@ -483,7 +495,7 @@ body.is-fullscreen .canvas-object {
 .img-thumb-top .t-img-banner, .img-thumb-bottom .t-img-banner { width:100% !important; height:48% !important; background:#2563eb !important; border-radius:3px !important; }
 .img-thumb-top .t-text-row, .img-thumb-bottom .t-text-row { flex:1 !important; display:flex !important; gap:3px !important; }
 .img-thumb-top .t-text-row .t-card, .img-thumb-bottom .t-text-row .t-card { flex:1 !important; height:100% !important; background:#ffffff !important; border:1.5px solid #0f172a !important; border-radius:2px !important; }
-.object-image { width:100%; height:100%; object-fit:contain; background:transparent; display:block; border:3px solid var(--ink); pointer-events:none; }
+.object-image { width:100%; height:100%; object-fit:contain; background:transparent; display:block; border:none; pointer-events:none; }
 .resize-handle { position:absolute; right:-8px; bottom:-8px; width:16px; height:16px; border:2px solid var(--ink); background:var(--red); cursor:nwse-resize; z-index:8; }
 .table-object { width:100%; height:100%; border-collapse:collapse; background:#fff; font-size:var(--table-font-size,20px); }
 .table-object td,.table-object th { border:2px solid var(--ink); padding:6px; text-align:center; }
@@ -791,9 +803,9 @@ body[data-design="swiss"] .table-object th { border-width:1px; }
 body[data-design="swiss"] .table-object th { background:var(--ink); color:#fff; }
 body[data-design="swiss"] .connection { height:1px; min-height:1px; }
 body[data-design="swiss"] .resize-handle { right:-6px; bottom:-6px; width:12px; height:12px; border-width:1px; background:var(--blue); }
-body[data-design="swiss"] .node.mind-level-1 { background:var(--yellow); }
-body[data-design="swiss"] .node.mind-level-2 { background:var(--red); }
-body[data-design="swiss"] .node.mind-level-3 { background:var(--blue); }
+body[data-design="swiss"] .node.mind-level-1 { background:var(--content-accent); }
+body[data-design="swiss"] .node.mind-level-2 { background:var(--content-accent-2); }
+body[data-design="swiss"] .node.mind-level-3 { background:var(--content-accent-3); }
 body[data-design="swiss"] .node.mind-level-4 { background:var(--ink); }
 
 /* Swiss Grid Modern */

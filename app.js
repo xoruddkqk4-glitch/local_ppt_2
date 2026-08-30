@@ -7,7 +7,7 @@ const designs = window.PptDesigns || {};
 
 const MAX_HISTORY = 50;
 const MIN_ITEMS = 1;
-const MAX_ITEMS = 12;
+const MAX_ITEMS = 60;
 const GRID_SIZE = 5;
 const SNAP_DISTANCE_PX = 8;
 const PROJECT_FORMAT = "local-ppt-json";
@@ -266,16 +266,16 @@ function buildTemplate(page, template, options = {}) {
 function layoutBulletItems(page) {
   const items = page.objects.filter((object) => object.role === "bullet-item");
   if (!items.length) return;
-  const top = 35;
-  const bottom = 88;
-  const gap = items.length > 10 ? .5 : items.length > 8 ? 1 : 2;
-  const height = clamp(4, (bottom - top - gap * (items.length - 1)) / items.length, 10);
+  const top = 22;
+  const bottom = 92;
+  const gap = items.length > 30 ? .15 : items.length > 20 ? .25 : items.length > 10 ? .5 : 1;
+  const height = clamp(1.2, (bottom - top - gap * (items.length - 1)) / items.length, 10);
   items.forEach((item, index) => {
-    const level = clamp(1, Number(item.bulletLevel) || 1, 4);
+    const level = clamp(1, Number(item.bulletLevel) || 1, 5);
     item.bulletLevel = level;
-    item.x = 12 + (level - 1) * 6;
+    item.x = 10 + (level - 1) * 3.5;
     item.y = top + index * (height + gap);
-    item.w = 75 - (level - 1) * 6;
+    item.w = 80 - (level - 1) * 3.5;
     item.h = height;
   });
 }
@@ -286,11 +286,11 @@ function coverItems(page) {
 
 function layoutCoverItems(page) {
   coverItems(page).forEach((item, index) => {
-    const level = clamp(1, Number(item.bulletLevel) || 1, 4);
+    const level = clamp(1, Number(item.bulletLevel) || 1, 5);
     item.bulletLevel = level;
-    item.x = 18 + (level - 1) * 6;
+    item.x = 18 + (level - 1) * 5;
     item.y = 70 + index * 7;
-    item.w = 64 - (level - 1) * 6;
+    item.w = 64 - (level - 1) * 5;
     item.h = 5.5;
   });
 }
@@ -323,12 +323,14 @@ function createMindNode(text, parentId, mindLevel) {
 
 function positionNewMindmapNode(page, parent, node) {
   const specs = {
-    2: { radiusX: 23, radiusY: 19, w: 17, h: 14 },
-    3: { radiusX: 34, radiusY: 29, w: 14, h: 11 },
-    4: { radiusX: 44, radiusY: 38, w: 11, h: 9 }
+    2: { radiusX: 23, radiusY: 19, w: 15, h: 11 },
+    3: { radiusX: 33, radiusY: 27, w: 12.5, h: 9.5 },
+    4: { radiusX: 41, radiusY: 34, w: 10.5, h: 8 },
+    5: { radiusX: 47, radiusY: 39, w: 8.5, h: 6.5 },
+    6: { radiusX: 52, radiusY: 43, w: 7.5, h: 5.5 }
   };
-  const level = Math.min(4, parent.mindLevel + 1);
-  const spec = specs[level];
+  const level = Math.min(6, parent.mindLevel + 1);
+  const spec = specs[level] || specs[6];
   const siblings = page.objects.filter((object) => object.role === "mind-node" && object.parentId === parent.id);
   const offsets = parent.root
     ? [-Math.PI / 2, Math.PI / 2, -Math.PI / 4, Math.PI / 4, -3 * Math.PI / 4, 3 * Math.PI / 4, 0, Math.PI]
@@ -351,10 +353,73 @@ function positionNewMindmapNode(page, parent, node) {
   });
 }
 
+function resolveNodeOverlaps(page) {
+  const nodes = page.objects.filter((o) => o.root || o.role === "mind-node");
+  if (nodes.length < 2) return;
+
+  const margin = 1.8;
+
+  for (let iter = 0; iter < 12; iter++) {
+    let shifted = false;
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i];
+        const b = nodes[j];
+
+        const aLeft = a.x - margin / 2;
+        const aRight = a.x + a.w + margin / 2;
+        const aTop = a.y - margin / 2;
+        const aBottom = a.y + a.h + margin / 2;
+
+        const bLeft = b.x - margin / 2;
+        const bRight = b.x + b.w + margin / 2;
+        const bTop = b.y - margin / 2;
+        const bBottom = b.y + b.h + margin / 2;
+
+        const overlapX = Math.min(aRight, bRight) - Math.max(aLeft, bLeft);
+        const overlapY = Math.min(aBottom, bBottom) - Math.max(aTop, bTop);
+
+        if (overlapX > 0 && overlapY > 0) {
+          shifted = true;
+          if (overlapX < overlapY) {
+            const dx = overlapX / 2;
+            if (a.x < b.x) {
+              if (!a.root) a.x -= dx;
+              if (!b.root) b.x += dx;
+            } else {
+              if (!a.root) a.x += dx;
+              if (!b.root) b.x -= dx;
+            }
+          } else {
+            const dy = overlapY / 2;
+            if (a.y < b.y) {
+              if (!a.root) a.y -= dy;
+              if (!b.root) b.y += dy;
+            } else {
+              if (!a.root) a.y += dy;
+              if (!b.root) b.y -= dy;
+            }
+          }
+
+          if (!a.root) {
+            a.x = clamp(2, a.x, 98 - a.w);
+            a.y = clamp(18, a.y, 90 - a.h);
+          }
+          if (!b.root) {
+            b.x = clamp(2, b.x, 98 - b.w);
+            b.y = clamp(18, b.y, 90 - b.h);
+          }
+        }
+      }
+    }
+    if (!shifted) break;
+  }
+}
+
 function layoutMindmapTree(page) {
   const root = page.objects.find((object) => object.root);
   if (!root) return;
-  Object.assign(root, { x: 42, y: 45, w: 16, h: 14, mindLevel: 1, parentId: null, mindAngle: 0 });
+  Object.assign(root, { x: 41, y: 45, w: 18, h: 13, mindLevel: 1, parentId: null, mindAngle: 0 });
   const nodes = page.objects.filter((object) => object.role === "mind-node");
   const childrenByParent = new Map();
   nodes.forEach((node) => {
@@ -364,9 +429,11 @@ function layoutMindmapTree(page) {
   });
 
   const specs = {
-    2: { radiusX: 23, radiusY: 19, w: 17, h: 14 },
-    3: { radiusX: 34, radiusY: 29, w: 14, h: 11 },
-    4: { radiusX: 44, radiusY: 38, w: 11, h: 9 }
+    2: { radiusX: 23, radiusY: 19, w: 14, h: 10 },
+    3: { radiusX: 33, radiusY: 27, w: 12, h: 8.5 },
+    4: { radiusX: 41, radiusY: 34, w: 10, h: 7 },
+    5: { radiusX: 47, radiusY: 39, w: 8.5, h: 6 },
+    6: { radiusX: 52, radiusY: 43, w: 7.5, h: 5.5 }
   };
   const centerX = 50;
   const centerY = 52;
@@ -374,11 +441,11 @@ function layoutMindmapTree(page) {
   const positionChildren = (parent) => {
     const children = childrenByParent.get(parent.id) || [];
     children.forEach((node, index) => {
-      const level = Math.min(4, parent.mindLevel + 1);
-      const spec = specs[level];
+      const level = Math.min(6, Math.max(2, node.mindLevel || (parent.mindLevel + 1)));
+      const spec = specs[level] || specs[6];
       const angle = parent.root
         ? (children.length === 1 ? 0 : Math.PI * 2 * index / children.length)
-        : parent.mindAngle + (index - (children.length - 1) / 2) * (level === 3 ? .9 : .55);
+        : parent.mindAngle + (index - (children.length - 1) / 2) * (level >= 4 ? .35 : level === 3 ? .65 : .5);
       node.mindLevel = level;
       node.mindAngle = angle;
       node.x = centerX + Math.cos(angle) * spec.radiusX - spec.w / 2;
@@ -389,6 +456,7 @@ function layoutMindmapTree(page) {
     });
   };
   positionChildren(root);
+  resolveNodeOverlaps(page);
 }
 
 function buildObjectTemplate(page, itemCount) {
@@ -449,7 +517,7 @@ function buildObjectTemplate(page, itemCount) {
 }
 
 const RELAYOUT_TEXT_PROPERTIES = ["text", "textColor", "fontSize", "textAlign", "color", "animOrder"];
-const LAYOUT_CONTENT_EXCLUDED_ROLES = new Set(["page-title", "media-placeholder", "vs-label", "chart-context"]);
+const LAYOUT_CONTENT_EXCLUDED_ROLES = new Set(["page-title", "mind-root", "media-placeholder", "vs-label", "chart-context"]);
 
 function copyRelayoutTextProperties(target, source) {
   RELAYOUT_TEXT_PROPERTIES.forEach((property) => {
@@ -493,17 +561,20 @@ function rebuildObjectTemplatePreservingContent(page, itemCount, removedObject =
 function getLayoutContentSnapshot(page) {
   const chart = page.objects.find((object) => object.type === "chart");
   const blocks = page.objects
-    .filter((object) => object.type === "text" && !LAYOUT_CONTENT_EXCLUDED_ROLES.has(object.role) && String(object.text || "").trim())
-    .map((object) => ({ ...object }))
-    .concat(page.objects
-      .filter((object) => object.type === "table")
-      .flatMap((table) => table.cells.map((row, index) => ({
-        type: "text",
-        role: "table-row",
-        text: row.join(" | "),
-        x: table.x,
-        y: table.y + index / Math.max(table.cells.length, 1) * table.h
-      }))));
+    .filter((object) => object.type === "text" && !object.root && !LAYOUT_CONTENT_EXCLUDED_ROLES.has(object.role) && String(object.text || "").trim())
+    .map((object) => ({ ...object }));
+
+  const table = page.objects.find((object) => object.type === "table");
+  if (table) {
+    blocks.push(...table.cells.map((row, index) => ({
+      type: "text",
+      role: "table-row",
+      text: row.join(" | "),
+      x: table.x,
+      y: table.y + index / Math.max(table.cells.length, 1) * table.h
+    })));
+  }
+
   if (!blocks.length && Array.isArray(chart?.sourceBlocks)) {
     blocks.push(...chart.sourceBlocks.map((block) => ({ ...block })));
   }
@@ -517,11 +588,15 @@ function getLayoutContentSnapshot(page) {
       y: chart.y + index / Math.max(chartData.length, 1) * chart.h
     })));
   }
-  blocks.sort((a, b) => a.y - b.y || a.x - b.x);
+
+  const titleObj = page.objects.find((object) => object.role === "page-title")
+    || page.objects.find((object) => object.root || object.role === "mind-root")
+    || null;
+
   return {
-    title: page.objects.find((object) => object.role === "page-title") || null,
+    title: titleObj,
     blocks,
-    tableCells: page.objects.find((object) => object.type === "table")?.cells.map((row) => [...row]) || null,
+    tableCells: table?.cells.map((row) => [...row]) || null,
     chartData
   };
 }
@@ -536,19 +611,32 @@ function applyBulletTemplatePreservingContent(page) {
   page.variant = null;
 
   const title = createTextObject("page-title", titleText, 7, 7, 86, 16, { textAlign: "left" });
+  if (snapshotContent.title) copyRelayoutTextProperties(title, snapshotContent.title);
+
   const blocks = snapshotContent.blocks.length
     ? snapshotContent.blocks
     : [{ text: "첫 번째 핵심 내용" }, { text: "두 번째 핵심 내용" }];
 
-  const bulletItems = blocks.map((block) => (
-    createTextObject("bullet-item", String(block.text || "").trim(), 12, 0, 75, 9, {
+  const isFromMindmap = page.template === "mindmap" || page.objects.some((o) => o.role === "mind-node");
+
+  const bulletItems = blocks.map((block) => {
+    let bulletLevel = 1;
+    if (isFromMindmap && typeof block.mindLevel === "number") {
+      bulletLevel = clamp(1, Number(block.mindLevel) - 1, 4);
+    } else if (typeof block.bulletLevel === "number") {
+      bulletLevel = clamp(1, Number(block.bulletLevel), 4);
+    } else if (typeof block.mindLevel === "number") {
+      bulletLevel = clamp(1, Number(block.mindLevel) - 1, 4);
+    }
+
+    return createTextObject("bullet-item", String(block.text || "").trim(), 12, 0, 75, 9, {
       item: true,
-      bulletLevel: clamp(1, Number(block.bulletLevel) || 1, 4),
+      bulletLevel,
       textColor: block.textColor,
       fontSize: block.fontSize,
       animOrder: block.animOrder
-    })
-  ));
+    });
+  });
 
   page.objects = [title, ...bulletItems, ...images];
   layoutBulletItems(page);
@@ -563,9 +651,10 @@ function applyMindmapTemplatePreservingContent(page) {
   page.objectCategory = "diagram";
   page.variant = "connectedCircles";
 
-  const root = createTextObject("mind-root", rootText, 42, 45, 16, 14, {
+  const root = createTextObject("mind-root", rootText, 41, 45, 18, 13, {
     item: false, node: true, root: true, mindLevel: 1
   });
+  if (snapshotContent.title) copyRelayoutTextProperties(root, snapshotContent.title);
 
   const remainingBlocks = snapshotContent.title
     ? snapshotContent.blocks
@@ -575,9 +664,33 @@ function applyMindmapTemplatePreservingContent(page) {
     ? remainingBlocks
     : [{ text: "CONTEXT" }, { text: "METHOD" }, { text: "PROCESS" }, { text: "RESULT" }];
 
+  const lastNodeAtLevel = { 1: root.id };
+
   const nodes = sourceBlocks.map((block, index) => {
-    const parentId = root.id;
-    const node = createMindNode(String(block.text || "").trim() || `노드 ${index + 1}`, parentId, 2);
+    let level = 2;
+    if (typeof block.bulletLevel === "number") {
+      level = clamp(2, Number(block.bulletLevel) + 1, 6);
+    } else if (typeof block.mindLevel === "number") {
+      level = clamp(2, Number(block.mindLevel), 6);
+    }
+
+    let parentId = lastNodeAtLevel[level - 1];
+    if (!parentId) {
+      for (let p = level - 1; p >= 1; p--) {
+        if (lastNodeAtLevel[p]) {
+          parentId = lastNodeAtLevel[p];
+          break;
+        }
+      }
+    }
+    if (!parentId) parentId = root.id;
+
+    const node = createMindNode(String(block.text || "").trim() || `노드 ${index + 1}`, parentId, level);
+    lastNodeAtLevel[level] = node.id;
+    for (let l = level + 1; l <= 6; l++) {
+      delete lastNodeAtLevel[l];
+    }
+
     if (typeof block.animOrder === "number" && block.animOrder > 0) {
       node.animOrder = block.animOrder;
     }
@@ -611,6 +724,7 @@ function applySnapshotBlocksToTargets(blocks, targets) {
 function changeLayoutVariantPreservingContent(page, variant) {
   delete page.imageDeleted;
   const snapshotContent = getLayoutContentSnapshot(page);
+  page.template = "object";
   page.objectCategory = "layout";
   page.variant = variant;
   const minimum = getLayoutMinimumCount(variant);
@@ -644,6 +758,7 @@ function changeLayoutVariantPreservingContent(page, variant) {
 
 function changeDiagramVariantPreservingContent(page, variant) {
   const snapshotContent = getLayoutContentSnapshot(page);
+  page.template = "object";
   page.objectCategory = "diagram";
   page.variant = variant;
   const count = clamp(
@@ -720,6 +835,7 @@ function changeChartVariantPreservingContent(page, variant) {
     : chartDataFromTable(snapshotContent.tableCells);
   if (data.length < CHART_MIN_ITEMS) data = chartDataFromBlocks(sourceBlocks);
 
+  page.template = "object";
   page.objectCategory = "chart";
   page.variant = variant;
   buildObjectTemplate(page, Math.max(data.length, CHART_MIN_ITEMS));
@@ -1275,7 +1391,7 @@ function getDiagramMaximumCount(variant) {
     funnel: 6,
     venn: 4,
     target: 6,
-    connectedCircles: 7,
+    connectedCircles: 48,
     quadrant: 4,
     vs: 2
   }[variant] || MAX_ITEMS;
@@ -1298,16 +1414,19 @@ function getSelectedActionObject(page) {
 
 function canAddItem(page, selected) {
   if (page.type === "cover") return getItemCount(page) < MAX_ITEMS;
-  if (!selected) return false;
-  if (selected.type === "chart") return getChartData(selected).length < CHART_MAX_ITEMS;
-  if (selected.type === "table") {
+  if (!selected && page.template !== "object" && page.template !== "bullet" && page.template !== "mindmap") return false;
+  if (selected?.type === "chart") return getChartData(selected).length < CHART_MAX_ITEMS;
+  if (selected?.type === "table") {
     const columnCount = selected.cells[0]?.length || 0;
-    return tableManagementAxis === "column" ? columnCount < MAX_ITEMS : selected.cells.length - 1 < MAX_ITEMS;
+    return tableManagementAxis === "column" ? columnCount < 20 : selected.cells.length - 1 < 30;
   }
-  if (page.template === "object" && page.objectCategory === "layout" && getItemCount(page) >= getLayoutMaximumCount(page.variant)) return false;
-  if (page.template === "object" && page.objectCategory === "diagram" && getItemCount(page) >= getDiagramMaximumCount(page.variant)) return false;
+  if ((page.template === "object" || page.objectCategory) && page.objectCategory === "layout" && getItemCount(page) >= getLayoutMaximumCount(page.variant)) return false;
+  if ((page.template === "object" || page.objectCategory) && page.objectCategory === "diagram" && page.variant !== "connectedCircles" && getItemCount(page) >= getDiagramMaximumCount(page.variant)) return false;
   if (getItemCount(page) >= MAX_ITEMS) return false;
-  if (page.template === "mindmap") return selected.mindLevel < 4;
+  if (page.template === "mindmap") {
+    if (selected && selected.mindLevel >= 6) return false;
+    return getItemCount(page) < MAX_ITEMS;
+  }
   return true;
 }
 
@@ -2686,6 +2805,8 @@ function createObjectElement(object) {
     image.alt = object.name || "첨부 이미지";
     element.append(image);
 
+    applyImageObjectStyle(image, object, element);
+
     element.addEventListener("dblclick", (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -2791,14 +2912,21 @@ function getTextAlign(object) {
 function applyTextObjectStyle(text, object, wrapper) {
   const align = getTextAlign(object);
   const flexAlign = { left: "flex-start", center: "center", right: "flex-end" }[align] || "center";
-  text.style.textAlign = align;
-  text.style.alignItems = flexAlign;
+
+  text.style.setProperty("text-align", align, "important");
 
   if (["bullet-item", "cover-item"].includes(object.role)) {
-    text.style.justifyContent = "flex-start";
+    text.style.setProperty("align-items", flexAlign, "important");
+    text.style.setProperty("justify-content", "flex-start", "important");
   } else {
-    text.style.justifyContent = "center";
+    text.style.setProperty("display", "flex", "important");
+    text.style.setProperty("align-items", "center", "important");
+    text.style.setProperty("justify-content", flexAlign, "important");
   }
+
+  text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+    child.style.setProperty("text-align", align, "important");
+  });
   if (object.textColor) {
     text.style.setProperty("color", object.textColor, "important");
     text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
@@ -2859,6 +2987,28 @@ function applyTextObjectStyle(text, object, wrapper) {
     wrapper.style.backgroundColor = "";
     text.style.background = "";
     text.style.backgroundColor = "";
+  }
+}
+
+function applyImageObjectStyle(image, object, wrapper) {
+  const width = (object.borderWidth !== undefined && object.borderWidth !== null) ? Number(object.borderWidth) : 0;
+  const style = object.borderStyle || (width > 0 ? "solid" : "none");
+  const color = object.borderColor || "#0f172a";
+
+  if (width === 0 || style === "none") {
+    wrapper.style.setProperty("border", "none", "important");
+    wrapper.style.setProperty("box-shadow", "none", "important");
+    image.style.setProperty("border", "none", "important");
+    image.style.setProperty("outline", "none", "important");
+    image.style.setProperty("box-shadow", "none", "important");
+  } else if (width > 0 && style && style !== "none") {
+    wrapper.style.setProperty("border", "none", "important");
+    wrapper.style.setProperty("box-shadow", "none", "important");
+    image.style.setProperty("border", `${width}px ${style} ${color}`, "important");
+    image.style.setProperty("box-sizing", "border-box", "important");
+  } else {
+    wrapper.style.setProperty("border", "none", "important");
+    image.style.setProperty("border", "none", "important");
   }
 }
 
