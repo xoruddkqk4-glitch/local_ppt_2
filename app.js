@@ -2912,11 +2912,19 @@ function getTextAlign(object) {
 function applyTextObjectStyle(text, object, wrapper) {
   const align = getTextAlign(object);
   const flexJustify = { left: "flex-start", center: "center", right: "flex-end" }[align] || "center";
+  const isColumn = STRUCTURED_LAYOUT_ROLES.has(object.role) || ["timeline-node", "side-accent-card"].includes(object.role);
 
   text.style.setProperty("display", "flex", "important");
-  text.style.setProperty("align-items", "center", "important");
-  text.style.setProperty("justify-content", flexJustify, "important");
   text.style.setProperty("text-align", align, "important");
+
+  if (isColumn) {
+    text.style.setProperty("flex-direction", "column", "important");
+    text.style.setProperty("justify-content", "center", "important");
+    text.style.setProperty("align-items", flexJustify, "important");
+  } else {
+    text.style.setProperty("align-items", "center", "important");
+    text.style.setProperty("justify-content", flexJustify, "important");
+  }
 
   text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
     child.style.setProperty("text-align", align, "important");
