@@ -560,9 +560,45 @@ function rebuildObjectTemplatePreservingContent(page, itemCount, removedObject =
 
 function getLayoutContentSnapshot(page) {
   const chart = page.objects.find((object) => object.type === "chart");
-  const blocks = page.objects
-    .filter((object) => object.type === "text" && !object.root && !LAYOUT_CONTENT_EXCLUDED_ROLES.has(object.role) && String(object.text || "").trim())
-    .map((object) => ({ ...object }));
+  let blocks = [];
+
+  const isMindmapPage = page.template === "mindmap" || page.objects.some((o) => o.role === "mind-node");
+  if (isMindmapPage) {
+    const rootNode = page.objects.find((o) => o.root || o.role === "mind-root");
+    const childMap = new Map();
+    page.objects.forEach((o) => {
+      if (o.role === "mind-node") {
+        const pId = o.parentId || rootNode?.id;
+        const list = childMap.get(pId) || [];
+        list.push(o);
+        childMap.set(pId, list);
+      }
+    });
+
+    const dfsBlocks = [];
+    const traverse = (pId) => {
+      const children = childMap.get(pId) || [];
+      children.forEach((child) => {
+        if (!LAYOUT_CONTENT_EXCLUDED_ROLES.has(child.role) && String(child.text || "").trim()) {
+          dfsBlocks.push({ ...child });
+        }
+        traverse(child.id);
+      });
+    };
+    if (rootNode) traverse(rootNode.id);
+
+    page.objects.forEach((o) => {
+      if (o.role === "mind-node" && !dfsBlocks.some((b) => b.id === o.id) && !LAYOUT_CONTENT_EXCLUDED_ROLES.has(o.role) && String(o.text || "").trim()) {
+        dfsBlocks.push({ ...o });
+      }
+    });
+
+    blocks = dfsBlocks;
+  } else {
+    blocks = page.objects
+      .filter((object) => object.type === "text" && !object.root && !LAYOUT_CONTENT_EXCLUDED_ROLES.has(object.role) && String(object.text || "").trim())
+      .map((object) => ({ ...object }));
+  }
 
   const table = page.objects.find((object) => object.type === "table");
   if (table) {
@@ -3707,17 +3743,44 @@ function getTextGroupMaximum(texts, fallback) {
 }
 
 function fitBulletTextByLevel(bulletTexts) {
-  const grouped = new Map();
-  bulletTexts.forEach((text) => {
+  if (!bulletTexts || !bulletTexts.size) return;
+  const list = [...bulletTexts];
+  const maxCap = getTextGroupMaximum(list, 72);
+
+  const levelScales = { 1: 1.0, 2: 0.82, 3: 0.68, 4: 0.56, 5: 0.46 };
+
+  let low = 8;
+  let high = maxCap;
+
+  for (let attempt = 0; attempt < 9; attempt++) {
+    const baseSize = (low + high) / 2;
+    let allFit = true;
+
+    list.forEach((text) => {
+      const wrapper = text.closest(".canvas-object");
+      const object = currentPage().objects.find((item) => item.id === wrapper?.dataset.objectId);
+      const level = object ? clamp(1, Number(object.bulletLevel) || 1, 5) : 1;
+      const scale = levelScales[level] || 0.46;
+      const computedSize = Math.max(8, baseSize * scale);
+
+      text.style.setProperty("--object-font-size", `${computedSize}px`);
+      if (text.scrollWidth > text.clientWidth + 1 || text.scrollHeight > text.clientHeight + 1) {
+        allFit = false;
+      }
+    });
+
+    if (allFit) low = baseSize;
+    else high = baseSize;
+  }
+
+  list.forEach((text) => {
     const wrapper = text.closest(".canvas-object");
     const object = currentPage().objects.find((item) => item.id === wrapper?.dataset.objectId);
-    if (!object) return;
-    const key = `${object.role}:${clamp(1, Number(object.bulletLevel) || 1, 4)}`;
-    const texts = grouped.get(key) || [];
-    texts.push(text);
-    grouped.set(key, texts);
+    const level = object ? clamp(1, Number(object.bulletLevel) || 1, 5) : 1;
+    const scale = levelScales[level] || 0.46;
+    const finalSize = Math.max(8, low * scale);
+    text.style.setProperty("--object-font-size", `${finalSize}px`);
   });
-  grouped.forEach((texts) => fitTextGroupToCommonSize(texts, 8, getTextGroupMaximum(texts, 72)));
 }
 
 function fitTextGroupToCommonSize(texts, minimum, maximum) {
