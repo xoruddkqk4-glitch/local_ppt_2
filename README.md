@@ -531,7 +531,7 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **단계별 Parent 노드 추적 (`applyMindmapTemplatePreservingContent`)**: 개조식 4단계와 5단계 항목이 마인드맵으로 전환될 때 각각 개조식 3단계(마인드맵 4단계 노드) 및 4단계(마인드맵 5단계 노드) 항목을 정확히 어미 노드로 가리키도록 트리를 구축했습니다.
 
 ### 49. 상단 툴바 텍스트 정렬 메뉴(L/C/R) 실시간 적용 및 이미지 개체 두께 0 테두리 완전 숨김
-- **동적 텍스트 정렬 (`applyTextObjectStyle`)**: CSS 고정 `justify-content` 속성을 해제하고 툴바의 `L`(왼쪽), `C`(중앙), `R`(오른쪽) 정렬 클릭 시 `text-align` 및 `justify-content` flex 속성을 `!important`로 적용하여 모든 개체의 문구 정렬이 실시간 적용되도록 보완했습니다.
+- **동적 Flex 텍스트 정렬 체계화 (`applyTextObjectStyle`)**: `align-items: center`로 세로 정렬을 고정하고 `justify-content`(`flex-start`, `center`, `flex-end`)와 `text-align`을 연동하여, `R`(오른쪽 정렬) 선택 시 텍스트가 바닥으로 밀리거나 가려지는 현상을 완벽 해결하고 모든 개체 문구가 깔끔하게 정렬되도록 보완했습니다.
 - **이미지 개체 테두리 0px 완전 숨김 (`applyImageObjectStyle`)**: 이미지 개체(`.object-image`)에 디자인 테마 기본 테두리가 덮어씌워져 보이던 현상을 해결하기 위해, 두께가 `0`이거나 선 모양이 `none`일 때 `border: none !important`를 강제 설정하여 슬라이드 및 전체 화면에서 테두리가 완벽히 숨겨지도록 구현했습니다.
 
 

@@ -2911,18 +2911,12 @@ function getTextAlign(object) {
 
 function applyTextObjectStyle(text, object, wrapper) {
   const align = getTextAlign(object);
-  const flexAlign = { left: "flex-start", center: "center", right: "flex-end" }[align] || "center";
+  const flexJustify = { left: "flex-start", center: "center", right: "flex-end" }[align] || "center";
 
+  text.style.setProperty("display", "flex", "important");
+  text.style.setProperty("align-items", "center", "important");
+  text.style.setProperty("justify-content", flexJustify, "important");
   text.style.setProperty("text-align", align, "important");
-
-  if (["bullet-item", "cover-item"].includes(object.role)) {
-    text.style.setProperty("align-items", flexAlign, "important");
-    text.style.setProperty("justify-content", "flex-start", "important");
-  } else {
-    text.style.setProperty("display", "flex", "important");
-    text.style.setProperty("align-items", "center", "important");
-    text.style.setProperty("justify-content", flexAlign, "important");
-  }
 
   text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
     child.style.setProperty("text-align", align, "important");

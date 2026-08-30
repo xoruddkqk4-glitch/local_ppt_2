@@ -246,9 +246,9 @@ body.is-fullscreen .canvas-object {
 .canvas-text[contenteditable="true"] { user-select:text; cursor:text; overflow:auto; }
 .cover-title { font-weight:950; letter-spacing:-.07em; line-height:.92; }
 .cover-subtitle { font-weight:750; }
-.bullet-item .canvas-text { justify-content:flex-start; text-align:left; padding-left:16px; }
+.bullet-item .canvas-text { padding-left:16px; padding-right:16px; }
 .bullet-item { border-left:16px solid var(--content-accent); }
-.cover-item .canvas-text { justify-content:flex-start; text-align:left; }
+.cover-item .canvas-text { padding-left:4px; padding-right:4px; }
 .node { display:flex; align-items:center; justify-content:center; border:2px solid var(--ink); border-radius:12px; background:var(--content-accent); box-shadow:0 3px 8px rgba(0,0,0,0.08); transition:all .15s ease; }
 .node.red { background:var(--red); }
 .node.blue { background:var(--blue); }
