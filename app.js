@@ -2063,11 +2063,66 @@ function formatTimeMMSS(seconds) {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
+function getScaledTimerFontSize(fontScale, text = "") {
+  const scale = typeof fontScale === "number" ? fontScale : 1.0;
+  const isTimeUp = text === "Time's up!";
+  const baseCqw = isTimeUp ? 10 : 18;
+  const baseCqh = isTimeUp ? 28 : 50;
+
+  if (scale === 1.0) {
+    return `clamp(14px, min(${baseCqh}cqh, ${baseCqw}cqw), 180px)`;
+  }
+  return `calc(clamp(14px, min(${baseCqh}cqh, ${baseCqw}cqw), 180px) * ${scale.toFixed(2)})`;
+}
+
+function getLuminance(hex) {
+  if (!hex || typeof hex !== "string") return 128;
+  const h = hex.replace("#", "");
+  let r = 0, g = 0, b = 0;
+  if (h.length === 3) {
+    r = parseInt(h[0] + h[0], 16);
+    g = parseInt(h[1] + h[1], 16);
+    b = parseInt(h[2] + h[2], 16);
+  } else if (h.length === 6) {
+    r = parseInt(h.substring(0, 2), 16);
+    g = parseInt(h.substring(2, 4), 16);
+    b = parseInt(h.substring(4, 6), 16);
+  }
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+function blendWithBlack(hex, blackRatio = 0.88) {
+  const h = (hex || "#000000").replace("#", "");
+  let r = 0, g = 0, b = 0;
+  if (h.length === 3) {
+    r = parseInt(h[0] + h[0], 16);
+    g = parseInt(h[1] + h[1], 16);
+    b = parseInt(h[2] + h[2], 16);
+  } else if (h.length === 6) {
+    r = parseInt(h.substring(0, 2), 16);
+    g = parseInt(h.substring(2, 4), 16);
+    b = parseInt(h.substring(4, 6), 16);
+  }
+  const colorRatio = 1 - blackRatio;
+  const nr = Math.round(r * colorRatio);
+  const ng = Math.round(g * colorRatio);
+  const nb = Math.round(b * colorRatio);
+  return `#${nr.toString(16).padStart(2, "0")}${ng.toString(16).padStart(2, "0")}${nb.toString(16).padStart(2, "0")}`;
+}
+
+function getThemeDefaultTimerColors() {
+  return { bgColor: "#ffffff", textColor: "#000000" };
+}
+
 function createTimerElement(object) {
+  const themeTimerDefaults = getThemeDefaultTimerColors();
+  const effectiveBgColor = object.isCustomBgColor && object.bgColor ? object.bgColor : themeTimerDefaults.bgColor;
+  const effectiveTextColor = object.isCustomTextColor && object.textColor ? object.textColor : themeTimerDefaults.textColor;
+
   const container = document.createElement("div");
   container.className = "timer-object-card";
-  container.style.backgroundColor = object.bgColor || "#0f172a";
-  container.style.color = object.textColor || "#ffffff";
+  container.style.backgroundColor = effectiveBgColor;
+  container.style.color = "#0f172a";
 
   const isLoop = (object.mode !== "stopwatch");
   const repeatCount = Math.max(1, Number(object.repeatCount) || 1);
@@ -2099,6 +2154,7 @@ function createTimerElement(object) {
     snapshot();
     object.mode = e.target.value;
     object.isRunning = false;
+    object.inRest = false;
     if (object.mode === "loop") {
       object.remainingSeconds = object.duration || 300;
       object.currentRepeat = 1;
@@ -2116,6 +2172,7 @@ function createTimerElement(object) {
   repeatWrap.style.display = isLoop ? "inline-flex" : "none";
   repeatWrap.style.alignItems = "center";
   repeatWrap.style.gap = "3px";
+  repeatWrap.style.color = "#334155";
   repeatWrap.textContent = "반복: ";
 
   const repeatInput = document.createElement("input");
@@ -2141,6 +2198,38 @@ function createTimerElement(object) {
 
   repeatWrap.append(repeatInput, repeatSuffix);
   leftControls.append(repeatWrap);
+
+  const restWrap = document.createElement("label");
+  restWrap.className = "timer-rest-wrap";
+  restWrap.style.fontSize = "11px";
+  restWrap.style.fontWeight = "800";
+  restWrap.style.display = isLoop ? "inline-flex" : "none";
+  restWrap.style.alignItems = "center";
+  restWrap.style.gap = "3px";
+  restWrap.style.color = "#334155";
+  restWrap.textContent = "쉬는 시간: ";
+
+  const restInput = document.createElement("input");
+  restInput.type = "number";
+  restInput.min = "0";
+  restInput.max = "999";
+  restInput.value = typeof object.restSeconds === "number" ? object.restSeconds : 1;
+  restInput.style.width = "36px";
+  restInput.ariaLabel = "쉬는 시간 입력 (초)";
+
+  restInput.addEventListener("change", (e) => {
+    e.stopPropagation();
+    snapshot();
+    const val = Math.max(0, Number(e.target.value) || 0);
+    object.restSeconds = val;
+    renderStage();
+  });
+
+  const restSuffix = document.createElement("span");
+  restSuffix.textContent = "초";
+  restWrap.append(restInput, restSuffix);
+
+  leftControls.append(restWrap);
   header.append(leftControls);
 
   // Preset Buttons Bar
@@ -2168,6 +2257,7 @@ function createTimerElement(object) {
       object.duration = p.sec;
       object.remainingSeconds = p.sec;
       object.currentRepeat = 1;
+      object.inRest = false;
       object.isRunning = false;
       renderStage();
     });
@@ -2179,15 +2269,22 @@ function createTimerElement(object) {
   // Digital Clock Display (80% container height)
   const display = document.createElement("div");
   display.className = "timer-digital-display";
-  display.style.color = object.isRunning ? "#facc15" : "#ffffff";
+  display.style.color = effectiveTextColor;
 
-  let displaySeconds = 0;
-  if (isLoop) {
-    displaySeconds = typeof object.remainingSeconds === "number" ? object.remainingSeconds : (object.duration || 300);
+  if (isLoop && (object.inRest || (object.remainingSeconds !== undefined && object.remainingSeconds <= 0))) {
+    display.textContent = "Time's up!";
   } else {
-    displaySeconds = typeof object.elapsedSeconds === "number" ? object.elapsedSeconds : 0;
+    let displaySeconds = 0;
+    if (isLoop) {
+      displaySeconds = typeof object.remainingSeconds === "number" ? object.remainingSeconds : (object.duration || 300);
+    } else {
+      displaySeconds = typeof object.elapsedSeconds === "number" ? object.elapsedSeconds : 0;
+    }
+    display.textContent = formatTimeMMSS(displaySeconds);
   }
-  display.textContent = formatTimeMMSS(displaySeconds);
+
+  const fontScale = typeof object.timerFontSizeScale === "number" ? object.timerFontSizeScale : 1.0;
+  display.style.fontSize = getScaledTimerFontSize(fontScale, display.textContent);
   container.append(display);
 
   // Bottom Footer Controls
@@ -2211,8 +2308,9 @@ function createTimerElement(object) {
   resetBtn.type = "button";
   resetBtn.className = "timer-ctrl-btn timer-reset-btn";
   resetBtn.textContent = "🔄 리셋";
-  resetBtn.style.background = "rgba(255,255,255,0.2)";
-  resetBtn.style.color = "#ffffff";
+  resetBtn.style.background = "#f1f5f9";
+  resetBtn.style.color = "#0f172a";
+  resetBtn.style.border = "1px solid #cbd5e1";
 
   resetBtn.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -2241,18 +2339,40 @@ function ensureTimerTicker() {
           if (obj.mode === "stopwatch") {
             obj.elapsedSeconds = (obj.elapsedSeconds || 0) + 1;
           } else {
-            if (typeof obj.remainingSeconds !== "number") obj.remainingSeconds = obj.duration || 300;
-            obj.remainingSeconds -= 1;
-            if (obj.remainingSeconds <= 0) {
-              const repeatCount = Math.max(1, Number(obj.repeatCount) || 1);
-              const currentRepeat = Math.max(1, Number(obj.currentRepeat) || 1);
-              if (currentRepeat < repeatCount) {
-                obj.currentRepeat = currentRepeat + 1;
-                obj.remainingSeconds = obj.duration || 300;
-              } else {
-                obj.remainingSeconds = 0;
-                obj.isRunning = false;
+            const restTime = typeof obj.restSeconds === "number" ? obj.restSeconds : 1;
+            const repeatCount = Math.max(1, Number(obj.repeatCount) || 1);
+            const currentRepeat = Math.max(1, Number(obj.currentRepeat) || 1);
+
+            if (obj.inRest) {
+              obj.restRemainingSeconds = (typeof obj.restRemainingSeconds === "number" ? obj.restRemainingSeconds : restTime) - 1;
+              if (obj.restRemainingSeconds <= 0) {
+                obj.inRest = false;
+                if (currentRepeat < repeatCount) {
+                  obj.currentRepeat = currentRepeat + 1;
+                  obj.remainingSeconds = obj.duration || 300;
+                } else {
+                  obj.remainingSeconds = 0;
+                  obj.isRunning = false;
+                }
+              }
+            } else {
+              if (typeof obj.remainingSeconds !== "number") obj.remainingSeconds = obj.duration || 300;
+              obj.remainingSeconds -= 1;
+              if (obj.remainingSeconds <= 0) {
                 playTimerFinishBeep();
+                if (restTime > 0) {
+                  obj.inRest = true;
+                  obj.restRemainingSeconds = restTime;
+                  obj.remainingSeconds = 0;
+                } else {
+                  if (currentRepeat < repeatCount) {
+                    obj.currentRepeat = currentRepeat + 1;
+                    obj.remainingSeconds = obj.duration || 300;
+                  } else {
+                    obj.remainingSeconds = 0;
+                    obj.isRunning = false;
+                  }
+                }
               }
             }
           }
@@ -2267,6 +2387,7 @@ function ensureTimerTicker() {
 }
 
 function updateRunningTimerDisplays() {
+  const themeTimerDefaults = getThemeDefaultTimerColors();
   state.pages.forEach((page) => {
     if (!page.objects) return;
     page.objects.forEach((obj) => {
@@ -2278,12 +2399,25 @@ function updateRunningTimerDisplays() {
           const repeatBadge = el.querySelector(".timer-repeat-badge");
 
           const isLoop = (obj.mode !== "stopwatch");
-          const displaySecs = isLoop ? (obj.remainingSeconds ?? obj.duration ?? 300) : (obj.elapsedSeconds ?? 0);
+          const effectiveBgColor = obj.isCustomBgColor && obj.bgColor ? obj.bgColor : themeTimerDefaults.bgColor;
+          const effectiveTextColor = obj.isCustomTextColor && obj.textColor ? obj.textColor : themeTimerDefaults.textColor;
+
+          el.style.backgroundColor = effectiveBgColor;
 
           if (displayEl) {
-            displayEl.textContent = formatTimeMMSS(displaySecs);
-            displayEl.style.color = obj.isRunning ? "#facc15" : "#ffffff";
+            if (isLoop && (obj.inRest || (obj.remainingSeconds !== undefined && obj.remainingSeconds <= 0))) {
+              displayEl.textContent = "Time's up!";
+            } else {
+              const displaySecs = isLoop ? (obj.remainingSeconds ?? obj.duration ?? 300) : (obj.elapsedSeconds ?? 0);
+              displayEl.textContent = formatTimeMMSS(displaySecs);
+            }
+
+            displayEl.style.color = effectiveTextColor;
+
+            const fontScale = typeof obj.timerFontSizeScale === "number" ? obj.timerFontSizeScale : 1.0;
+            displayEl.style.fontSize = getScaledTimerFontSize(fontScale, displayEl.textContent);
           }
+
           if (toggleBtn) {
             toggleBtn.textContent = obj.isRunning ? "⏸ 일시정지" : "▶ 시작";
             toggleBtn.style.background = obj.isRunning ? "#ef4444" : "#22c55e";
@@ -2300,9 +2434,10 @@ function updateRunningTimerDisplays() {
 function toggleTimerRunning(object) {
   object.isRunning = !object.isRunning;
   if (object.isRunning) {
-    if (object.mode !== "stopwatch" && (object.remainingSeconds === undefined || object.remainingSeconds <= 0)) {
+    if (object.mode !== "stopwatch" && (object.remainingSeconds === undefined || (object.remainingSeconds <= 0 && !object.inRest))) {
       object.remainingSeconds = object.duration || 300;
       object.currentRepeat = 1;
+      object.inRest = false;
     }
     ensureTimerTicker();
   }
@@ -2311,6 +2446,8 @@ function toggleTimerRunning(object) {
 
 function resetTimerObject(object) {
   object.isRunning = false;
+  object.inRest = false;
+  object.restRemainingSeconds = 0;
   object.remainingSeconds = object.duration || 300;
   object.elapsedSeconds = 0;
   object.currentRepeat = 1;
@@ -2344,6 +2481,9 @@ function addTimerObject() {
     duration: 300,
     repeatCount: 1,
     currentRepeat: 1,
+    restSeconds: 1,
+    inRest: false,
+    restRemainingSeconds: 0,
     remainingSeconds: 300,
     elapsedSeconds: 0,
     isRunning: false,
@@ -2351,8 +2491,6 @@ function addTimerObject() {
     y: 35,
     w: 30,
     h: 22,
-    bgColor: "#0f172a",
-    textColor: "#ffffff",
     borderColor: "#3b82f6",
     borderWidth: 2
   };
@@ -2904,11 +3042,18 @@ function showTextToolbar(object, textElement) {
   if ($("#textSizeGroup")) $("#textSizeGroup").hidden = isTimer;
 
   try {
+    const themeDefaults = getThemeDefaultTimerColors();
     if ($("#textColorInput")) {
-      $("#textColorInput").value = normalizeColor(object.textColor || (textElement ? getComputedStyle(textElement).color : "#ffffff") || "#ffffff");
+      const textColor = object.type === "timer" && (!object.isCustomTextColor || !object.textColor)
+        ? themeDefaults.textColor
+        : (object.textColor || (textElement ? getComputedStyle(textElement).color : "#ffffff") || "#ffffff");
+      $("#textColorInput").value = normalizeColor(textColor);
     }
     if ($("#bgColorInput")) {
-      $("#bgColorInput").value = normalizeColor(object.bgColor || (textElement ? getComputedStyle(textElement.parentElement || textElement).backgroundColor : "#ffffff") || "#ffffff");
+      const bgColor = object.type === "timer" && (!object.isCustomBgColor || !object.bgColor)
+        ? themeDefaults.bgColor
+        : (object.bgColor || (textElement ? getComputedStyle(textElement.parentElement || textElement).backgroundColor : "#ffffff") || "#ffffff");
+      $("#bgColorInput").value = normalizeColor(bgColor);
     }
     if ($("#borderColorInput")) {
       $("#borderColorInput").value = normalizeColor(object.borderColor || "#0f172a");
@@ -2957,7 +3102,11 @@ function updateActiveTextStyle(property, value) {
   const selectedObjects = page.objects.filter((item) => state.selectedIds.has(item.id));
   if (!selectedObjects.length) return;
   snapshot();
-  selectedObjects.forEach((target) => { target[property] = value; });
+  selectedObjects.forEach((target) => {
+    target[property] = value;
+    if (property === "textColor") target.isCustomTextColor = true;
+    if (property === "bgColor") target.isCustomBgColor = true;
+  });
   renderStage();
   if (selectedObjects.length === 1 && selectedObjects[0].type !== "timer") {
     const el = stage.querySelector(`[data-object-id="${selectedObjects[0].id}"]`);
@@ -3922,7 +4071,10 @@ $("#bgColorInput")?.addEventListener("change", (event) => {
   const selectedObjects = page.objects.filter((item) => state.selectedIds.has(item.id));
   if (!selectedObjects.length) return;
   snapshot();
-  selectedObjects.forEach((item) => { item.bgColor = event.target.value; });
+  selectedObjects.forEach((item) => {
+    item.bgColor = event.target.value;
+    item.isCustomBgColor = true;
+  });
   renderStage();
 });
 $("#borderColorInput")?.addEventListener("change", (event) => updateActiveTextStyle("borderColor", event.target.value));
@@ -4238,18 +4390,28 @@ $("#fullscreenButton").addEventListener("click", () => {
 
 document.addEventListener("fullscreenchange", () => {
   if (document.fullscreenElement === stage) {
+    state.selectedIds.clear();
+    stage.classList.add("is-fullscreen");
+    document.body.classList.add("is-fullscreen");
     fullscreenAnimStep = 0;
+    renderStage();
     updateFullscreenAnimState();
   } else {
+    stage.classList.remove("is-fullscreen");
+    document.body.classList.remove("is-fullscreen");
     fullscreenAnimStep = 0;
     stage.querySelectorAll(".fullscreen-anim-hidden, .fullscreen-anim-visible").forEach((element) => {
       element.classList.remove("fullscreen-anim-hidden", "fullscreen-anim-visible");
     });
+    renderStage();
   }
 });
 
 stage.addEventListener("click", (event) => {
   if (document.fullscreenElement === stage) {
+    if (event.target.closest(".timer-object-card, button, input, select, a")) {
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     navigateFullscreenNext();
@@ -4345,6 +4507,61 @@ document.addEventListener("keydown", (event) => {
   const modifier = event.ctrlKey || event.metaKey;
   const key = event.key.toLowerCase();
   const editingText = isTextInputTarget(document.activeElement);
+
+  const isFullscreen = document.fullscreenElement === stage;
+  const page = currentPage();
+  let targetTimers = [];
+
+  if (isFullscreen) {
+    const pageTimers = (page?.objects || []).filter((o) => o.type === "timer");
+    const runningTimers = pageTimers.filter((o) => o.isRunning);
+    targetTimers = runningTimers.length ? runningTimers : pageTimers;
+  } else {
+    targetTimers = (page?.objects || []).filter((o) => state.selectedIds.has(o.id) && o.type === "timer");
+  }
+
+  if (targetTimers.length > 0) {
+    if (event.shiftKey && ["ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown"].includes(event.key)) {
+      event.preventDefault();
+      event.stopPropagation();
+      let delta = 0;
+      if (event.key === "ArrowRight") delta = 10;
+      else if (event.key === "ArrowLeft") delta = -10;
+      else if (event.key === "ArrowUp") delta = 60;
+      else if (event.key === "ArrowDown") delta = -60;
+
+      if (!isFullscreen) snapshot();
+
+      targetTimers.forEach((timer) => {
+        if (timer.mode === "stopwatch") {
+          timer.elapsedSeconds = Math.max(0, (timer.elapsedSeconds || 0) + delta);
+        } else {
+          const curRem = typeof timer.remainingSeconds === "number" ? timer.remainingSeconds : (timer.duration || 300);
+          timer.remainingSeconds = Math.max(0, curRem + delta);
+          timer.duration = Math.max(0, (timer.duration || 300) + delta);
+        }
+      });
+
+      updateRunningTimerDisplays();
+      return;
+    }
+
+    if (modifier && ["ArrowUp", "ArrowDown"].includes(event.key)) {
+      event.preventDefault();
+      event.stopPropagation();
+      const scaleDelta = event.key === "ArrowUp" ? 0.1 : -0.1;
+
+      if (!isFullscreen) snapshot();
+
+      targetTimers.forEach((timer) => {
+        const curScale = typeof timer.timerFontSizeScale === "number" ? timer.timerFontSizeScale : 1.0;
+        timer.timerFontSizeScale = Math.max(0.3, Math.min(3.0, Math.round((curScale + scaleDelta) * 10) / 10));
+      });
+
+      updateRunningTimerDisplays();
+      return;
+    }
+  }
 
   if (document.fullscreenElement === stage) {
     if (["ArrowRight", " ", "PageDown"].includes(event.key)) {

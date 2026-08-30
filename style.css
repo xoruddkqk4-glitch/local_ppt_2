@@ -221,7 +221,17 @@ kbd { border:1px solid currentColor; padding:1px 3px; font-size:10px; }
 .presentation-stage { position:relative; flex:none; height:min(calc(100vh - 126px),calc((100vw - 410px)*.5625)); width:auto; max-width:1200px; min-height:0; aspect-ratio:16/9; overflow:hidden; border:3px solid var(--ink); background-color:var(--paper); background-image:linear-gradient(#1515150c 1px,transparent 1px),linear-gradient(90deg,#1515150c 1px,transparent 1px); background-size:5% 5%; box-shadow:8px 8px 0 var(--ink); }
 .presentation-stage.stage-drag-over { outline:4px dashed #2563eb !important; outline-offset:-6px !important; background-color:rgba(37,99,235,0.08) !important; }
 .presentation-stage:fullscreen { width:100%; height:100%; max-width:none; border:0; box-shadow:none; }
-.presentation-stage:fullscreen .resize-handle { display:none; }
+.presentation-stage:fullscreen .resize-handle,
+#stage.is-fullscreen .resize-handle,
+body.is-fullscreen .resize-handle {
+  display: none !important;
+}
+.presentation-stage:fullscreen .canvas-object,
+#stage.is-fullscreen .canvas-object,
+body.is-fullscreen .canvas-object {
+  outline: none !important;
+  box-shadow: none !important;
+}
 .alignment-guide { position:absolute; z-index:20; pointer-events:none; }
 .alignment-guide.vertical { top:0; bottom:0; width:0; border-left:2px dashed #e11d48; }
 .alignment-guide.horizontal { left:0; right:0; height:0; border-top:2px dashed #e11d48; }
@@ -512,35 +522,43 @@ kbd { border:1px solid currentColor; padding:1px 3px; font-size:10px; }
   height: 100% !important;
   padding: 8px 12px !important;
   box-sizing: border-box !important;
-  background: #0f172a;
-  color: #ffffff;
+  background: #ffffff;
+  color: #0f172a;
   border-radius: 12px !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
   user-select: none !important;
   overflow: hidden !important;
 }
 .timer-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #334155;
+}
+.canvas-object:not(.is-selected) .timer-card-header,
+:fullscreen .timer-card-header {
+  display: none !important;
+}
+.canvas-object.is-selected:not(:fullscreen) .timer-card-header {
   display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  width: 100% !important;
-  gap: 6px !important;
-  font-size: 11px !important;
-  font-weight: 800 !important;
 }
 .timer-card-header select,
 .timer-card-header input {
-  background: rgba(255,255,255,0.18) !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255,255,255,0.3) !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
   border-radius: 4px !important;
   padding: 2px 4px !important;
   font-size: 11px !important;
   font-weight: 800 !important;
 }
 .timer-card-header select option {
-  background: #0f172a !important;
-  color: #ffffff !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
 }
 .timer-preset-bar {
   display: flex !important;
@@ -548,9 +566,9 @@ kbd { border:1px solid currentColor; padding:1px 3px; font-size:10px; }
   gap: 3px !important;
 }
 .timer-card-preset-btn {
-  background: rgba(255,255,255,0.12) !important;
-  color: #f8fafc !important;
-  border: 1px solid rgba(255,255,255,0.2) !important;
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
   border-radius: 4px !important;
   padding: 2px 6px !important;
   font-size: 10.5px !important;
@@ -559,7 +577,7 @@ kbd { border:1px solid currentColor; padding:1px 3px; font-size:10px; }
   transition: background .15s ease !important;
 }
 .timer-card-preset-btn:hover {
-  background: rgba(255,255,255,0.3) !important;
+  background: #e2e8f0 !important;
 }
 .timer-digital-display {
   flex: 1 !important;
@@ -567,13 +585,19 @@ kbd { border:1px solid currentColor; padding:1px 3px; font-size:10px; }
   align-items: center !important;
   justify-content: center !important;
   width: 100% !important;
-  font-size: clamp(24px, 50cqh, 180px) !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  padding: 0 8px !important;
+  font-size: clamp(14px, min(50cqh, 18cqw), 180px);
   font-weight: 900 !important;
-  font-family: monospace, sans-serif !important;
-  letter-spacing: 2px !important;
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif !important;
+  letter-spacing: 1px !important;
   line-height: 1 !important;
   margin: 2px 0 !important;
   user-select: none !important;
+  text-align: center !important;
 }
 .timer-card-controls {
   display: flex !important;
