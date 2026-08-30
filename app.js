@@ -115,7 +115,7 @@ function renderFixedOverlayLayer() {
         if (!state.pages[i]?.hidden) currentPageNum++;
       }
       if (currentPageNum === 0 && totalPageNum > 0) currentPageNum = 1;
-      rawText = rawText
+      let rawText = cfg.text.trim()
         .replace(/{page}/g, currentPageNum)
         .replace(/{total}/g, totalPageNum)
         .replace(/{date}/g, todayStr);
@@ -421,7 +421,9 @@ function buildObjectTemplate(page, itemCount) {
     if (page.variant === "image_top") addImageTopLayout(page, count);
     if (page.variant === "image_bottom") addImageBottomLayout(page, count);
 
-    if (userImages.length > 0) {
+    if (page.imageDeleted) {
+      page.objects = page.objects.filter((o) => o.type !== "image");
+    } else if (userImages.length > 0) {
       const newImg = page.objects.find((o) => o.type === "image");
       if (newImg) {
         newImg.src = userImages[0].src;
@@ -607,6 +609,7 @@ function applySnapshotBlocksToTargets(blocks, targets) {
 }
 
 function changeLayoutVariantPreservingContent(page, variant) {
+  delete page.imageDeleted;
   const snapshotContent = getLayoutContentSnapshot(page);
   page.objectCategory = "layout";
   page.variant = variant;
@@ -1375,6 +1378,19 @@ function deleteSelectedObjects() {
   const deletable = selectedObjects.filter((obj) => !obj.root);
   if (!deletable.length) return false;
 
+  const objectsWithImageSrc = deletable.filter((obj) => obj.imageSrc);
+  if (objectsWithImageSrc.length > 0) {
+    snapshot();
+    objectsWithImageSrc.forEach((obj) => {
+      delete obj.imageSrc;
+    });
+    state.selectedIds.clear();
+    state.guides = [];
+    hideTextToolbar();
+    render();
+    return true;
+  }
+
   snapshot();
 
   if (page.template === "bullet") {
@@ -1394,9 +1410,14 @@ function deleteSelectedObjects() {
     }
     page.objects = page.objects.filter((object) => !deletedIds.has(object.id));
   } else if (page.template === "object" || page.objectCategory === "layout") {
-    const count = getItemCount(page);
-    const cardDeletable = deletable.filter((o) => o.role !== "page-title");
+    const imageObjects = deletable.filter((o) => o.type === "image");
+    if (imageObjects.length > 0) {
+      page.imageDeleted = true;
+    }
+
+    const cardDeletable = deletable.filter((o) => o.role !== "page-title" && o.type !== "image");
     const removeCount = cardDeletable.length;
+    const count = getItemCount(page);
     const newCount = Math.max(1, count - removeCount);
 
     page.objects = page.objects.filter((object) => !state.selectedIds.has(object.id));
@@ -2691,26 +2712,41 @@ function createObjectElement(object) {
     if (STRUCTURED_LAYOUT_ROLES.has(object.role)) {
       const [value, heading, ...description] = object.text.split("\n");
       text.dataset.fitText = object.text;
-      const valueElement = document.createElement("strong");
-      valueElement.className = "structured-card-value";
-      valueElement.textContent = value;
-      const headingElement = document.createElement("span");
-      headingElement.className = "structured-card-heading";
-      headingElement.textContent = heading || "";
-      const descriptionElement = document.createElement("span");
-      descriptionElement.className = "structured-card-description";
-      descriptionElement.textContent = description.join("\n");
-      text.append(valueElement, headingElement, descriptionElement);
+      if (value !== undefined && value !== "") {
+        const valueElement = document.createElement("strong");
+        valueElement.className = "structured-card-value";
+        valueElement.textContent = value;
+        text.append(valueElement);
+      }
+      if (heading && heading.trim()) {
+        const headingElement = document.createElement("span");
+        headingElement.className = "structured-card-heading";
+        headingElement.textContent = heading;
+        text.append(headingElement);
+      }
+      const descText = description.join("\n").trim();
+      if (descText) {
+        const descriptionElement = document.createElement("span");
+        descriptionElement.className = "structured-card-description";
+        descriptionElement.textContent = descText;
+        text.append(descriptionElement);
+      }
     } else if (["timeline-node", "side-accent-card"].includes(object.role)) {
       const [title, ...description] = object.text.split("\n");
       text.dataset.fitText = object.text;
-      const titleElement = document.createElement("strong");
-      titleElement.className = object.role === "timeline-node" ? "timeline-title" : "side-accent-title";
-      titleElement.textContent = title;
-      const descriptionElement = document.createElement("span");
-      descriptionElement.className = object.role === "timeline-node" ? "timeline-description" : "side-accent-description";
-      descriptionElement.textContent = description.join("\n");
-      text.append(titleElement, descriptionElement);
+      if (title !== undefined && title !== "") {
+        const titleElement = document.createElement("strong");
+        titleElement.className = object.role === "timeline-node" ? "timeline-title" : "side-accent-title";
+        titleElement.textContent = title;
+        text.append(titleElement);
+      }
+      const descText = description.join("\n").trim();
+      if (descText) {
+        const descriptionElement = document.createElement("span");
+        descriptionElement.className = object.role === "timeline-node" ? "timeline-description" : "side-accent-description";
+        descriptionElement.textContent = descText;
+        text.append(descriptionElement);
+      }
     } else {
       text.textContent = object.text;
     }
@@ -2743,9 +2779,15 @@ function getTextAlign(object) {
 
 function applyTextObjectStyle(text, object, wrapper) {
   const align = getTextAlign(object);
-  const justify = { left: "flex-start", center: "center", right: "flex-end" }[align];
+  const flexAlign = { left: "flex-start", center: "center", right: "flex-end" }[align] || "center";
   text.style.textAlign = align;
-  text.style.justifyContent = justify;
+  text.style.alignItems = flexAlign;
+
+  if (["bullet-item", "cover-item"].includes(object.role)) {
+    text.style.justifyContent = "flex-start";
+  } else {
+    text.style.justifyContent = "center";
+  }
   text.style.color = object.textColor || "";
   if (["bullet-item", "cover-item"].includes(object.role)) {
     const level = clamp(1, Number(object.bulletLevel) || 1, 4);
@@ -2763,6 +2805,8 @@ function applyTextObjectStyle(text, object, wrapper) {
   if (object.borderWidth !== undefined && Number(object.borderWidth) > 0 && object.borderStyle && object.borderStyle !== "none") {
     wrapper.style.border = `${object.borderWidth}px ${object.borderStyle} ${object.borderColor || "#0f172a"}`;
     wrapper.style.boxSizing = "border-box";
+  } else if (Number(object.borderWidth) === 0 || object.borderStyle === "none") {
+    wrapper.style.border = "none";
   } else {
     wrapper.style.border = "";
   }
@@ -3774,8 +3818,14 @@ function downloadProject(filename = currentProjectFileName) {
 }
 
 function suggestedProjectName() {
-  const timestamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, "-");
-  return `local-ppt-${timestamp}.txt`;
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  return `local-ppt_${year}-${month}-${day}_${hours}-${minutes}-${seconds}.txt`;
 }
 
 function getNewImagePlacement(page, index) {
@@ -3806,13 +3856,57 @@ async function saveProjectAs() {
 }
 
 async function saveCurrentProject() {
+  const btn = $("#saveProjectButton");
+  const originalText = btn ? btn.textContent : "현재 txt에 저장";
+
+  if (btn) {
+    btn.classList.add("is-saving");
+    btn.textContent = "💾 저장 중...";
+  }
+
   try {
     if (currentProjectFileHandle) await writeProjectToHandle(currentProjectFileHandle);
     else if (currentProjectFileName !== "local-ppt.txt") downloadProject(currentProjectFileName);
     else await saveProjectAs();
+
+    triggerSaveSuccessEvent(currentProjectFileName);
   } catch (error) {
+    if (btn) {
+      btn.classList.remove("is-saving");
+      btn.textContent = originalText;
+    }
     if (error.name !== "AbortError") window.alert(`파일을 저장할 수 없습니다.\n${error.message}`);
   }
+}
+
+function triggerSaveSuccessEvent(filename = currentProjectFileName) {
+  const btn = $("#saveProjectButton");
+  if (btn) {
+    btn.classList.remove("is-saving");
+    btn.classList.add("is-saved", "save-success-pulse");
+    btn.textContent = "✅ 저장 완료!";
+    setTimeout(() => {
+      btn.classList.remove("is-saved", "save-success-pulse");
+      btn.textContent = "현재 txt에 저장";
+    }, 1800);
+  }
+
+  showSaveToast(`💾 저장 완료! 파일이 성공적으로 저장되었습니다. (${filename})`);
+}
+
+function showSaveToast(message) {
+  let toast = document.querySelector(".save-toast-notification");
+  if (toast) toast.remove();
+
+  toast = document.createElement("div");
+  toast.className = "save-toast-notification";
+  toast.innerHTML = `<span>${message}</span>`;
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add("is-hiding");
+    setTimeout(() => toast.remove(), 300);
+  }, 2200);
 }
 
 $("#loadProjectButton").addEventListener("click", async () => {
