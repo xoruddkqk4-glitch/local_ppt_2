@@ -768,10 +768,31 @@
 
   $("#goHomeButton")?.addEventListener("click", showStartScreen);
 
-  $("#intakeProjectFile").addEventListener("change", async (event) => { const file = event.target.files[0]; if (!file) return; await window.LocalPptApp.loadProjectFile(file); intake.hidden = true; });
-  fileInput.addEventListener("change", () => { const file = fileInput.files[0]; fileName.textContent = file ? file.name : (sourceType === "pdf" ? "PDF 파일 선택" : "엑셀 파일 선택"); });
-  [$("#openaiApiKey"), $("#anthropicApiKey")].forEach((input) => input.addEventListener("input", updateProviderChoice));
-  form.addEventListener("submit", generate);
+  $("#intakeProjectFile")?.addEventListener("change", async (event) => { const file = event.target.files[0]; if (!file) return; await window.LocalPptApp.loadProjectFile(file); intake.hidden = true; });
+  fileInput?.addEventListener("change", () => { const file = fileInput.files[0]; fileName.textContent = file ? file.name : (sourceType === "pdf" ? "PDF 파일 선택" : "엑셀 파일 선택"); });
+  [$("#openaiApiKey"), $("#anthropicApiKey")].forEach((input) => input?.addEventListener("input", updateProviderChoice));
+  form?.addEventListener("submit", generate);
+
+  window.LocalPptAiIntake = {
+    syncOptionsUI() {
+      if (window.LocalPptApp?.getOptions) {
+        const opts = window.LocalPptApp.getOptions();
+        if ($("#intakeDesignSelect")) $("#intakeDesignSelect").value = opts.design || "bauhaus";
+        if (opts.customPalette) {
+          setIntakePalette(opts.customPalette);
+          setModalPalette(opts.customPalette);
+        }
+        if (opts.fixedOverlays) {
+          setIntakeFixedOverlays(opts.fixedOverlays);
+          setModalFixedOverlays(opts.fixedOverlays);
+        }
+      }
+    },
+    setIntakeFixedOverlays,
+    setModalFixedOverlays,
+    getIntakeFixedOverlays,
+    getModalFixedOverlays
+  };
 
   // Initialize intake screen with default prose selection visible
   selectSource("prose");

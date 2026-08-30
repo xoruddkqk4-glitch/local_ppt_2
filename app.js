@@ -2647,16 +2647,27 @@ function createObjectElement(object) {
     shapeSvg.setAttribute("viewBox", "0 0 100 100");
     shapeSvg.setAttribute("preserveAspectRatio", "none");
     shapeSvg.classList.add("shape-vector-svg");
+
     const color = object.bgColor || (shapeType === "circle" ? "#ef4444" : shapeType === "triangle" ? "#10b981" : shapeType === "star" ? "#f59e0b" : "#2563eb");
+    let strokeColor = object.borderColor || "#0f172a";
+    let strokeWidth = (object.borderWidth !== undefined && object.borderWidth !== null) ? Number(object.borderWidth) : 2;
+
+    if (strokeWidth === 0 || object.borderStyle === "none") {
+      strokeColor = "none";
+      strokeWidth = 0;
+    }
+
+    const dashMap = { dashed: "8 4", dotted: "3 3" };
+    const strokeDash = object.borderStyle && dashMap[object.borderStyle] ? `stroke-dasharray="${dashMap[object.borderStyle]}"` : "";
 
     if (shapeType === "circle") {
-      shapeSvg.innerHTML = `<circle cx="50" cy="50" r="46" fill="${color}" stroke="#0f172a" stroke-width="4"/>`;
+      shapeSvg.innerHTML = `<circle cx="50" cy="50" r="46" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
     } else if (shapeType === "triangle") {
-      shapeSvg.innerHTML = `<polygon points="50,4 96,96 4,96" fill="${color}" stroke="#0f172a" stroke-width="4" stroke-linejoin="round"/>`;
+      shapeSvg.innerHTML = `<polygon points="50,4 96,96 4,96" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
     } else if (shapeType === "star") {
-      shapeSvg.innerHTML = `<polygon points="50,4 63,35 96,35 70,56 80,94 50,71 20,94 30,56 4,35 37,35" fill="${color}" stroke="#0f172a" stroke-width="4" stroke-linejoin="round"/>`;
+      shapeSvg.innerHTML = `<polygon points="50,4 63,35 96,35 70,56 80,94 50,71 20,94 30,56 4,35 37,35" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
     } else {
-      shapeSvg.innerHTML = `<rect x="3" y="3" width="94" height="94" rx="8" fill="${color}" stroke="#0f172a" stroke-width="4"/>`;
+      shapeSvg.innerHTML = `<rect x="3" y="3" width="94" height="94" rx="8" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
     }
     element.append(shapeSvg);
   }
@@ -2788,7 +2799,18 @@ function applyTextObjectStyle(text, object, wrapper) {
   } else {
     text.style.justifyContent = "center";
   }
-  text.style.color = object.textColor || "";
+  if (object.textColor) {
+    text.style.setProperty("color", object.textColor, "important");
+    text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+      child.style.setProperty("color", object.textColor, "important");
+    });
+  } else {
+    text.style.removeProperty("color");
+    text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+      child.style.removeProperty("color");
+    });
+  }
+
   if (["bullet-item", "cover-item"].includes(object.role)) {
     const level = clamp(1, Number(object.bulletLevel) || 1, 4);
     text.style.setProperty("--hierarchy-scale", [1, .88, .76, .66][level - 1]);
@@ -2802,16 +2824,41 @@ function applyTextObjectStyle(text, object, wrapper) {
     delete wrapper.dataset.manualFontSize;
   }
 
-  if (object.borderWidth !== undefined && Number(object.borderWidth) > 0 && object.borderStyle && object.borderStyle !== "none") {
-    wrapper.style.border = `${object.borderWidth}px ${object.borderStyle} ${object.borderColor || "#0f172a"}`;
-    wrapper.style.boxSizing = "border-box";
-  } else if (Number(object.borderWidth) === 0 || object.borderStyle === "none") {
+  if (object.shapeType || object.role === "shape-box") {
     wrapper.style.border = "none";
+    wrapper.style.removeProperty("background");
+    wrapper.style.removeProperty("background-color");
+    wrapper.style.background = "transparent";
+    wrapper.style.backgroundColor = "transparent";
+    text.style.background = "transparent";
+    text.style.backgroundColor = "transparent";
+    return;
+  }
+
+  if (Number(object.borderWidth) === 0 || object.borderStyle === "none" || object.borderWidth === undefined || object.borderWidth === null) {
+    wrapper.style.border = "none";
+  } else if (Number(object.borderWidth) > 0 && object.borderStyle && object.borderStyle !== "none") {
+    const width = Number(object.borderWidth);
+    const style = object.borderStyle;
+    const color = object.borderColor || "#0f172a";
+    wrapper.style.border = `${width}px ${style} ${color}`;
+    wrapper.style.boxSizing = "border-box";
   } else {
     wrapper.style.border = "";
   }
+
   if (object.bgColor) {
-    wrapper.style.backgroundColor = object.bgColor;
+    wrapper.style.setProperty("background", object.bgColor, "important");
+    wrapper.style.setProperty("background-color", object.bgColor, "important");
+    text.style.background = "transparent";
+    text.style.backgroundColor = "transparent";
+  } else {
+    wrapper.style.removeProperty("background");
+    wrapper.style.removeProperty("background-color");
+    wrapper.style.background = "";
+    wrapper.style.backgroundColor = "";
+    text.style.background = "";
+    text.style.backgroundColor = "";
   }
 }
 
@@ -3745,6 +3792,8 @@ function serializeProject() {
     savedAt: new Date().toISOString(),
     presentation: {
       design: state.design,
+      customPalette: state.customPalette,
+      fixedOverlays: state.fixedOverlays,
       pages: state.pages,
       currentPageIndex: state.currentPageIndex
     }
@@ -3770,6 +3819,8 @@ function parseProject(text) {
   });
   return {
     design: designs[presentation.design] ? presentation.design : "bauhaus",
+    customPalette: Array.isArray(presentation.customPalette) && presentation.customPalette.length === 3 ? presentation.customPalette : null,
+    fixedOverlays: presentation.fixedOverlays ? { ...defaultFixedOverlays(), ...presentation.fixedOverlays } : defaultFixedOverlays(),
     pages: JSON.parse(JSON.stringify(presentation.pages)),
     currentPageIndex: clamp(0, Number(presentation.currentPageIndex) || 0, presentation.pages.length - 1)
   };
@@ -3779,6 +3830,8 @@ async function loadProjectFile(file, handle = null) {
   try {
     const loaded = parseProject(await file.text());
     state.design = loaded.design;
+    state.customPalette = loaded.customPalette;
+    state.fixedOverlays = loaded.fixedOverlays ? { ...defaultFixedOverlays(), ...loaded.fixedOverlays } : defaultFixedOverlays();
     state.pages = loaded.pages;
     state.currentPageIndex = loaded.currentPageIndex;
     state.history = [];
@@ -3788,6 +3841,9 @@ async function loadProjectFile(file, handle = null) {
     currentProjectFileHandle = handle;
     currentProjectFileName = file.name || "local-ppt.txt";
     document.title = `Local PPT 2 — ${currentProjectFileName}`;
+    if (window.LocalPptAiIntake?.syncOptionsUI) {
+      window.LocalPptAiIntake.syncOptionsUI();
+    }
     render();
   } catch (error) {
     window.alert(`파일을 불러올 수 없습니다.\n${error.message}`);
@@ -3845,19 +3901,26 @@ async function saveProjectAs() {
         types: [{ description: "Local ppt JSON 텍스트", accept: { "text/plain": [".txt"] } }]
       });
       await writeProjectToHandle(handle);
+      return true;
     } else {
       downloadProject(suggestedProjectName());
+      return true;
     }
   } catch (error) {
-    if (error.name === "AbortError") return;
-    if (["SecurityError", "NotSupportedError"].includes(error.name)) downloadProject(suggestedProjectName());
-    else window.alert(`파일을 저장할 수 없습니다.\n${error.message}`);
+    if (error.name === "AbortError") return false;
+    if (["SecurityError", "NotSupportedError"].includes(error.name)) {
+      downloadProject(suggestedProjectName());
+      return true;
+    } else {
+      window.alert(`파일을 저장할 수 없습니다.\n${error.message}`);
+      return false;
+    }
   }
 }
 
 async function saveCurrentProject() {
   const btn = $("#saveProjectButton");
-  const originalText = btn ? btn.textContent : "현재 txt에 저장";
+  const originalText = btn ? btn.textContent : "txt에 저장";
 
   if (btn) {
     btn.classList.add("is-saving");
@@ -3865,11 +3928,20 @@ async function saveCurrentProject() {
   }
 
   try {
-    if (currentProjectFileHandle) await writeProjectToHandle(currentProjectFileHandle);
-    else if (currentProjectFileName !== "local-ppt.txt") downloadProject(currentProjectFileName);
-    else await saveProjectAs();
+    let saved = false;
+    if (currentProjectFileHandle) {
+      await writeProjectToHandle(currentProjectFileHandle);
+      saved = true;
+    } else {
+      saved = await saveProjectAs();
+    }
 
-    triggerSaveSuccessEvent(currentProjectFileName);
+    if (saved) {
+      triggerSaveSuccessEvent(currentProjectFileName);
+    } else if (btn) {
+      btn.classList.remove("is-saving");
+      btn.textContent = originalText;
+    }
   } catch (error) {
     if (btn) {
       btn.classList.remove("is-saving");
@@ -3887,7 +3959,7 @@ function triggerSaveSuccessEvent(filename = currentProjectFileName) {
     btn.textContent = "✅ 저장 완료!";
     setTimeout(() => {
       btn.classList.remove("is-saved", "save-success-pulse");
-      btn.textContent = "현재 txt에 저장";
+      btn.textContent = "txt에 저장";
     }, 1800);
   }
 
@@ -3938,8 +4010,7 @@ $("#projectFileInput").addEventListener("change", (event) => {
   if (file) loadProjectFile(file);
 });
 
-$("#saveProjectButton").addEventListener("click", saveCurrentProject);
-$("#saveAsProjectButton").addEventListener("click", saveProjectAs);
+$("#saveProjectButton")?.addEventListener("click", saveCurrentProject);
 
 $("#designSelect")?.addEventListener("change", (event) => {
   if (currentPage()?.type !== "cover") return;
@@ -4159,18 +4230,12 @@ $("#tableAxisSelect").addEventListener("change", (event) => {
 });
 $("#undoButton").addEventListener("click", undo);
 
-$("#textColorInput").addEventListener("change", (event) => updateActiveTextStyle("textColor", event.target.value));
-$("#bgColorInput")?.addEventListener("change", (event) => {
-  const page = currentPage();
-  const selectedObjects = page.objects.filter((item) => state.selectedIds.has(item.id));
-  if (!selectedObjects.length) return;
-  snapshot();
-  selectedObjects.forEach((item) => {
-    item.bgColor = event.target.value;
-    item.isCustomBgColor = true;
-  });
-  renderStage();
-});
+$("#textColorInput")?.addEventListener("change", (event) => updateActiveTextStyle("textColor", event.target.value));
+$("#textColorInput")?.addEventListener("input", (event) => updateActiveTextStyle("textColor", event.target.value));
+
+$("#bgColorInput")?.addEventListener("change", (event) => updateActiveTextStyle("bgColor", event.target.value));
+$("#bgColorInput")?.addEventListener("input", (event) => updateActiveTextStyle("bgColor", event.target.value));
+
 $("#borderColorInput")?.addEventListener("change", (event) => updateActiveTextStyle("borderColor", event.target.value));
 $("#borderColorInput")?.addEventListener("input", (event) => updateActiveTextStyle("borderColor", event.target.value));
 $("#borderWidthInput")?.addEventListener("change", (event) => {
@@ -4512,37 +4577,77 @@ stage.addEventListener("click", (event) => {
   }
 }, true);
 
-
+$("#stageCopyBtn")?.addEventListener("click", () => executeCopy());
+$("#stageCutBtn")?.addEventListener("click", () => {
+  if (executeCopy()) {
+    deleteSelectedObjects();
+    showSaveToast("✂️ 개체 잘라내기 완료");
+  }
+});
+$("#stagePasteBtn")?.addEventListener("click", () => executePaste());
 
 function copySelectedObjects() {
   const page = currentPage();
+  if (!page || !Array.isArray(page.objects)) return false;
   const selected = page.objects.filter((object) => state.selectedIds.has(object.id));
   if (!selected.length) return false;
   copiedObjects = JSON.parse(JSON.stringify(selected));
   copiedFromPageId = page.id;
   pasteOffsetCount = 0;
   copiedPage = null;
+  showSaveToast(`📋 개체 ${copiedObjects.length}개 복사 완료`);
   return true;
 }
 
 function copyCurrentPage() {
   const page = currentPage();
-  if (page.type !== "content") return false;
+  if (!page) return false;
   copiedPage = JSON.parse(JSON.stringify(page));
   copiedObjects = [];
   copiedFromPageId = null;
   pasteOffsetCount = 0;
+  showSaveToast(`📋 현재 슬라이드 복사 완료 (페이지 ${state.currentPageIndex + 1})`);
   return true;
 }
 
+function executeCopy() {
+  const selection = window.getSelection();
+  const selectedText = selection ? selection.toString() : "";
+  if (selectedText && selectedText.trim().length > 0 && document.activeElement?.isContentEditable) {
+    return false;
+  }
+  if (state.selectedIds.size > 0 && copySelectedObjects()) return true;
+  return copyCurrentPage();
+}
+
+function executePaste() {
+  if (copiedObjects && copiedObjects.length > 0) {
+    return pasteCopiedObjects();
+  }
+  if (copiedPage) {
+    return pasteCopiedPage();
+  }
+  showSaveToast("⚠️ 복사된 개체나 슬라이드가 없습니다.");
+  return false;
+}
+
 function clonePageWithNewIds(sourcePage) {
+  if (!sourcePage) return null;
   const clone = JSON.parse(JSON.stringify(sourcePage));
   clone.id = createId("page");
-  const idMap = new Map(clone.objects.map((object) => [object.id, createId(object.role || object.type || "object")]));
+  if (clone.type === "cover") clone.type = "content";
+  if (!Array.isArray(clone.objects)) clone.objects = [];
+  const idMap = new Map();
   clone.objects.forEach((object) => {
-    const previousId = object.id;
-    object.id = idMap.get(previousId);
-    if (object.parentId) object.parentId = idMap.get(object.parentId) || null;
+    const oldId = object.id || createId("object");
+    const newId = createId(object.role || object.type || "object");
+    idMap.set(oldId, newId);
+    object.id = newId;
+  });
+  clone.objects.forEach((object) => {
+    if (object.parentId && idMap.has(object.parentId)) {
+      object.parentId = idMap.get(object.parentId);
+    }
   });
   return clone;
 }
@@ -4550,6 +4655,7 @@ function clonePageWithNewIds(sourcePage) {
 function pasteCopiedPage() {
   if (!copiedPage) return false;
   const clone = clonePageWithNewIds(copiedPage);
+  if (!clone) return false;
   const insertIndex = state.currentPageIndex + 1;
   snapshot();
   state.pages.splice(insertIndex, 0, clone);
@@ -4558,20 +4664,47 @@ function pasteCopiedPage() {
   state.guides = [];
   hideTextToolbar();
   render();
+  showSaveToast(`📋 슬라이드 붙여넣기 완료 (새 페이지 ${insertIndex + 1})`);
   return true;
 }
 
 function pasteCopiedObjects() {
-  if (!copiedObjects.length) return false;
+  if (!copiedObjects || !Array.isArray(copiedObjects) || !copiedObjects.length) return false;
   const page = currentPage();
+  if (!page || !Array.isArray(page.objects)) return false;
+
   const offset = ((pasteOffsetCount % 6) + 1) * 2;
-  const idMap = new Map(copiedObjects.map((object) => [object.id, createId(object.role || object.type || "object")]));
+  const idMap = new Map();
+  copiedObjects.forEach((object) => {
+    const oldId = object.id || createId("object");
+    const newId = createId(object.role || object.type || "object");
+    idMap.set(oldId, newId);
+  });
+
   const targetMindRoot = page.objects.find((object) => object.root);
-  const clones = copiedObjects.map((source) => {
+  const clones = [];
+
+  copiedObjects.forEach((source) => {
+    if (!source) return;
     const clone = JSON.parse(JSON.stringify(source));
-    clone.id = idMap.get(source.id);
-    clone.x = clamp(0, Number(source.x) + offset, Math.max(0, 100 - Number(source.w)));
-    clone.y = clamp(0, Number(source.y) + offset, Math.max(0, 100 - Number(source.h)));
+    const newId = idMap.get(source.id) || createId(source.role || source.type || "object");
+    clone.id = newId;
+
+    const srcX = Number(source.x);
+    const srcY = Number(source.y);
+    const srcW = Number(source.w);
+    const srcH = Number(source.h);
+
+    const safeX = isNaN(srcX) ? 10 : srcX;
+    const safeY = isNaN(srcY) ? 10 : srcY;
+    const safeW = isNaN(srcW) ? 30 : srcW;
+    const safeH = isNaN(srcH) ? 20 : srcH;
+
+    if (source.x !== undefined || source.y !== undefined) {
+      clone.x = clamp(0, safeX + offset, Math.max(0, 100 - safeW));
+      clone.y = clamp(0, safeY + offset, Math.max(0, 100 - safeH));
+    }
+
     if (source.root) {
       clone.root = false;
       clone.role = "mind-node";
@@ -4584,8 +4717,11 @@ function pasteCopiedObjects() {
         || (copiedFromPageId === page.id ? source.parentId : targetMindRoot?.id || null);
       if (copiedFromPageId !== page.id && clone.parentId === targetMindRoot?.id) clone.mindLevel = 2;
     }
-    return clone;
+    clones.push(clone);
   });
+
+  if (!clones.length) return false;
+
   snapshot();
   page.objects.push(...clones);
   state.selectedIds = new Set(clones.map((object) => object.id));
@@ -4593,14 +4729,26 @@ function pasteCopiedObjects() {
   pasteOffsetCount += 1;
   hideTextToolbar();
   render();
+  showSaveToast(`📋 개체 ${clones.length}개 붙여넣기 완료`);
   return true;
 }
 
 document.addEventListener("keydown", (event) => {
-  const activeTag = document.activeElement?.tagName;
+  const activeEl = document.activeElement;
+  const targetEl = event.target;
+  const inFormField = ["INPUT", "TEXTAREA", "SELECT"].includes(activeEl?.tagName) || ["INPUT", "TEXTAREA", "SELECT"].includes(targetEl?.tagName);
+  const isContentEditing = Boolean(
+    activeEl?.isContentEditable ||
+    targetEl?.isContentEditable ||
+    activeEl?.closest?.("[contenteditable='true']") ||
+    targetEl?.closest?.("[contenteditable='true']") ||
+    document.querySelector(".canvas-text[contenteditable='true']")
+  );
+  const isEditingText = inFormField || isContentEditing;
   const modifier = event.ctrlKey || event.metaKey;
-  const key = event.key.toLowerCase();
-  const editingText = isTextInputTarget(document.activeElement);
+  const key = event.key ? event.key.toLowerCase() : "";
+  const code = event.code || "";
+  const keyCode = event.keyCode;
 
   const isFullscreen = document.fullscreenElement === stage;
   const page = currentPage();
@@ -4670,7 +4818,8 @@ document.addEventListener("keydown", (event) => {
     }
   }
 
-  if (key === "a" && !modifier && !editingText && !["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) {
+  const isAnimKey = (keyCode === 65 || code === "KeyA" || key === "a" || key === "ㅁ") && !modifier && !isEditingText;
+  if (isAnimKey) {
     event.preventDefault();
     if (event.shiftKey) {
       snapshot();
@@ -4682,22 +4831,23 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (key === "m" && !modifier && !editingText && !["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) {
+  const isMergeKey = (keyCode === 77 || code === "KeyM" || key === "m" || key === "ㅡ") && !modifier && !isEditingText;
+  if (isMergeKey) {
     if (mergeSelectedCards()) {
       event.preventDefault();
       return;
     }
   }
 
-  const isDeleteKey = ["Delete", "Del", "Backspace"].includes(event.key) || ["delete", "del", "backspace"].includes(key);
-  if (isDeleteKey && !editingText && !["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) {
+  const isDeleteKey = ["Delete", "Del", "Backspace"].includes(event.key) || ["delete", "del", "backspace"].includes(key) || keyCode === 46 || keyCode === 8;
+  if (isDeleteKey && !isEditingText) {
     if (deleteSelectedObjects()) {
       event.preventDefault();
       return;
     }
   }
 
-  if (event.key === "Escape") {
+  if (event.key === "Escape" || keyCode === 27) {
     if (isAnimMode) {
       toggleAnimMode(false);
       return;
@@ -4709,43 +4859,57 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (modifier && (event.key === "]" || event.key === "}") && !editingText && !["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) {
+  if (modifier && (event.key === "]" || event.key === "}") && !isEditingText) {
     event.preventDefault();
     if (event.shiftKey) bringToFrontSelectedObjects();
     else bringForwardSelectedObjects();
     return;
   }
-  if (modifier && (event.key === "[" || event.key === "{") && !editingText && !["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) {
+  if (modifier && (event.key === "[" || event.key === "{") && !isEditingText) {
     event.preventDefault();
     if (event.shiftKey) sendToBackSelectedObjects();
     else sendBackwardSelectedObjects();
     return;
   }
 
-  if (modifier && key === "c" && !editingText && copySelectedObjects()) {
+  const isCopyKey = modifier && (keyCode === 67 || code === "KeyC" || key === "c" || key === "ㅊ");
+  const isPasteKey = modifier && (keyCode === 86 || code === "KeyV" || key === "v" || key === "ㅍ");
+  const isCutKey = modifier && (keyCode === 88 || code === "KeyX" || key === "x" || key === "ㅌ");
+  const isUndoKey = modifier && (keyCode === 90 || code === "KeyZ" || key === "z" || key === "ㅋ");
+
+  if (isCopyKey && !isEditingText) {
     event.preventDefault();
+    event.stopPropagation();
+    executeCopy();
     return;
   }
-  if (modifier && key === "c" && !editingText && copyCurrentPage()) {
+  if (isPasteKey && !isEditingText) {
     event.preventDefault();
+    event.stopPropagation();
+    executePaste();
     return;
   }
-  if (modifier && key === "v" && !editingText && (pasteCopiedObjects() || pasteCopiedPage())) {
+  if (isCutKey && !isEditingText) {
     event.preventDefault();
+    if (executeCopy()) {
+      deleteSelectedObjects();
+      showSaveToast("✂️ 개체 잘라내기 완료");
+    }
     return;
   }
-  if (modifier && key === "z") {
+  if (isUndoKey && !isEditingText) {
     event.preventDefault();
     undo();
     return;
   }
-  if (event.key === "Tab" && !document.activeElement?.isContentEditable && !["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) {
+  if (event.key === "Tab" && !isEditingText) {
     if (changeSelectedBulletHierarchy(event.shiftKey ? -1 : 1)) {
       event.preventDefault();
       return;
     }
   }
-  if (event.key.toLowerCase() === "f" && !["INPUT", "TEXTAREA", "SELECT"].includes(activeTag) && !document.activeElement?.isContentEditable) {
+  const isFullscreenKey = (keyCode === 70 || code === "KeyF" || key === "f" || key === "ㄹ") && !isEditingText;
+  if (isFullscreenKey) {
     event.preventDefault();
     $("#fullscreenButton").click();
   }

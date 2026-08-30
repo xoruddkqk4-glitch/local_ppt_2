@@ -15,8 +15,7 @@
     <div class="header-actions">
       <button id="goHomeButton" class="button">첫 페이지로 돌아가기</button>
       <button id="loadProjectButton" class="button">txt 불러오기</button>
-      <button id="saveProjectButton" class="button">현재 txt에 저장</button>
-      <button id="saveAsProjectButton" class="button">다른 이름으로 저장</button>
+      <button id="saveProjectButton" class="button button-blue">txt에 저장</button>
       <button id="undoButton" class="button">되돌리기 <kbd>Ctrl Z</kbd></button>
       <button id="addPageButton" class="button button-dark">+ 본문 페이지</button>
       <button id="fullscreenButton" class="button button-blue">전체 화면 <kbd>F</kbd></button>
@@ -166,12 +165,12 @@
           <p class="guide"><kbd>A</kbd> 누른 뒤 개체 클릭: 순서 지정<br><kbd>Ctrl+클릭</kbd>: 이전과 동일 번호 부여<br><kbd>재클릭</kbd>: 번호 삭제 및 자동 재정렬</p>
         </div>
         <div class="shortcut-guide-box" style="padding:10px; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; font-size:11px; line-height:1.5;">
-          <strong style="display:block; margin-bottom:6px; color:#0f172a; font-size:12px;">⌨️ 유용한 단축키 안내</strong>
+          <strong style="display:block; margin-bottom:6px; color:#0f172a; font-size:12px;">⌨️ 유용한 단축키 및 버튼 안내</strong>
           <ul style="margin:0; padding-left:14px; color:#334155; display:flex; flex-direction:column; gap:4px;">
             <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Del</kbd> / <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Backspace</kbd>: 선택 개체(제목 포함) 삭제</li>
             <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+]</kbd> / <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+[</kbd>: 개체 위로 / 아래로 이동</li>
             <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+Shift+]</kbd> / <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+Shift+[</kbd>: 개체 맨 위 / 맨 아래 이동</li>
-            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+C</kbd> / <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+V</kbd>: 개체 또는 슬라이드 복사 / 붙여넣기</li>
+            <li><strong>📋 복사 / ✂️ 잘라내기 / 📥 붙여넣기 버튼</strong> (또는 <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+C</kbd> / <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+X</kbd> / <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+V</kbd>): 개체 또는 슬라이드 복사 / 잘라내기 / 붙여넣기</li>
             <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+Z</kbd>: 실행 취소 (되돌리기)</li>
             <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">M</kbd>: 카드 2개 이상 선택 시 이웃 카드 병합</li>
             <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">F</kbd>: 전체 화면 발표 모드 시작</li>
@@ -264,7 +263,14 @@
         </div>
         <button id="closeTextToolbarButton" class="text-tool-button" type="button" aria-label="개체 서식 닫기">×</button>
       </div>
-      <div id="presentationStage" class="presentation-stage" tabindex="0" aria-label="현재 페이지 캔버스"></div>
+      <div class="stage-canvas-row">
+        <div id="presentationStage" class="presentation-stage" tabindex="0" aria-label="현재 페이지 캔버스"></div>
+        <div class="stage-floating-actions" role="toolbar" aria-label="개체 및 슬라이드 편집 도구">
+          <button id="stageCopyBtn" class="button floating-action-btn" type="button" title="선택 개체 또는 슬라이드 복사 (Ctrl+C)">📋 복사</button>
+          <button id="stageCutBtn" class="button floating-action-btn" type="button" title="선택 개체 또는 슬라이드 잘라내기 (Ctrl+X)">✂️ 잘라내기</button>
+          <button id="stagePasteBtn" class="button floating-action-btn" type="button" title="복사한 개체 또는 슬라이드 붙여넣기 (Ctrl+V)">📥 붙여넣기</button>
+        </div>
+      </div>
     </section>
   </main>
   <section id="aiIntake" class="ai-intake" role="dialog" aria-modal="true" aria-labelledby="aiIntakeTitle">
