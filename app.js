@@ -1372,7 +1372,7 @@ function deleteSelectedObjects() {
   const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
   if (!selectedObjects.length) return false;
 
-  const deletable = selectedObjects.filter((obj) => obj.role !== "page-title" && !obj.root);
+  const deletable = selectedObjects.filter((obj) => !obj.root);
   if (!deletable.length) return false;
 
   snapshot();
@@ -1395,12 +1395,13 @@ function deleteSelectedObjects() {
     page.objects = page.objects.filter((object) => !deletedIds.has(object.id));
   } else if (page.template === "object" || page.objectCategory === "layout") {
     const count = getItemCount(page);
-    const removeCount = deletable.length;
+    const cardDeletable = deletable.filter((o) => o.role !== "page-title");
+    const removeCount = cardDeletable.length;
     const newCount = Math.max(1, count - removeCount);
 
     page.objects = page.objects.filter((object) => !state.selectedIds.has(object.id));
-    if (page.template === "object") {
-      rebuildObjectTemplatePreservingContent(page, newCount, deletable[0]);
+    if (page.template === "object" && removeCount > 0) {
+      rebuildObjectTemplatePreservingContent(page, newCount, cardDeletable[0]);
     }
   } else {
     page.objects = page.objects.filter((object) => !state.selectedIds.has(object.id));
@@ -1410,6 +1411,76 @@ function deleteSelectedObjects() {
   state.guides = [];
   hideTextToolbar();
   render();
+  return true;
+}
+
+function bringToFrontSelectedObjects() {
+  const page = currentPage();
+  if (!state.selectedIds.size) return false;
+
+  const selectedObjects = [];
+  const remainingObjects = [];
+  page.objects.forEach((obj) => {
+    if (state.selectedIds.has(obj.id)) selectedObjects.push(obj);
+    else remainingObjects.push(obj);
+  });
+  if (!selectedObjects.length) return false;
+
+  snapshot();
+  page.objects = [...remainingObjects, ...selectedObjects];
+  renderStage();
+  return true;
+}
+
+function bringForwardSelectedObjects() {
+  const page = currentPage();
+  if (!state.selectedIds.size) return false;
+
+  let moved = false;
+  for (let i = page.objects.length - 2; i >= 0; i--) {
+    if (state.selectedIds.has(page.objects[i].id) && !state.selectedIds.has(page.objects[i + 1].id)) {
+      if (!moved) { snapshot(); moved = true; }
+      const temp = page.objects[i];
+      page.objects[i] = page.objects[i + 1];
+      page.objects[i + 1] = temp;
+    }
+  }
+  if (moved) renderStage();
+  return moved;
+}
+
+function sendBackwardSelectedObjects() {
+  const page = currentPage();
+  if (!state.selectedIds.size) return false;
+
+  let moved = false;
+  for (let i = 1; i < page.objects.length; i++) {
+    if (state.selectedIds.has(page.objects[i].id) && !state.selectedIds.has(page.objects[i - 1].id)) {
+      if (!moved) { snapshot(); moved = true; }
+      const temp = page.objects[i];
+      page.objects[i] = page.objects[i - 1];
+      page.objects[i - 1] = temp;
+    }
+  }
+  if (moved) renderStage();
+  return moved;
+}
+
+function sendToBackSelectedObjects() {
+  const page = currentPage();
+  if (!state.selectedIds.size) return false;
+
+  const selectedObjects = [];
+  const remainingObjects = [];
+  page.objects.forEach((obj) => {
+    if (state.selectedIds.has(obj.id)) selectedObjects.push(obj);
+    else remainingObjects.push(obj);
+  });
+  if (!selectedObjects.length) return false;
+
+  snapshot();
+  page.objects = [...selectedObjects, ...remainingObjects];
+  renderStage();
   return true;
 }
 
@@ -3452,6 +3523,10 @@ $("#addPageButton").addEventListener("click", () => {
 
 $("#addItemButton").addEventListener("click", addItem);
 $("#removeItemButton").addEventListener("click", removeItem);
+$("#bringToFrontBtn")?.addEventListener("click", bringToFrontSelectedObjects);
+$("#bringForwardBtn")?.addEventListener("click", bringForwardSelectedObjects);
+$("#sendBackwardBtn")?.addEventListener("click", sendBackwardSelectedObjects);
+$("#sendToBackBtn")?.addEventListener("click", sendToBackSelectedObjects);
 $("#tableAxisSelect").addEventListener("change", (event) => {
   tableManagementAxis = event.target.value;
   renderControls();
@@ -3937,6 +4012,19 @@ document.addEventListener("keydown", (event) => {
     state.guides = [];
     hideTextToolbar();
     renderStage();
+    return;
+  }
+
+  if (modifier && (event.key === "]" || event.key === "}") && !editingText && !["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) {
+    event.preventDefault();
+    if (event.shiftKey) bringToFrontSelectedObjects();
+    else bringForwardSelectedObjects();
+    return;
+  }
+  if (modifier && (event.key === "[" || event.key === "{") && !editingText && !["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) {
+    event.preventDefault();
+    if (event.shiftKey) sendToBackSelectedObjects();
+    else sendBackwardSelectedObjects();
     return;
   }
 

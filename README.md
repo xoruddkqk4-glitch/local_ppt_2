@@ -417,5 +417,14 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **첨부 이미지 비율 자동 맞춤 (`applyAspectRatioToImageObject`)**: 이미지 파일 부를 때 원본 가로/세로 비율(`naturalWidth / naturalHeight`)을 자동으로 측정하여 16:9 슬라이드 캔버스에 맞는 퍼센트 크기(`w`, `h`) 및 `object-fit: contain;`을 적용하여 찌그러짐 없이 원본 비율을 유지합니다.
 - **기본 카드 그리드 개체 Del / Backspace 삭제**: 템플릿 선택 시 생성된 기본 카드 그리드 개체를 선택 후 `Delete` 키 또는 `Backspace` 키로 간편하게 삭제할 수 있으며, 남은 카드의 개수에 맞춰 그리드 레이아웃이 균등하게 재배치됩니다.
 
+### 26. 개체 레이어 순서 조절 (맨 위로/위로/아래로/맨 아래로) 및 단축키 지원
+- **4종 레이어 순서 조절 버튼 (`🔝`, `▲`, `▼`, `⏬`)**: 개체 선택 시 서식 툴바에 개체 레이어 순서 조절 버튼 그룹을 탑재했습니다. (`bringToFrontSelectedObjects`, `bringForwardSelectedObjects`, `sendBackwardSelectedObjects`, `sendToBackSelectedObjects`).
+- **z-order 단축키 연동**: `Ctrl+]` (위로), `Ctrl+Shift+]` (맨 위로), `Ctrl+[` (아래로), `Ctrl+Shift+[` (맨 아래로) 단축키를 기본 지원하여 키보드만으로도 손쉽게 겹쳐진 개체 순서를 변경할 수 있습니다.
+- **직관적 툴팁 및 아이콘**: 용어를 '맨 위로/위로/아래로/맨 아래로'로 통일하고 4번째 아이콘을 직관적인 아래 화살표(`⏬`)로 교체했습니다.
+
+### 27. 슬라이드 제목 개체 Del 삭제 지원 및 좌측 도움말 단축키 가이드 탑재
+- **제목 개체(`page-title`) Del 삭제 허용**: `deleteSelectedObjects` 내 `page-title` 삭제 금지 제약을 해제하여 슬라이드 상단의 제목 개체도 `Del` 키 및 `Backspace` 키로 원클릭 삭제할 수 있도록 조치했습니다.
+- **좌측 패널 도움말 단축키 가이드판**: 좌측 사이드바 패널의 `? 도움말 & 단축키 안내` 섹션에 개체 삭제, 레이어 이동, 복사/붙여넣기, 카드 병합, 되돌리기 등 유용한 주요 단축키 가이드 박스를 탑재했습니다.
+
 
 

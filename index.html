@@ -159,10 +159,23 @@
       </section>
 
       <section id="helpSection" class="panel-section">
-        <div class="section-heading"><span class="badge-help">?</span><h2>도움말</h2></div>
-        <div class="anim-guide-box">
+        <div class="section-heading"><span class="badge-help">?</span><h2>도움말 & 단축키 안내</h2></div>
+        <div class="anim-guide-box" style="margin-bottom:10px;">
           <button id="toggleAnimModeButton" class="button button-blue anim-mode-btn" type="button">애니메이션 지정 (단축키 A)</button>
           <p class="guide"><kbd>A</kbd> 누른 뒤 개체 클릭: 순서 지정<br><kbd>Ctrl+클릭</kbd>: 이전과 동일 번호 부여<br><kbd>재클릭</kbd>: 번호 삭제 및 자동 재정렬</p>
+        </div>
+        <div class="shortcut-guide-box" style="padding:10px; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; font-size:11px; line-height:1.5;">
+          <strong style="display:block; margin-bottom:6px; color:#0f172a; font-size:12px;">⌨️ 유용한 단축키 안내</strong>
+          <ul style="margin:0; padding-left:14px; color:#334155; display:flex; flex-direction:column; gap:4px;">
+            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Del</kbd> / <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Backspace</kbd>: 선택 개체(제목 포함) 삭제</li>
+            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+]</kbd> / <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+[</kbd>: 개체 위로 / 아래로 이동</li>
+            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+Shift+]</kbd> / <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+Shift+[</kbd>: 개체 맨 위 / 맨 아래 이동</li>
+            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+C</kbd> / <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+V</kbd>: 개체 또는 슬라이드 복사 / 붙여넣기</li>
+            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+Z</kbd>: 실행 취소 (되돌리기)</li>
+            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">M</kbd>: 카드 2개 이상 선택 시 이웃 카드 병합</li>
+            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">F</kbd>: 전체 화면 발표 모드 시작</li>
+            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Esc</kbd>: 선택 해제 / 발표 및 애니메이션 종료</li>
+          </ul>
         </div>
       </section>
     </aside>
@@ -218,6 +231,13 @@
           <button class="text-tool-button" type="button" data-text-align="left" aria-label="왼쪽 정렬">L</button>
           <button class="text-tool-button" type="button" data-text-align="center" aria-label="가운데 정렬">C</button>
           <button class="text-tool-button" type="button" data-text-align="right" aria-label="오른쪽 정렬">R</button>
+        </div>
+        <span class="toolbar-divider" style="width:1px; height:18px; background:#cbd5e1; margin:0 2px;"></span>
+        <div class="zorder-group" aria-label="개체 순서 조절">
+          <button id="bringToFrontBtn" class="text-tool-button" type="button" title="맨 위로 보내기 (Ctrl+Shift+])">🔝</button>
+          <button id="bringForwardBtn" class="text-tool-button" type="button" title="위로 보내기 (Ctrl+])">▲</button>
+          <button id="sendBackwardBtn" class="text-tool-button" type="button" title="아래로 보내기 (Ctrl+[)">▼</button>
+          <button id="sendToBackBtn" class="text-tool-button" type="button" title="맨 아래로 보내기 (Ctrl+Shift+[)">⏬</button>
         </div>
         <label>크기 <input id="textSizeInput" type="number" min="8" max="160" step="1" aria-label="텍스트 크기"></label>
         <button id="autoTextSizeButton" class="text-tool-button" type="button">자동 맞춤</button>

@@ -201,7 +201,7 @@ kbd { border:1px solid currentColor; padding:1px 3px; font-size:10px; }
 .theme-color-btn { width:17px; height:17px; border-radius:50%; border:1.5px solid var(--ink); cursor:pointer; padding:0; transition:transform 0.15s ease, box-shadow 0.15s ease; }
 .theme-color-btn:hover { transform:scale(1.22); box-shadow:0 2px 4px rgba(0,0,0,0.3); }
 .text-toolbar input[type="number"] { width:54px; height:27px; padding:3px 5px; border:1px solid var(--ink); background:#fff; font-weight:800; }
-.text-align-group { display:flex; }
+.text-align-group, .zorder-group { display:flex; }
 .text-tool-button { min-width:28px; height:28px; padding:3px 7px; border:1px solid var(--ink); background:#fff; color:var(--ink); font-weight:900; cursor:pointer; }
 .text-tool-button + .text-tool-button { margin-left:-1px; }
 .text-tool-button.is-active { position:relative; background:var(--yellow); }
