@@ -23,7 +23,7 @@ const TABLE_LAYOUT_VARIANTS = new Set(["table", "tableStats"]);
 const ITEM_COUNT_ROLE_BY_VARIANT = { pairedCheckWarnings: "checklist-card" };
 const AI_TEMPLATES = new Set(["bullet", "mindmap", "object"]);
 const AI_OBJECT_VARIANTS = {
-  layout: new Set(["cards_1col", "cards_2col", "cards_3col", "cards_4col", "sideAccent_1col", "sideAccent_2col", "sideAccent_3col", "sideAccent_4col", "summaryLeft", "summaryRight", "summaryTop", "summaryBottom", "table", "tableStats"]),
+  layout: new Set(["cards_1col", "cards_2col", "cards_3col", "cards_4col", "sideAccent_1col", "sideAccent_2col", "sideAccent_3col", "sideAccent_4col", "summaryLeft", "summaryRight", "summaryTop", "summaryBottom", "table", "tableStats", "image_full", "image_center", "image_left", "image_right", "image_top", "image_bottom"]),
   diagram: new Set(["process", "timeline", "pyramid", "cycle", "chain", "ribbonArrow", "funnel", "venn", "target", "connectedCircles", "quadrant", "vs"]),
   chart: new Set(["column", "line", "pie", "bar", "area"])
 };
@@ -108,9 +108,13 @@ function renderFixedOverlayLayer() {
       layer.append(img);
     } else if (cfg && cfg.text && cfg.text.trim()) {
       hasItem = true;
-      let rawText = cfg.text.trim();
-      const currentPageNum = state.currentPageIndex + 1;
-      const totalPageNum = state.pages.length;
+      const visiblePages = state.pages.filter((p) => !p.hidden);
+      const totalPageNum = visiblePages.length;
+      let currentPageNum = 0;
+      for (let i = 0; i <= state.currentPageIndex; i++) {
+        if (!state.pages[i]?.hidden) currentPageNum++;
+      }
+      if (currentPageNum === 0 && totalPageNum > 0) currentPageNum = 1;
       rawText = rawText
         .replace(/{page}/g, currentPageNum)
         .replace(/{total}/g, totalPageNum)
@@ -199,9 +203,44 @@ function updateUndoButton() {
   $("#undoButton").disabled = state.history.length === 0;
 }
 
+function getCustomUserImages(page) {
+  return (page.objects || []).filter(
+    (object) => object.type === "image" && object.src && !object.src.includes("data:image/svg+xml")
+  );
+}
+
+function applyAspectRatioToImageObject(targetObject, src, callback) {
+  if (!targetObject || !src) {
+    if (callback) callback();
+    return;
+  }
+  const img = new Image();
+  img.onload = () => {
+    const naturalWidth = img.naturalWidth || 800;
+    const naturalHeight = img.naturalHeight || 600;
+    const imageRatio = naturalWidth / naturalHeight;
+
+    if (targetObject && typeof targetObject.w === "number" && typeof targetObject.h === "number") {
+      let targetW = targetObject.w;
+      let targetH = Math.round((targetObject.w * 16) / (9 * imageRatio));
+      if (targetH > 85) {
+        targetH = 85;
+        targetW = Math.round((targetH * 9 * imageRatio) / 16);
+      }
+      targetObject.h = Math.max(15, targetH);
+      targetObject.w = Math.max(15, targetW);
+    }
+    if (callback) callback();
+  };
+  img.onerror = () => {
+    if (callback) callback();
+  };
+  img.src = src;
+}
+
 function buildTemplate(page, template, options = {}) {
   page.template = template;
-  page.objects = page.objects.filter((object) => object.type === "image");
+  page.objects = getCustomUserImages(page);
 
   if (template === "bullet") {
     page.objects.unshift(
@@ -257,7 +296,7 @@ function layoutCoverItems(page) {
 }
 
 function createDefaultMindmap(page) {
-  const images = page.objects.filter((object) => object.type === "image");
+  const images = getCustomUserImages(page);
   const root = createTextObject("mind-root", "CENTRAL IDEA", 42, 45, 16, 14, {
     item: false, node: true, root: true, mindLevel: 1
   });
@@ -353,8 +392,8 @@ function layoutMindmapTree(page) {
 }
 
 function buildObjectTemplate(page, itemCount) {
-  const images = page.objects.filter((object) => object.type === "image");
-  page.objects = [createTextObject("page-title", getVariantTitle(page), 7, 7, 86, 16, { textAlign: "left" }), ...images];
+  const userImages = getCustomUserImages(page);
+  page.objects = [createTextObject("page-title", getVariantTitle(page), 7, 7, 86, 16, { textAlign: "left" })];
   const count = Math.max(MIN_ITEMS, Math.min(MAX_ITEMS, itemCount));
 
   if (page.objectCategory === "layout") {
@@ -374,6 +413,21 @@ function buildObjectTemplate(page, itemCount) {
     if (page.variant === "summaryBottom") addSummaryBottomLayout(page, count);
     if (page.variant === "table") addTableLayout(page, count);
     if (page.variant === "tableStats") addTableStatsLayout(page, count);
+
+    if (page.variant === "image_full") addImageFullLayout(page, count);
+    if (page.variant === "image_center") addImageCenterLayout(page, count);
+    if (page.variant === "image_left") addImageLeftLayout(page, count);
+    if (page.variant === "image_right") addImageRightLayout(page, count);
+    if (page.variant === "image_top") addImageTopLayout(page, count);
+    if (page.variant === "image_bottom") addImageBottomLayout(page, count);
+
+    if (userImages.length > 0) {
+      const newImg = page.objects.find((o) => o.type === "image");
+      if (newImg) {
+        newImg.src = userImages[0].src;
+        if (userImages[0].name) newImg.name = userImages[0].name;
+      }
+    }
   } else if (page.objectCategory === "diagram") {
     if (page.variant === "process") addProcessDiagram(page, count);
     if (page.variant === "timeline") addTimelineDiagram(page, count);
@@ -472,7 +526,7 @@ function getLayoutContentSnapshot(page) {
 
 function applyBulletTemplatePreservingContent(page) {
   const snapshotContent = getLayoutContentSnapshot(page);
-  const images = page.objects.filter((object) => object.type === "image");
+  const images = getCustomUserImages(page);
   const titleText = snapshotContent.title?.text || "개조식 본문";
 
   page.template = "bullet";
@@ -500,7 +554,7 @@ function applyBulletTemplatePreservingContent(page) {
 
 function applyMindmapTemplatePreservingContent(page) {
   const snapshotContent = getLayoutContentSnapshot(page);
-  const images = page.objects.filter((object) => object.type === "image");
+  const images = getCustomUserImages(page);
   const rootText = snapshotContent.title?.text || snapshotContent.blocks[0]?.text || "CENTRAL IDEA";
 
   page.template = "mindmap";
@@ -838,6 +892,66 @@ function addCompareSummaryLayout(page) {
     createTextObject("comparison-panel", "B\n두 번째 비교 대상\n장점과 특징을 입력하세요", 52, 27, 41, 45, { item: true, textAlign: "left", sequence: 1 })
   );
   addLayoutBanner(page, "비교 결과 또는 결론을 입력하세요", 77, 11);
+}
+
+const DEFAULT_PLACEHOLDER_IMAGE = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450' viewBox='0 0 800 450'><rect width='100%' height='100%' fill='%23f8fafc' rx='8'/><rect x='8' y='8' width='784' height='434' fill='none' stroke='%23cbd5e1' stroke-width='4' stroke-dasharray='12,8' rx='6'/><g transform='translate(400,200)' text-anchor='middle'><circle cx='0' cy='-20' r='50' fill='%23e2e8f0'/><path d='M-25,-35 h50 a5,5 0 0 1 5,5 v30 a5,5 0 0 1 -5,5 h-50 a5,5 0 0 1 -5,-5 v-30 a5,5 0 0 1 5,-5 Z M-10,-25 a8,8 0 1 0 0,16 a8,8 0 1 0 0,-16 Z M-20,5 L-5,-10 L8,3 L18,-7 L25,5 Z' fill='%2364748b'/><text x='0' y='65' font-size='24' font-weight='800' fill='%23334155' font-family='sans-serif'>🖼️ 이미지 더블클릭 또는 파일 드래그 앤 드롭</text><text x='0' y='95' font-size='18' font-weight='600' fill='%2394a3b8' font-family='sans-serif'>클릭하여 사진 파일(PNG, JPG, WebP) 교체</text></g></svg>";
+
+function createImageObject(x, y, w, h, src = DEFAULT_PLACEHOLDER_IMAGE, name = "메인 이미지") {
+  return {
+    id: createId("image"),
+    type: "image",
+    src: src,
+    name: name,
+    x: x,
+    y: y,
+    w: w,
+    h: h
+  };
+}
+
+function addImageFullLayout(page, count) {
+  page.objects.push(createImageObject(0, 0, 100, 100, DEFAULT_PLACEHOLDER_IMAGE, "전체 배경 이미지"));
+  page.objects.push(createTextObject(
+    "notice-panel",
+    "풀스크린 비주얼 이미지\n전체 화면 배경 이미지 레이아웃의 메시지를 입력하세요",
+    10, 62, 80, 26,
+    { textAlign: "center", bgColor: "rgba(15, 23, 42, 0.85)", textColor: "#ffffff" }
+  ));
+}
+
+function addImageCenterLayout(page, count) {
+  page.objects.push(createImageObject(20, 24, 60, 48, DEFAULT_PLACEHOLDER_IMAGE, "중앙 히어로 이미지"));
+  addResponsiveCards(page, count, "concept-card", (index) => `포인트 ${index + 1}\n중앙 비주얼 보조 설명 항목`, {
+    x: 6, y: 76, w: 88, h: 20, columns: Math.min(count, 4), gapX: 2, gapY: 2
+  });
+}
+
+function addImageLeftLayout(page, count) {
+  page.objects.push(createImageObject(6, 23, 42, 68, DEFAULT_PLACEHOLDER_IMAGE, "좌측 메인 이미지"));
+  addResponsiveCards(page, count, "concept-card", (index) => `주요 특징 ${index + 1}\n상세 설명 및 핵심 내용을 입력하세요`, {
+    x: 51, y: 23, w: 43, h: 68, columns: count <= 3 ? 1 : 2, gapX: 2, gapY: 2
+  });
+}
+
+function addImageRightLayout(page, count) {
+  addResponsiveCards(page, count, "concept-card", (index) => `주요 특징 ${index + 1}\n상세 설명 및 핵심 내용을 입력하세요`, {
+    x: 6, y: 23, w: 43, h: 68, columns: count <= 3 ? 1 : 2, gapX: 2, gapY: 2
+  });
+  page.objects.push(createImageObject(52, 23, 42, 68, DEFAULT_PLACEHOLDER_IMAGE, "우측 메인 이미지"));
+}
+
+function addImageTopLayout(page, count) {
+  page.objects.push(createImageObject(6, 23, 88, 38, DEFAULT_PLACEHOLDER_IMAGE, "상단 와이드 이미지"));
+  addResponsiveCards(page, count, "concept-card", (index) => `항목 ${index + 1}\n하단 항목 상세 설명을 입력하세요`, {
+    x: 6, y: 64, w: 88, h: 28, columns: Math.min(count, 4), gapX: 2, gapY: 2
+  });
+}
+
+function addImageBottomLayout(page, count) {
+  addResponsiveCards(page, count, "concept-card", (index) => `항목 ${index + 1}\n상단 핵심 요약 항목을 입력하세요`, {
+    x: 6, y: 23, w: 88, h: 28, columns: Math.min(count, 4), gapX: 2, gapY: 2
+  });
+  page.objects.push(createImageObject(6, 55, 88, 38, DEFAULT_PLACEHOLDER_IMAGE, "하단 비주얼 이미지"));
 }
 
 function addFocusCardsLayout(page, count) {
@@ -1279,6 +1393,15 @@ function deleteSelectedObjects() {
       });
     }
     page.objects = page.objects.filter((object) => !deletedIds.has(object.id));
+  } else if (page.template === "object" || page.objectCategory === "layout") {
+    const count = getItemCount(page);
+    const removeCount = deletable.length;
+    const newCount = Math.max(1, count - removeCount);
+
+    page.objects = page.objects.filter((object) => !state.selectedIds.has(object.id));
+    if (page.template === "object") {
+      rebuildObjectTemplatePreservingContent(page, newCount, deletable[0]);
+    }
   } else {
     page.objects = page.objects.filter((object) => !state.selectedIds.has(object.id));
   }
@@ -1567,34 +1690,155 @@ function renderControls() {
 }
 
 let draggedPageIndex = null;
+let justDropped = false;
+
+function reorderPages(fromIndex, targetIndex) {
+  if (fromIndex === null || fromIndex === undefined || isNaN(fromIndex)) return;
+  if (targetIndex === null || targetIndex === undefined || isNaN(targetIndex)) return;
+  if (fromIndex === targetIndex) return;
+
+  snapshot();
+  const activePage = state.pages[state.currentPageIndex];
+  const [movedPage] = state.pages.splice(fromIndex, 1);
+
+  state.pages.splice(targetIndex, 0, movedPage);
+
+  const newActiveIndex = state.pages.indexOf(activePage);
+  if (newActiveIndex !== -1) {
+    state.currentPageIndex = newActiveIndex;
+  }
+  state.selectedIds.clear();
+  state.guides = [];
+  hideTextToolbar();
+  render();
+}
 
 function renderPages() {
   const list = $("#pageList");
   list.innerHTML = "";
   state.pages.forEach((page, index) => {
-    const button = document.createElement("button");
-    button.className = `page-item ${index === state.currentPageIndex ? "is-current" : ""} ${page.type === "cover" ? "cover" : ""}`;
-    button.type = "button";
-    button.setAttribute("draggable", "true");
-    button.dataset.pageIndex = index;
-    button.innerHTML = `PAGE ${String(index + 1).padStart(2, "0")}${page.type === "content" ? '<span class="page-delete">×</span>' : ""}`;
+    const itemEl = document.createElement("div");
+    itemEl.className = `page-item ${index === state.currentPageIndex ? "is-current" : ""} ${page.type === "cover" ? "cover" : ""} ${page.hidden ? "is-hidden" : ""}`;
+    itemEl.setAttribute("role", "button");
+    itemEl.setAttribute("tabindex", "0");
+    itemEl.setAttribute("draggable", "true");
+    itemEl.dataset.pageIndex = index;
+    const hideIcon = page.hidden ? "🙈" : "👁";
+    const hideTitle = page.hidden ? "페이지 숨김 해제" : "페이지 숨기기 (발표 시 건너뜀)";
+    itemEl.innerHTML = `PAGE ${String(index + 1).padStart(2, "0")}<span class="page-hide-btn" title="${hideTitle}">${hideIcon}</span>${page.type === "content" ? '<span class="page-delete" title="페이지 삭제">×</span>' : ""}`;
 
-    button.addEventListener("click", (event) => {
-      if (event.target.classList.contains("page-delete")) {
+    itemEl.addEventListener("click", (event) => {
+      if (justDropped) {
+        justDropped = false;
+        return;
+      }
+      if (event.target.classList.contains("page-hide-btn")) {
+        snapshot();
+        page.hidden = !page.hidden;
+        render();
+      } else if (event.target.classList.contains("page-delete")) {
         snapshot();
         state.pages.splice(index, 1);
         state.currentPageIndex = Math.min(state.currentPageIndex, state.pages.length - 1);
+        state.selectedIds.clear();
+        state.guides = [];
+        hideTextToolbar();
+        render();
       } else {
         state.currentPageIndex = index;
+        state.selectedIds.clear();
+        state.guides = [];
+        hideTextToolbar();
+        render();
       }
-      state.selectedIds.clear();
-      state.guides = [];
-      hideTextToolbar();
-      render();
     });
 
-    button.addEventListener("dragstart", (event) => {
-      if (event.target.classList.contains("page-delete")) {
+    itemEl.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        state.currentPageIndex = index;
+        state.selectedIds.clear();
+        state.guides = [];
+        hideTextToolbar();
+        render();
+      }
+    });
+
+    // Mouse Pointer Drag Fallback (Direct DOM Dragging)
+    itemEl.addEventListener("mousedown", (startEvent) => {
+      if (startEvent.target.classList.contains("page-delete") || startEvent.target.classList.contains("page-hide-btn")) return;
+      if (startEvent.button !== 0) return;
+
+      const startX = startEvent.clientX;
+      const startY = startEvent.clientY;
+      let hasDragged = false;
+
+      const onMouseMove = (moveEvent) => {
+        const dx = Math.abs(moveEvent.clientX - startX);
+        const dy = Math.abs(moveEvent.clientY - startY);
+
+        if (!hasDragged && (dx > 4 || dy > 4)) {
+          hasDragged = true;
+          draggedPageIndex = index;
+          itemEl.classList.add("is-dragging");
+        }
+
+        if (hasDragged) {
+          const elemBelow = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+          const targetItem = elemBelow?.closest(".page-item");
+
+          list.querySelectorAll(".page-item").forEach((item) => {
+            item.classList.remove("drag-over-before", "drag-over-after");
+          });
+
+          if (targetItem && targetItem !== itemEl) {
+            const targetIdx = parseInt(targetItem.dataset.pageIndex, 10);
+            if (!isNaN(targetIdx)) {
+              if (index < targetIdx) {
+                targetItem.classList.add("drag-over-after");
+              } else {
+                targetItem.classList.add("drag-over-before");
+              }
+            }
+          }
+        }
+      };
+
+      const onMouseUp = (upEvent) => {
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+
+        if (hasDragged) {
+          justDropped = true;
+          itemEl.classList.remove("is-dragging");
+
+          const elemBelow = document.elementFromPoint(upEvent.clientX, upEvent.clientY);
+          const targetItem = elemBelow?.closest(".page-item");
+
+          list.querySelectorAll(".page-item").forEach((item) => {
+            item.classList.remove("drag-over-before", "drag-over-after", "is-dragging");
+          });
+
+          if (targetItem) {
+            const targetIdx = parseInt(targetItem.dataset.pageIndex, 10);
+            if (!isNaN(targetIdx) && targetIdx !== index) {
+              reorderPages(index, targetIdx);
+            }
+          }
+
+          setTimeout(() => {
+            draggedPageIndex = null;
+          }, 50);
+        }
+      };
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    });
+
+    // Native HTML5 Drag & Drop handlers
+    itemEl.addEventListener("dragstart", (event) => {
+      if (event.target.classList.contains("page-delete") || event.target.classList.contains("page-hide-btn")) {
         event.preventDefault();
         return;
       }
@@ -1602,92 +1846,115 @@ function renderPages() {
       event.dataTransfer.effectAllowed = "move";
       event.dataTransfer.setData("text/plain", String(index));
       requestAnimationFrame(() => {
-        button.classList.add("is-dragging");
+        itemEl.classList.add("is-dragging");
       });
     });
 
-    button.addEventListener("dragover", (event) => {
+    itemEl.addEventListener("dragover", (event) => {
       event.preventDefault();
-      if (draggedPageIndex === null) return;
       event.dataTransfer.dropEffect = "move";
 
-      const rect = button.getBoundingClientRect();
-      const midX = rect.left + rect.width / 2;
-      const isBefore = event.clientX < midX;
+      let fromIndex = draggedPageIndex;
+      if (fromIndex === null || fromIndex === undefined) {
+        const data = event.dataTransfer.getData("text/plain");
+        fromIndex = data !== "" ? parseInt(data, 10) : null;
+      }
 
       list.querySelectorAll(".page-item").forEach((item) => {
         item.classList.remove("drag-over-before", "drag-over-after");
       });
 
-      if (isBefore) {
-        button.classList.add("drag-over-before");
-      } else {
-        button.classList.add("drag-over-after");
+      if (fromIndex !== null && !isNaN(fromIndex) && fromIndex !== index) {
+        if (fromIndex < index) {
+          itemEl.classList.add("drag-over-after");
+        } else {
+          itemEl.classList.add("drag-over-before");
+        }
       }
     });
 
-    button.addEventListener("dragenter", (event) => {
+    itemEl.addEventListener("dragenter", (event) => {
       event.preventDefault();
     });
 
-    button.addEventListener("dragleave", (event) => {
-      if (event.relatedTarget && button.contains(event.relatedTarget)) return;
-      button.classList.remove("drag-over-before", "drag-over-after");
+    itemEl.addEventListener("dragleave", (event) => {
+      if (event.relatedTarget && itemEl.contains(event.relatedTarget)) return;
+      itemEl.classList.remove("drag-over-before", "drag-over-after");
     });
 
-    button.addEventListener("drop", (event) => {
+    itemEl.addEventListener("drop", (event) => {
       event.preventDefault();
       event.stopPropagation();
+      justDropped = true;
 
       list.querySelectorAll(".page-item").forEach((item) => {
         item.classList.remove("drag-over-before", "drag-over-after", "is-dragging");
       });
 
-      if (draggedPageIndex === null) return;
-      const fromIndex = draggedPageIndex;
+      let fromIndex = draggedPageIndex;
+      if (fromIndex === null || fromIndex === undefined) {
+        const data = event.dataTransfer.getData("text/plain");
+        fromIndex = data !== "" ? parseInt(data, 10) : null;
+      }
       draggedPageIndex = null;
 
-      const rect = button.getBoundingClientRect();
-      const midX = rect.left + rect.width / 2;
-      let targetIndex = index;
-      if (event.clientX >= midX) {
-        targetIndex = index + 1;
-      }
-
-      if (fromIndex === targetIndex || fromIndex === targetIndex - 1) return;
-
-      snapshot();
-      const activePage = state.pages[state.currentPageIndex];
-      const [movedPage] = state.pages.splice(fromIndex, 1);
-
-      let insertIndex = targetIndex;
-      if (fromIndex < targetIndex) {
-        insertIndex -= 1;
-      }
-      state.pages.splice(insertIndex, 0, movedPage);
-
-      const newActiveIndex = state.pages.indexOf(activePage);
-      if (newActiveIndex !== -1) {
-        state.currentPageIndex = newActiveIndex;
-      }
-      state.selectedIds.clear();
-      state.guides = [];
-      hideTextToolbar();
-      render();
+      reorderPages(fromIndex, index);
     });
 
-    button.addEventListener("dragend", () => {
+    itemEl.addEventListener("dragend", () => {
       draggedPageIndex = null;
       list.querySelectorAll(".page-item").forEach((item) => {
         item.classList.remove("drag-over-before", "drag-over-after", "is-dragging");
       });
     });
 
-    list.append(button);
+    list.append(itemEl);
   });
+
+  if (!list.dataset.hasDragListeners) {
+    list.dataset.hasDragListeners = "true";
+
+    list.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+    });
+
+    list.addEventListener("drop", (event) => {
+      if (event.target !== list) return;
+      event.preventDefault();
+      justDropped = true;
+
+      list.querySelectorAll(".page-item").forEach((item) => {
+        item.classList.remove("drag-over-before", "drag-over-after", "is-dragging");
+      });
+
+      let fromIndex = draggedPageIndex;
+      if (fromIndex === null || fromIndex === undefined) {
+        const data = event.dataTransfer.getData("text/plain");
+        fromIndex = data !== "" ? parseInt(data, 10) : null;
+      }
+      draggedPageIndex = null;
+
+      const buttons = Array.from(list.querySelectorAll(".page-item"));
+      if (buttons.length === 0) return;
+
+      let targetIndex = buttons.length - 1;
+      for (let i = 0; i < buttons.length; i++) {
+        const rect = buttons[i].getBoundingClientRect();
+        const midX = rect.left + rect.width / 2;
+        if (event.clientX < midX) {
+          targetIndex = i;
+          break;
+        }
+      }
+
+      reorderPages(fromIndex, targetIndex);
+    });
+  }
 }
 
 function renderStage() {
+  setupStageFileDrop();
   stage.innerHTML = "";
   const page = currentPage();
   if (page.type === "content" && !page.template) {
@@ -1706,6 +1973,110 @@ function renderStage() {
     updateFullscreenAnimState();
   }
   requestAnimationFrame(fitAllText);
+}
+
+function openImagePickerForObject(targetObject) {
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = "image/*";
+  fileInput.addEventListener("change", (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      snapshot();
+      targetObject.src = String(reader.result);
+      targetObject.name = file.name;
+      applyAspectRatioToImageObject(targetObject, targetObject.src, () => {
+        render();
+      });
+    });
+    reader.readAsDataURL(file);
+  });
+  fileInput.click();
+}
+
+function setupStageFileDrop() {
+  const stageEl = $("#presentationStage");
+  if (!stageEl || stageEl.dataset.hasFileDrop) return;
+  stageEl.dataset.hasFileDrop = "true";
+
+  stageEl.addEventListener("dragover", (event) => {
+    if (event.dataTransfer?.types && Array.from(event.dataTransfer.types).includes("Files")) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      stageEl.classList.add("stage-drag-over");
+    }
+  });
+
+  stageEl.addEventListener("dragleave", (event) => {
+    if (event.relatedTarget && stageEl.contains(event.relatedTarget)) return;
+    stageEl.classList.remove("stage-drag-over");
+  });
+
+  stageEl.addEventListener("drop", (event) => {
+    const files = Array.from(event.dataTransfer?.files || []).filter((f) => f.type.startsWith("image/"));
+    if (!files.length) {
+      stageEl.classList.remove("stage-drag-over");
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    stageEl.classList.remove("stage-drag-over");
+
+    const targetPage = currentPage();
+    if (targetPage.type !== "content") return;
+
+    const targetObjEl = event.target.closest("[data-object-id]");
+    const targetObj = targetObjEl ? targetPage.objects.find((o) => o.id === targetObjEl.dataset.objectId) : null;
+
+    if (targetObj && targetObj.type === "image") {
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        snapshot();
+        targetObj.src = String(reader.result);
+        targetObj.name = files[0].name;
+        applyAspectRatioToImageObject(targetObj, targetObj.src, () => {
+          render();
+        });
+      });
+      reader.readAsDataURL(files[0]);
+    } else if (targetObj && targetObj.type !== "table" && targetObj.type !== "chart") {
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        snapshot();
+        targetObj.imageSrc = String(reader.result);
+        render();
+      });
+      reader.readAsDataURL(files[0]);
+    } else {
+      snapshot();
+      let completed = 0;
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.addEventListener("load", () => {
+          const placement = getNewImagePlacement(targetPage, index);
+          const newObj = {
+            id: createId("image"),
+            type: "image",
+            role: "image",
+            src: String(reader.result),
+            name: file.name,
+            ...placement
+          };
+          targetPage.objects.push(newObj);
+          applyAspectRatioToImageObject(newObj, newObj.src, () => {
+            completed += 1;
+            if (completed === files.length) {
+              render();
+            }
+          });
+        });
+        reader.readAsDataURL(file);
+      });
+    }
+  });
 }
 
 function renderAlignmentGuides() {
@@ -1757,6 +2128,12 @@ function createObjectElement(object) {
     image.src = object.src;
     image.alt = object.name || "첨부 이미지";
     element.append(image);
+
+    element.addEventListener("dblclick", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openImagePickerForObject(object);
+    });
   } else if (object.type === "table") {
     element.append(createTableElement(object));
   } else if (object.type === "chart") {
@@ -1849,6 +2226,16 @@ function applyTextObjectStyle(text, object, wrapper) {
     wrapper.dataset.manualFontSize = "true";
   } else {
     delete wrapper.dataset.manualFontSize;
+  }
+
+  if (object.borderWidth !== undefined && Number(object.borderWidth) > 0 && object.borderStyle && object.borderStyle !== "none") {
+    wrapper.style.border = `${object.borderWidth}px ${object.borderStyle} ${object.borderColor || "#0f172a"}`;
+    wrapper.style.boxSizing = "border-box";
+  } else {
+    wrapper.style.border = "";
+  }
+  if (object.bgColor) {
+    wrapper.style.backgroundColor = object.bgColor;
   }
 }
 
@@ -2117,17 +2504,28 @@ function showTextToolbar(object, textElement) {
   if ($("#bgColorInput")) {
     $("#bgColorInput").value = normalizeColor(object.bgColor || getComputedStyle(textElement.parentElement || textElement).backgroundColor || "#ffffff");
   }
+  if ($("#borderColorInput")) {
+    $("#borderColorInput").value = normalizeColor(object.borderColor || "#0f172a");
+  }
+  if ($("#borderWidthInput")) {
+    $("#borderWidthInput").value = object.borderWidth !== undefined ? object.borderWidth : 0;
+  }
+  if ($("#borderStyleSelect")) {
+    $("#borderStyleSelect").value = object.borderStyle || (object.borderWidth ? "solid" : "none");
+  }
   $("#textSizeInput").value = Math.round(object.fontSize || Number.parseFloat(getComputedStyle(textElement).fontSize) || 28);
   toolbar.querySelectorAll("[data-text-align]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.textAlign === getTextAlign(object));
   });
 
   const palette = getCurrentPalette();
-  toolbar.querySelectorAll(".theme-color-btn").forEach((btn, idx) => {
+  toolbar.querySelectorAll(".theme-color-btn").forEach((btn) => {
+    const idx = Number(btn.dataset.colorIndex) || 0;
     const color = palette[idx] || "#2563eb";
     btn.style.backgroundColor = color;
     btn.dataset.colorHex = color;
-    btn.title = `테마 ${idx + 1}순위 색상 (${color}) 적용`;
+    const targetName = { text: "글자색", bg: "배경색", border: "테두리색" }[btn.dataset.target] || "색상";
+    btn.title = `${targetName} 테마 ${idx + 1}순위 색상 (${color}) 적용`;
   });
 }
 
@@ -2661,6 +3059,16 @@ function populateVariantSelects() {
       </button>
     `)
   ].join("");
+
+  const imageGrid = $("#catGrid_image");
+  if (imageGrid) {
+    imageGrid.innerHTML = ["image_full", "image_center", "image_left", "image_right", "image_top", "image_bottom"].map((key) => `
+      <button class="layout-variant-button" type="button" data-layout-variant="${key}" aria-pressed="false" aria-label="${layouts[key]?.name || key}">
+        ${getLayoutThumbnailMarkup(key)}
+        <span class="layout-variant-name">${layouts[key]?.name || key}</span>
+      </button>
+    `).join("");
+  }
 }
 
 function getLayoutThumbnailMarkup(variant) {
@@ -2681,6 +3089,14 @@ function getLayoutThumbnailMarkup(variant) {
   if (variant === "summaryRight") return '<span class="layout-thumbnail summary-thumb-right"><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span></span><span class="t-dark-panel">요약</span></span>';
   if (variant === "summaryTop") return '<span class="layout-thumbnail summary-thumb-top"><span class="t-dark-banner">요약 배너</span><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span></span>';
   if (variant === "summaryBottom") return '<span class="layout-thumbnail summary-thumb-bottom"><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span><span class="t-dark-banner">요약 배너</span></span>';
+
+  // 4. Image Layouts (이미지 레이아웃 6종)
+  if (variant === "image_full") return '<span class="layout-thumbnail img-thumb-full"><span class="t-overlay"></span></span>';
+  if (variant === "image_center") return '<span class="layout-thumbnail img-thumb-center"><span class="t-line"></span><span class="t-img-hero"></span><span class="t-line"></span></span>';
+  if (variant === "image_left") return '<span class="layout-thumbnail img-thumb-left"><span class="t-img-box"></span><span class="t-text-cols"><span class="t-card"></span><span class="t-card"></span></span></span>';
+  if (variant === "image_right") return '<span class="layout-thumbnail img-thumb-right"><span class="t-text-cols"><span class="t-card"></span><span class="t-card"></span></span><span class="t-img-box"></span></span>';
+  if (variant === "image_top") return '<span class="layout-thumbnail img-thumb-top"><span class="t-img-banner"></span><span class="t-text-row"><span class="t-card"></span><span class="t-card"></span></span></span>';
+  if (variant === "image_bottom") return '<span class="layout-thumbnail img-thumb-bottom"><span class="t-text-row"><span class="t-card"></span><span class="t-card"></span></span><span class="t-img-banner"></span></span>';
 
   if (variant === "table") return '<span class="layout-thumbnail card-thumb-box"><span class="thumb-card-grid col-3"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span></span>';
   if (variant === "tableStats") return '<span class="layout-thumbnail summary-thumb-right"><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span></span><span class="t-dark-panel">지표</span></span>';
@@ -3005,7 +3421,8 @@ const categoryToggles = [
   { toggle: "#catToggle_card", grid: "#catGrid_card" },
   { toggle: "#catToggle_compare", grid: "#catGrid_compare" },
   { toggle: "#catToggle_diagram", grid: "#catGrid_diagram" },
-  { toggle: "#catToggle_chart", grid: "#catGrid_chart" }
+  { toggle: "#catToggle_chart", grid: "#catGrid_chart" },
+  { toggle: "#catToggle_image", grid: "#catGrid_image" }
 ];
 
 categoryToggles.forEach(({ toggle, grid }) => {
@@ -3050,17 +3467,82 @@ $("#bgColorInput")?.addEventListener("change", (event) => {
   selectedObjects.forEach((item) => { item.bgColor = event.target.value; });
   renderStage();
 });
+$("#borderColorInput")?.addEventListener("change", (event) => updateActiveTextStyle("borderColor", event.target.value));
+$("#borderColorInput")?.addEventListener("input", (event) => updateActiveTextStyle("borderColor", event.target.value));
+$("#borderWidthInput")?.addEventListener("change", (event) => {
+  const val = Number(event.target.value) || 0;
+  updateActiveTextStyle("borderWidth", val);
+  const page = currentPage();
+  const obj = page.objects.find((item) => item.id === state.activeTextObjectId);
+  if (obj && val > 0 && (!obj.borderStyle || obj.borderStyle === "none")) {
+    updateActiveTextStyle("borderStyle", "solid");
+  }
+});
+$("#borderWidthInput")?.addEventListener("input", (event) => {
+  const val = Number(event.target.value) || 0;
+  updateActiveTextStyle("borderWidth", val);
+  const page = currentPage();
+  const obj = page.objects.find((item) => item.id === state.activeTextObjectId);
+  if (obj && val > 0 && (!obj.borderStyle || obj.borderStyle === "none")) {
+    updateActiveTextStyle("borderStyle", "solid");
+  }
+});
+$("#borderStyleSelect")?.addEventListener("change", (event) => {
+  updateActiveTextStyle("borderStyle", event.target.value);
+  const page = currentPage();
+  const obj = page.objects.find((item) => item.id === state.activeTextObjectId);
+  if (obj && event.target.value !== "none" && (!obj.borderWidth || Number(obj.borderWidth) === 0)) {
+    updateActiveTextStyle("borderWidth", 2);
+  }
+});
+
+function isTextInputTarget(target) {
+  const tagName = target?.tagName;
+  return Boolean(target?.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(tagName));
+}
+
+function navigateFullscreenPage(direction) {
+  let nextIndex = state.currentPageIndex;
+  while (true) {
+    nextIndex += direction;
+    if (nextIndex < 0 || nextIndex >= state.pages.length) return false;
+    if (!state.pages[nextIndex]?.hidden) break;
+  }
+  state.currentPageIndex = nextIndex;
+  state.selectedIds.clear();
+  state.guides = [];
+  hideTextToolbar();
+  render();
+  return true;
+}
 document.querySelectorAll(".theme-color-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     const color = btn.dataset.colorHex || getCurrentPalette()[Number(btn.dataset.colorIndex) || 0];
     if (!color) return;
     const page = currentPage();
-    const selectedObjects = page.objects.filter((item) => state.selectedIds.has(item.id));
-    if (!selectedObjects.length) return;
-    snapshot();
-    selectedObjects.forEach((item) => { item.bgColor = color; });
-    if ($("#bgColorInput")) $("#bgColorInput").value = normalizeColor(color);
-    renderStage();
+    const target = btn.dataset.target || "bg";
+
+    if (target === "text") {
+      updateActiveTextStyle("textColor", color);
+      if ($("#textColorInput")) $("#textColorInput").value = normalizeColor(color);
+    } else if (target === "border") {
+      updateActiveTextStyle("borderColor", color);
+      if ($("#borderColorInput")) $("#borderColorInput").value = normalizeColor(color);
+      const pageObj = page.objects.find((item) => item.id === state.activeTextObjectId);
+      if (pageObj && (!pageObj.borderWidth || Number(pageObj.borderWidth) === 0)) {
+        updateActiveTextStyle("borderWidth", 2);
+        if ($("#borderWidthInput")) $("#borderWidthInput").value = 2;
+        updateActiveTextStyle("borderStyle", "solid");
+        if ($("#borderStyleSelect")) $("#borderStyleSelect").value = "solid";
+      }
+    } else {
+      const selectedObjects = page.objects.filter((item) => state.selectedIds.has(item.id));
+      if (!selectedObjects.length) return;
+      snapshot();
+      selectedObjects.forEach((item) => { item.bgColor = color; });
+      if ($("#bgColorInput")) $("#bgColorInput").value = normalizeColor(color);
+      renderStage();
+    }
   });
 });
 function commitTextSizeInput(input) {
@@ -3316,21 +3798,7 @@ stage.addEventListener("click", (event) => {
   }
 }, true);
 
-function isTextInputTarget(target) {
-  const tagName = target?.tagName;
-  return Boolean(target?.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(tagName));
-}
 
-function navigateFullscreenPage(direction) {
-  const nextIndex = clamp(0, state.currentPageIndex + direction, state.pages.length - 1);
-  if (nextIndex === state.currentPageIndex) return false;
-  state.currentPageIndex = nextIndex;
-  state.selectedIds.clear();
-  state.guides = [];
-  hideTextToolbar();
-  render();
-  return true;
-}
 
 function copySelectedObjects() {
   const page = currentPage();
@@ -3452,7 +3920,8 @@ document.addEventListener("keydown", (event) => {
     }
   }
 
-  if ((event.key === "Delete" || event.key === "Del" || key === "delete" || key === "del") && !editingText && !["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) {
+  const isDeleteKey = ["Delete", "Del", "Backspace"].includes(event.key) || ["delete", "del", "backspace"].includes(key);
+  if (isDeleteKey && !editingText && !["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) {
     if (deleteSelectedObjects()) {
       event.preventDefault();
       return;

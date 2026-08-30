@@ -18,5 +18,12 @@ window.PptLayouts = {
   sideAccentGrid: { name: "측면 강조 카드 그리드", description: "측면 강조 카드 그리드 레이아웃입니다." },
 
   table: { name: "기본 데이터 테이블", description: "행과 열 기준으로 데이터를 명확하게 비교합니다." },
-  tableStats: { name: "테이블 & 요약 지표", description: "메인 데이터 테이블과 하단/우측 요약 지표 패널을 결합합니다." }
+  tableStats: { name: "테이블 & 요약 지표", description: "메인 데이터 테이블과 하단/우측 요약 지표 패널을 결합합니다." },
+
+  image_full: { name: "이미지 전체 (Full)", description: "화면 전체/대형 이미지를 배경으로 두고 오버레이 카드를 배치합니다." },
+  image_center: { name: "이미지 중앙 (Center)", description: "중앙에 히어로 이미지를 두고 상하단에 설명을 배치합니다." },
+  image_left: { name: "이미지 좌측 (Left)", description: "좌측 메인 이미지와 우측 텍스트/카드 세트를 배치합니다." },
+  image_right: { name: "이미지 우측 (Right)", description: "좌측 텍스트/카드 세트와 우측 메인 이미지를 배치합니다." },
+  image_top: { name: "이미지 상단 (Top)", description: "상단 비주얼 이미지와 하단 설명 카드를 나란히 배치합니다." },
+  image_bottom: { name: "이미지 하단 (Bottom)", description: "상단 세부 설명 카드와 하단 와이드 이미지를 배치합니다." }
 };

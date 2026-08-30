@@ -103,6 +103,19 @@
             </div>
             <div id="catGrid_chart" class="layout-variant-grid chart-variant-grid" role="group" hidden></div>
           </div>
+
+          <!-- 6. 이미지 레이아웃 -->
+          <div class="template-category-block">
+            <div class="layout-variant-header">
+              <div class="layout-variant-heading">
+                <strong class="option-group-title">🖼️ 이미지 레이아웃</strong>
+              </div>
+              <button id="catToggle_image" class="layout-variant-toggle" type="button" aria-expanded="false" aria-controls="catGrid_image" aria-label="이미지 레이아웃 펼치기">
+                <span class="layout-toggle-chevron" aria-hidden="true"></span>
+              </button>
+            </div>
+            <div id="catGrid_image" class="layout-variant-grid image-variant-grid" role="group" hidden></div>
+          </div>
         </div>
       </section>
 
@@ -164,14 +177,43 @@
       </div>
       <div id="textToolbar" class="text-toolbar" hidden aria-label="개체 서식">
         <strong>개체 서식</strong>
-        <label>글자색 <input id="textColorInput" type="color" value="#151515" aria-label="텍스트 색상"></label>
-        <label>배경색 <input id="bgColorInput" type="color" value="#ffffff" aria-label="개체 배경색"></label>
-        <div id="themeBgColorPalette" class="theme-bg-color-palette" aria-label="테마 3색 퀵 선택">
-          <span style="font-size:11px; font-weight:850; color:#475569; white-space:nowrap;">테마색:</span>
-          <button class="theme-color-btn" data-color-index="0" type="button" title="테마 1순위 색상 적용"></button>
-          <button class="theme-color-btn" data-color-index="1" type="button" title="테마 2순위 색상 적용"></button>
-          <button class="theme-color-btn" data-color-index="2" type="button" title="테마 3순위 색상 적용"></button>
-        </div>
+        <label>글자색
+          <input id="textColorInput" type="color" value="#151515" aria-label="텍스트 색상">
+          <div class="theme-color-palette-group" data-color-target="text" aria-label="글자색 테마 3색 퀵 선택">
+            <button class="theme-color-btn" data-target="text" data-color-index="0" type="button" title="글자색 테마 1순위 적용"></button>
+            <button class="theme-color-btn" data-target="text" data-color-index="1" type="button" title="글자색 테마 2순위 적용"></button>
+            <button class="theme-color-btn" data-target="text" data-color-index="2" type="button" title="글자색 테마 3순위 적용"></button>
+          </div>
+        </label>
+        <span class="toolbar-divider" style="width:1px; height:18px; background:#cbd5e1; margin:0 2px;"></span>
+        <label>배경색
+          <input id="bgColorInput" type="color" value="#ffffff" aria-label="개체 배경색">
+          <div class="theme-color-palette-group" data-color-target="bg" aria-label="배경색 테마 3색 퀵 선택">
+            <button class="theme-color-btn" data-target="bg" data-color-index="0" type="button" title="배경색 테마 1순위 적용"></button>
+            <button class="theme-color-btn" data-target="bg" data-color-index="1" type="button" title="배경색 테마 2순위 적용"></button>
+            <button class="theme-color-btn" data-target="bg" data-color-index="2" type="button" title="배경색 테마 3순위 적용"></button>
+          </div>
+        </label>
+        <span class="toolbar-divider" style="width:1px; height:18px; background:#cbd5e1; margin:0 2px;"></span>
+        <label>테두리색
+          <input id="borderColorInput" type="color" value="#0f172a" aria-label="테두리 색상">
+          <div class="theme-color-palette-group" data-color-target="border" aria-label="테두리색 테마 3색 퀵 선택">
+            <button class="theme-color-btn" data-target="border" data-color-index="0" type="button" title="테두리색 테마 1순위 적용"></button>
+            <button class="theme-color-btn" data-target="border" data-color-index="1" type="button" title="테두리색 테마 2순위 적용"></button>
+            <button class="theme-color-btn" data-target="border" data-color-index="2" type="button" title="테두리색 테마 3순위 적용"></button>
+          </div>
+        </label>
+        <label>두께 <input id="borderWidthInput" type="number" min="0" max="20" step="1" value="0" style="width:44px;" aria-label="테두리 두께"></label>
+        <label>선 모양
+          <select id="borderStyleSelect" style="padding:2px 4px; border:1px solid var(--ink); font-size:11px; font-weight:700;" aria-label="테두리 선 스타일">
+            <option value="none">없음</option>
+            <option value="solid">실선</option>
+            <option value="dashed">점선(dashed)</option>
+            <option value="dotted">점선(dotted)</option>
+            <option value="double">이중선</option>
+          </select>
+        </label>
+        <span class="toolbar-divider" style="width:1px; height:18px; background:#cbd5e1; margin:0 2px;"></span>
         <div class="text-align-group" aria-label="텍스트 정렬">
           <button class="text-tool-button" type="button" data-text-align="left" aria-label="왼쪽 정렬">L</button>
           <button class="text-tool-button" type="button" data-text-align="center" aria-label="가운데 정렬">C</button>
