@@ -534,9 +534,12 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **동적 Flex 텍스트 정렬 체계화 (`applyTextObjectStyle`)**: `align-items: center`로 세로 정렬을 고정하고 `justify-content`(`flex-start`, `center`, `flex-end`)와 `text-align`을 연동하여, `R`(오른쪽 정렬) 선택 시 텍스트가 바닥으로 밀리거나 가려지는 현상을 완벽 해결하고 모든 개체 문구가 깔끔하게 정렬되도록 보완했습니다.
 - **이미지 개체 테두리 0px 완전 숨김 (`applyImageObjectStyle`)**: 이미지 개체(`.object-image`)에 디자인 테마 기본 테두리가 덮어씌워져 보이던 현상을 해결하기 위해, 두께가 `0`이거나 선 모양이 `none`일 때 `border: none !important`를 강제 설정하여 슬라이드 및 전체 화면에서 테두리가 완벽히 숨겨지도록 구현했습니다.
 
-### 52. 프로젝트 텍스트 데이터 갱신 및 Git 자동 커밋/푸시 동기화
-- **프로젝트 샘플 데이터 갱신 (`txts/`)**: 신규 위계 및 5단계 마인드맵 데이터가 담긴 최신 텍스트 파일 저장본을 업데이트했습니다.
-- **Git 자동 동기화**: 사용자 `/git-commit` 워크플로우에 따라 전체 모듈 정적 구문 검증(`node -c app.js`)을 완료하고 GitHub `main` 브랜치에 자동 커밋 및 푸시를 실행했습니다.
+### 53. 프로세스/타임라인 항목/스타일 보존, 도형 '배경 없음' 옵션 및 서식 툴바 글자 크기 실측 반영
+- **프로세스 및 레이아웃 항목 추가 시 배경색/스타일 완전 보존**: `RELAYOUT_TEXT_PROPERTIES`에 `bgColor`, `isCustomBgColor`, `borderColor`, `borderWidth`, `borderStyle`, `isCustomTextColor`, `fontStyle`, `fontWeight`, `fontFamily` 등을 추가하여, 프로세스 흐름을 비롯한 다이어그램/레이아웃에서 항목 추가 및 삭제 시 기존 개체의 커스텀 배경색과 테두리 서식이 초기화되는 현상을 해결했습니다.
+- **개조식 ➔ 타임라인/프로세스 레이아웃 변경 시 항목 개수 & 단계 정보 1:1 보존**: `getDiagramMaximumCount` 및 `getLayoutMaximumCount`에 적용되어 있던 소규모 최대 항목 제한(타임라인 7개, 프로세스 8개 등)을 `MAX_ITEMS`(60개)로 확장하여, 개조식에서 8개 이상의 항목이 작성된 상태에서 타임라인이나 타 다이어그램으로 변경 시 항목이 잘리거나 병합되지 않고 100% 보존되도록 보완했습니다.
+- **도형 및 개체 서식에 '배경 없음(투명)' 옵션 추가 (`#noBgColorButton`)**: 상단 서식 툴바의 배경색 선택 영역에 `배경 없음` 버튼을 추가하여 도형(사각형, 원, 세모, 별표) 및 텍스트/카드 개체의 배경색을 투명(`transparent` / SVG `fill="none"`)하게 지정할 수 있습니다.
+- **개체 선택 시 실측 글자 크기(Font Size) 상단 서식 툴바 반영 (`showTextToolbar`)**: `showTextToolbar` 및 `commitTextSizeInput` 실행 시 Outer 래퍼 대신 실제 텍스트가 렌더링된 `.canvas-text` 요소의 실측 폰트 크기(`getComputedStyle().fontSize`)를 파싱하도록 개선하여, 90px 이상으로 자동 확대 렌더링된 제목 개체("일정" 등) 선택 시 툴바 크기 입력란에 16이 아닌 실제 글자 크기(예: 96, 90)가 정확하게 표시되도록 보완했습니다.
+- **Git 자동 동기화**: 사용자 `/git-commit` 워크플로우에 따라 전체 구문 검증(`node -c app.js`)을 통과하고 `README.md`에 최신 변경 내역을 업데이트하여 GitHub `main` 브랜치에 자동 커밋 및 푸시를 실행했습니다.
 
 
 

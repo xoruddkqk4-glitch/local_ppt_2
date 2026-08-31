@@ -516,7 +516,25 @@ function buildObjectTemplate(page, itemCount) {
   }
 }
 
-const RELAYOUT_TEXT_PROPERTIES = ["text", "textColor", "fontSize", "textAlign", "color", "animOrder"];
+const RELAYOUT_TEXT_PROPERTIES = [
+  "text",
+  "textColor",
+  "isCustomTextColor",
+  "bgColor",
+  "isCustomBgColor",
+  "borderColor",
+  "borderWidth",
+  "borderStyle",
+  "fontSize",
+  "fontWeight",
+  "fontStyle",
+  "fontFamily",
+  "textAlign",
+  "color",
+  "animOrder",
+  "bulletLevel",
+  "mindLevel"
+];
 const LAYOUT_CONTENT_EXCLUDED_ROLES = new Set(["page-title", "mind-root", "media-placeholder", "vs-label", "chart-context"]);
 
 function copyRelayoutTextProperties(target, source) {
@@ -669,7 +687,17 @@ function applyBulletTemplatePreservingContent(page) {
       item: true,
       bulletLevel,
       textColor: block.textColor,
+      isCustomTextColor: block.isCustomTextColor,
+      bgColor: block.bgColor,
+      isCustomBgColor: block.isCustomBgColor,
+      borderColor: block.borderColor,
+      borderWidth: block.borderWidth,
+      borderStyle: block.borderStyle,
       fontSize: block.fontSize,
+      fontWeight: block.fontWeight,
+      fontStyle: block.fontStyle,
+      fontFamily: block.fontFamily,
+      textAlign: block.textAlign,
       animOrder: block.animOrder
     });
   });
@@ -1385,10 +1413,6 @@ function getLayoutMinimumCount(variant) {
 }
 
 function getLayoutMaximumCount(variant) {
-  if (variant === "compare") return 4;
-  if (["bannerMetrics", "metricsBottomBanner", "tableStats"].includes(variant)) return 6;
-  if (variant === "processNotices" || variant === "sideAccentGrid") return 10;
-  if (variant === "focusCards" || variant === "pairedCheckWarnings") return 6;
   return MAX_ITEMS;
 }
 
@@ -1418,16 +1442,6 @@ function getDiagramMinimumCount(variant) {
 
 function getDiagramMaximumCount(variant) {
   return {
-    process: 8,
-    timeline: 7,
-    pyramid: 6,
-    cycle: 8,
-    chain: 8,
-    ribbonArrow: 6,
-    funnel: 6,
-    venn: 4,
-    target: 6,
-    connectedCircles: 48,
     quadrant: 4,
     vs: 2
   }[variant] || MAX_ITEMS;
@@ -2804,6 +2818,7 @@ function createObjectElement(object) {
     shapeSvg.classList.add("shape-vector-svg");
 
     const color = object.bgColor || (shapeType === "circle" ? "#ef4444" : shapeType === "triangle" ? "#10b981" : shapeType === "star" ? "#f59e0b" : "#2563eb");
+    const fillColor = (color === "transparent" || color === "none") ? "none" : color;
     let strokeColor = object.borderColor || "#0f172a";
     let strokeWidth = (object.borderWidth !== undefined && object.borderWidth !== null) ? Number(object.borderWidth) : 2;
 
@@ -2816,13 +2831,13 @@ function createObjectElement(object) {
     const strokeDash = object.borderStyle && dashMap[object.borderStyle] ? `stroke-dasharray="${dashMap[object.borderStyle]}"` : "";
 
     if (shapeType === "circle") {
-      shapeSvg.innerHTML = `<circle cx="50" cy="50" r="46" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<circle cx="50" cy="50" r="46" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
     } else if (shapeType === "triangle") {
-      shapeSvg.innerHTML = `<polygon points="50,4 96,96 4,96" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<polygon points="50,4 96,96 4,96" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
     } else if (shapeType === "star") {
-      shapeSvg.innerHTML = `<polygon points="50,4 63,35 96,35 70,56 80,94 50,71 20,94 30,56 4,35 37,35" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<polygon points="50,4 63,35 96,35 70,56 80,94 50,71 20,94 30,56 4,35 37,35" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
     } else {
-      shapeSvg.innerHTML = `<rect x="3" y="3" width="94" height="94" rx="8" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<rect x="3" y="3" width="94" height="94" rx="8" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
     }
     element.append(shapeSvg);
   }
@@ -3334,6 +3349,10 @@ function showTextToolbar(object, textElement) {
         : (object.bgColor || (textElement ? getComputedStyle(textElement.parentElement || textElement).backgroundColor : "#ffffff") || "#ffffff");
       $("#bgColorInput").value = normalizeColor(bgColor);
     }
+    if ($("#noBgColorButton")) {
+      const isNoBg = object.bgColor === "transparent" || object.bgColor === "none";
+      $("#noBgColorButton").classList.toggle("is-active", isNoBg);
+    }
     if ($("#borderColorInput")) {
       $("#borderColorInput").value = normalizeColor(object.borderColor || "#0f172a");
     }
@@ -3344,7 +3363,12 @@ function showTextToolbar(object, textElement) {
       $("#borderStyleSelect").value = object.borderStyle || (object.borderWidth ? "solid" : "none");
     }
     if ($("#textSizeInput")) {
-      $("#textSizeInput").value = Math.round(object.fontSize || (textElement ? Number.parseFloat(getComputedStyle(textElement).fontSize) : 28) || 28);
+      const canvasTextEl = textElement
+        ? (textElement.classList.contains("canvas-text") ? textElement : textElement.querySelector(".canvas-text") || textElement)
+        : stage.querySelector(`[data-object-id="${object.id}"] .canvas-text`);
+      const computedSize = canvasTextEl ? Number.parseFloat(getComputedStyle(canvasTextEl).fontSize) : null;
+      const displaySize = object.fontSize || computedSize || 28;
+      $("#textSizeInput").value = Math.round(displaySize);
     }
     toolbar.querySelectorAll("[data-text-align]").forEach((button) => {
       button.classList.toggle("is-active", button.dataset.textAlign === getTextAlign(object));
@@ -4450,6 +4474,7 @@ $("#textColorInput")?.addEventListener("input", (event) => updateActiveTextStyle
 
 $("#bgColorInput")?.addEventListener("change", (event) => updateActiveTextStyle("bgColor", event.target.value));
 $("#bgColorInput")?.addEventListener("input", (event) => updateActiveTextStyle("bgColor", event.target.value));
+$("#noBgColorButton")?.addEventListener("click", () => updateActiveTextStyle("bgColor", "transparent"));
 
 $("#borderColorInput")?.addEventListener("change", (event) => updateActiveTextStyle("borderColor", event.target.value));
 $("#borderColorInput")?.addEventListener("input", (event) => updateActiveTextStyle("borderColor", event.target.value));
@@ -4533,7 +4558,9 @@ function commitTextSizeInput(input) {
   const parsed = Number(input.value);
   if (!Number.isFinite(parsed)) {
     const object = currentPage().objects.find((item) => item.id === state.activeTextObjectId && item.type === "text");
-    input.value = Math.round(object?.fontSize || 28);
+    const canvasTextEl = stage.querySelector(`[data-object-id="${state.activeTextObjectId}"] .canvas-text`);
+    const computedSize = canvasTextEl ? Number.parseFloat(getComputedStyle(canvasTextEl).fontSize) : null;
+    input.value = Math.round(object?.fontSize || computedSize || 28);
     return;
   }
   const size = clamp(8, Math.round(parsed), 160);
