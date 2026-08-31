@@ -539,6 +539,9 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **개조식 ➔ 타임라인/프로세스 레이아웃 변경 시 항목 개수 & 단계 정보 1:1 보존**: `getDiagramMaximumCount` 및 `getLayoutMaximumCount`에 적용되어 있던 소규모 최대 항목 제한(타임라인 7개, 프로세스 8개 등)을 `MAX_ITEMS`(60개)로 확장하여, 개조식에서 8개 이상의 항목이 작성된 상태에서 타임라인이나 타 다이어그램으로 변경 시 항목이 잘리거나 병합되지 않고 100% 보존되도록 보완했습니다.
 - **도형 및 개체 서식에 '배경 없음(투명)' 옵션 추가 (`#noBgColorButton`)**: 상단 서식 툴바의 배경색 선택 영역에 `배경 없음` 버튼을 추가하여 도형(사각형, 원, 세모, 별표) 및 텍스트/카드 개체의 배경색을 투명(`transparent` / SVG `fill="none"`)하게 지정할 수 있습니다.
 - **개체 선택 시 실측 글자 크기(Font Size) 상단 서식 툴바 반영 (`showTextToolbar`)**: `showTextToolbar` 및 `commitTextSizeInput` 실행 시 Outer 래퍼 대신 실제 텍스트가 렌더링된 `.canvas-text` 요소의 실측 폰트 크기(`getComputedStyle().fontSize`)를 파싱하도록 개선하여, 90px 이상으로 자동 확대 렌더링된 제목 개체("일정" 등) 선택 시 툴바 크기 입력란에 16이 아닌 실제 글자 크기(예: 96, 90)가 정확하게 표시되도록 보완했습니다.
+### 54. 도형 개체 개별 삭제 독립성 확보 및 '텍스트 추가' 개체 빈 내용 유지
+- **도형 및 커스텀 개체 단일 삭제 시 타 개체 동시 삭제 방지 (`deleteSelectedObjects`)**: `deleteSelectedObjects` 실행 시 `cardDeletable` 필터를 강화하여 도형(`shape-box`), 자유 텍스트(`free-text`), 타이머(`timer`) 등 커스텀 개체 삭제 시 템플릿 전체 재구축(`rebuildObjectTemplatePreservingContent`)이 발동하지 않고 선택한 개체만 단독 삭제되도록 수정했습니다. 또한 템플릿 재구축 시에도 기존 커스텀 개체(`customObjects`)가 보존되도록 안정성을 높였습니다.
+- **'텍스트 추가' 개체 글자 삭제 시 '텍스트' 문구 복원 방지 (`beginTextEdit`)**: `beginTextEdit` 수정 완료(`finish`) 시 대체 문구 적용 조건에 `free-text`를 등록하여, 사용자가 '텍스트 추가' 버튼으로 생성한 텍스트 개체의 문구를 모두 지웠을 때 `"텍스트"`라는 기본 대체 텍스트가 다시 채워지지 않고 빈 내용(`""`) 상태로 깔끔하게 유지되도록 보완했습니다.
 - **Git 자동 동기화**: 사용자 `/git-commit` 워크플로우에 따라 전체 구문 검증(`node -c app.js`)을 통과하고 `README.md`에 최신 변경 내역을 업데이트하여 GitHub `main` 브랜치에 자동 커밋 및 푸시를 실행했습니다.
 
 

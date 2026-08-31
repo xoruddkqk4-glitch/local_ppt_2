@@ -544,6 +544,10 @@ function copyRelayoutTextProperties(target, source) {
 }
 
 function rebuildObjectTemplatePreservingContent(page, itemCount, removedObject = null) {
+  const customObjects = (page.objects || []).filter(
+    (o) => o.role === "shape-box" || o.role === "free-text" || o.type === "timer" || (o.item === false && !LAYOUT_CONTENT_EXCLUDED_ROLES.has(o.role))
+  );
+
   const previousItemCount = getItemCount(page);
   const previousByRole = new Map();
   page.objects
@@ -565,6 +569,15 @@ function rebuildObjectTemplatePreservingContent(page, itemCount, removedObject =
   }
 
   buildObjectTemplate(page, itemCount);
+
+  if (customObjects.length > 0) {
+    customObjects.forEach((customObj) => {
+      if (!page.objects.some((o) => o.id === customObj.id)) {
+        page.objects.push(customObj);
+      }
+    });
+  }
+
   const nextRoleIndexes = new Map();
   page.objects
     .filter((object) => object.type === "text")
@@ -1584,7 +1597,7 @@ function deleteSelectedObjects() {
       page.imageDeleted = true;
     }
 
-    const cardDeletable = deletable.filter((o) => o.role !== "page-title" && o.type !== "image");
+    const cardDeletable = deletable.filter((o) => o.item !== false && !["shape-box", "free-text", "page-title"].includes(o.role) && !["image", "timer"].includes(o.type));
     const removeCount = cardDeletable.length;
     const count = getItemCount(page);
     const newCount = Math.max(1, count - removeCount);
@@ -3287,7 +3300,7 @@ function beginTextEdit(event, object, wrapper, text) {
   selection.addRange(range);
 
   const finish = () => {
-    object.text = text.innerText.trim() || (object.role === "shape-box" ? "" : "텍스트");
+    object.text = text.innerText.trim() || (["free-text", "shape-box"].includes(object.role) ? "" : "텍스트");
     text.contentEditable = "false";
     wrapper.classList.remove("is-editing");
     renderStage();
