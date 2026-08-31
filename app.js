@@ -669,6 +669,11 @@ function getLayoutContentSnapshot(page) {
 }
 
 function applyBulletTemplatePreservingContent(page) {
+  if (page.template === "mindmap" || (Array.isArray(page.objects) && page.objects.some((o) => o.role === "mind-node"))) {
+    page.mindmapSnapshot = page.objects
+      .filter((o) => o.role === "mind-root" || o.role === "mind-node")
+      .map((o) => ({ ...o }));
+  }
   const snapshotContent = getLayoutContentSnapshot(page);
   const images = getCustomUserImages(page);
   const titleText = snapshotContent.title?.text || "개조식 본문";
@@ -727,6 +732,63 @@ function applyMindmapTemplatePreservingContent(page) {
   page.template = "mindmap";
   page.objectCategory = "diagram";
   page.variant = "connectedCircles";
+
+  if (Array.isArray(page.mindmapSnapshot) && page.mindmapSnapshot.length > 0) {
+    const savedRoot = page.mindmapSnapshot.find((o) => o.root || o.role === "mind-root");
+    const savedNodes = page.mindmapSnapshot.filter((o) => o.role === "mind-node");
+
+    if (savedRoot) {
+      const root = { ...savedRoot, text: rootText };
+      if (snapshotContent.title) copyRelayoutTextProperties(root, snapshotContent.title);
+
+      const remainingBlocks = snapshotContent.title
+        ? snapshotContent.blocks
+        : snapshotContent.blocks.slice(1);
+
+      const restoredNodes = [];
+      const lastNodeAtLevel = { 1: root.id };
+
+      remainingBlocks.forEach((block, index) => {
+        if (index < savedNodes.length) {
+          const node = { ...savedNodes[index], text: String(block.text || "").trim() || savedNodes[index].text };
+          copyRelayoutTextProperties(node, block);
+          lastNodeAtLevel[node.mindLevel || 2] = node.id;
+          restoredNodes.push(node);
+        } else {
+          let level = 2;
+          if (typeof block.bulletLevel === "number") {
+            level = clamp(2, Number(block.bulletLevel) + 1, 6);
+          } else if (typeof block.mindLevel === "number") {
+            level = clamp(2, Number(block.mindLevel), 6);
+          }
+
+          let parentId = lastNodeAtLevel[level - 1];
+          if (!parentId) {
+            for (let p = level - 1; p >= 1; p--) {
+              if (lastNodeAtLevel[p]) {
+                parentId = lastNodeAtLevel[p];
+                break;
+              }
+            }
+          }
+          if (!parentId) parentId = root.id;
+
+          const newNode = createMindNode(String(block.text || "").trim() || `노드 ${index + 1}`, parentId, level);
+          lastNodeAtLevel[level] = newNode.id;
+          copyRelayoutTextProperties(newNode, block);
+          restoredNodes.push(newNode);
+        }
+      });
+
+      page.objects = [root, ...restoredNodes, ...images];
+      if (remainingBlocks.length > savedNodes.length) {
+        layoutMindmapTree(page);
+      } else {
+        resolveNodeOverlaps(page);
+      }
+      return;
+    }
+  }
 
   const root = createTextObject("mind-root", rootText, 41, 45, 18, 13, {
     item: false, node: true, root: true, mindLevel: 1
@@ -799,6 +861,11 @@ function applySnapshotBlocksToTargets(blocks, targets) {
 }
 
 function changeLayoutVariantPreservingContent(page, variant) {
+  if (page.template === "mindmap" || (Array.isArray(page.objects) && page.objects.some((o) => o.role === "mind-node"))) {
+    page.mindmapSnapshot = page.objects
+      .filter((o) => o.role === "mind-root" || o.role === "mind-node")
+      .map((o) => ({ ...o }));
+  }
   delete page.imageDeleted;
   const snapshotContent = getLayoutContentSnapshot(page);
   page.template = "object";
@@ -834,6 +901,11 @@ function changeLayoutVariantPreservingContent(page, variant) {
 }
 
 function changeDiagramVariantPreservingContent(page, variant) {
+  if (page.template === "mindmap" || (Array.isArray(page.objects) && page.objects.some((o) => o.role === "mind-node"))) {
+    page.mindmapSnapshot = page.objects
+      .filter((o) => o.role === "mind-root" || o.role === "mind-node")
+      .map((o) => ({ ...o }));
+  }
   const snapshotContent = getLayoutContentSnapshot(page);
   page.template = "object";
   page.objectCategory = "diagram";

@@ -542,6 +542,9 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 ### 54. 도형 개체 개별 삭제 독립성 확보 및 '텍스트 추가' 개체 빈 내용 유지
 - **도형 및 커스텀 개체 단일 삭제 시 타 개체 동시 삭제 방지 (`deleteSelectedObjects`)**: `deleteSelectedObjects` 실행 시 `cardDeletable` 필터를 강화하여 도형(`shape-box`), 자유 텍스트(`free-text`), 타이머(`timer`) 등 커스텀 개체 삭제 시 템플릿 전체 재구축(`rebuildObjectTemplatePreservingContent`)이 발동하지 않고 선택한 개체만 단독 삭제되도록 수정했습니다. 또한 템플릿 재구축 시에도 기존 커스텀 개체(`customObjects`)가 보존되도록 안정성을 높였습니다.
 - **'텍스트 추가' 개체 글자 삭제 시 '텍스트' 문구 복원 방지 (`beginTextEdit`)**: `beginTextEdit` 수정 완료(`finish`) 시 대체 문구 적용 조건에 `free-text`를 등록하여, 사용자가 '텍스트 추가' 버튼으로 생성한 텍스트 개체의 문구를 모두 지웠을 때 `"텍스트"`라는 기본 대체 텍스트가 다시 채워지지 않고 빈 내용(`""`) 상태로 깔끔하게 유지되도록 보완했습니다.
+### 55. 마인드맵 ↔ 개조식/레이아웃 변환 시 마인드맵 원본 노드 위치 보존
+- **마인드맵 원본 위치 스냅샷 보존 (`page.mindmapSnapshot`)**: 마인드맵 레이아웃을 벗어날 때(`applyBulletTemplatePreservingContent`, `changeLayoutVariantPreservingContent` 등) 마인드맵 노드들의 위치 좌표(`x`, `y`, `w`, `h`), 트리 구조(`parentId`), 각도(`mindAngle`), 위계(`mindLevel`) 및 스타일을 `page.mindmapSnapshot` 스냅샷으로 자동 보존합니다.
+- **마인드맵 재전환 시 처음 위치 100% 복원**: 다시 마인드맵으로 돌아올 때(`applyMindmapTemplatePreservingContent`) 저장된 스냅샷 노드 정보를 바탕으로 복원하여, `layoutMindmapTree` 재계산으로 발생하던 개체 위치 변경 현상을 방지하고 처음 마인드맵 위치를 온전히 유지하도록 구현했습니다.
 - **Git 자동 동기화**: 사용자 `/git-commit` 워크플로우에 따라 전체 구문 검증(`node -c app.js`)을 통과하고 `README.md`에 최신 변경 내역을 업데이트하여 GitHub `main` 브랜치에 자동 커밋 및 푸시를 실행했습니다.
 
 
