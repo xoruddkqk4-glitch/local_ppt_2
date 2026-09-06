@@ -561,5 +561,6 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **개별 셀 선택 및 독립 서식 지정 (`app.js`, `style.css`)**: 테이블 셀 클릭 시 파란색 윤곽선(`is-cell-selected`)으로 해당 셀만 독립 선택되며, 상단 서식 툴바 및 테마 3색 퀵 버튼(`.theme-color-btn`)을 이용하여 셀별 배경색(`bgColor`), 글자색(`textColor`), 글자 크기(`fontSize`)를 개별 지정할 수 있습니다.
 - **셀 텍스트 편집 및 마우스 선택 이벤트 안정화**: 셀 단일 클릭 시 전체 캔버스를 재렌더링하던 현상을 제거하여 텍스트 드래그 선택 및 Typing 수정(contentEditable) 사용성을 대폭 개선했습니다.
 - **JSON 저장/복원 완벽 지원**: 셀별 커스텀 스타일(`cellStyles`), 열 너비(`colWidths`), 행 높이(`rowHeights`)가 프로젝트 구조체에 보존되어 `.txt` 저장 및 불러올 때 100% 원본 상태로 복원됩니다.
-
-
+### 59. 테이블 개체 셀별 글자 크기 유지 및 포커스 해제(blur) 시 덮어쓰기 방지
+- **셀별 커스텀 글자 크기 동기화 (`showTextToolbar`)**: 상단 서식 툴바에서 테이블 셀 선택 시 개체 공통 글자 크기가 아닌 선택된 셀의 지정 글자 크기(`cellStyles[cellKey].fontSize`) 및 셀 실측 계산 크기를 툴바 입력란(`#textSizeInput`)에 반영하도록 개선했습니다.
+- **포커스 해제(`blur`) 시 글자 크기 16 초기화 방지 (`commitTextSizeInput`)**: 다른 셀을 클릭하거나 선택을 전환할 때 툴바 입력 필드가 포커스를 잃으면서(`blur`) 발생하던 이전/전환 셀의 글자 크기 16px 초기화(덮어쓰기) 버그를 `dataset.lastCommittedValue` 추적 로직을 통해 완벽 차단했습니다.

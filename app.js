@@ -3585,12 +3585,28 @@ function showTextToolbar(object, textElement) {
       $("#borderStyleSelect").value = object.borderStyle || (object.borderWidth ? "solid" : "none");
     }
     if ($("#textSizeInput")) {
-      const canvasTextEl = textElement
-        ? (textElement.classList.contains("canvas-text") ? textElement : textElement.querySelector(".canvas-text") || textElement)
-        : stage.querySelector(`[data-object-id="${object.id}"] .canvas-text`);
-      const computedSize = canvasTextEl ? Number.parseFloat(getComputedStyle(canvasTextEl).fontSize) : null;
-      const displaySize = object.fontSize || computedSize || 28;
-      $("#textSizeInput").value = Math.round(displaySize);
+      let displaySize;
+      if (object.type === "table" && state.selectedCell && state.selectedCell.objectId === object.id) {
+        const { rowIndex, columnIndex } = state.selectedCell;
+        const cellKey = `${rowIndex},${columnIndex}`;
+        const cellStyle = object.cellStyles?.[cellKey];
+        if (cellStyle && cellStyle.fontSize) {
+          displaySize = cellStyle.fontSize;
+        } else {
+          const selectedCellEl = stage.querySelector(`[data-object-id="${object.id}"] table .is-cell-selected`);
+          const computedSize = selectedCellEl ? Number.parseFloat(getComputedStyle(selectedCellEl).fontSize) : null;
+          displaySize = computedSize || object.fontSize || 16;
+        }
+      } else {
+        const canvasTextEl = textElement
+          ? (textElement.classList.contains("canvas-text") ? textElement : textElement.querySelector(".canvas-text") || textElement)
+          : stage.querySelector(`[data-object-id="${object.id}"] .canvas-text`);
+        const computedSize = canvasTextEl ? Number.parseFloat(getComputedStyle(canvasTextEl).fontSize) : null;
+        displaySize = object.fontSize || computedSize || 28;
+      }
+      const roundedSize = Math.round(displaySize);
+      $("#textSizeInput").value = roundedSize;
+      $("#textSizeInput").dataset.lastCommittedValue = String(roundedSize);
     }
     toolbar.querySelectorAll("[data-text-align]").forEach((button) => {
       button.classList.toggle("is-active", button.dataset.textAlign === getTextAlign(object));
@@ -4844,14 +4860,36 @@ document.querySelectorAll(".theme-color-btn").forEach((btn) => {
 function commitTextSizeInput(input) {
   const parsed = Number(input.value);
   if (!Number.isFinite(parsed)) {
-    const object = currentPage().objects.find((item) => item.id === state.activeTextObjectId && item.type === "text");
-    const canvasTextEl = stage.querySelector(`[data-object-id="${state.activeTextObjectId}"] .canvas-text`);
-    const computedSize = canvasTextEl ? Number.parseFloat(getComputedStyle(canvasTextEl).fontSize) : null;
-    input.value = Math.round(object?.fontSize || computedSize || 28);
+    let displaySize;
+    const page = currentPage();
+    const activeObj = page.objects.find((item) => item.id === state.activeTextObjectId);
+    if (activeObj && activeObj.type === "table" && state.selectedCell && state.selectedCell.objectId === activeObj.id) {
+      const { rowIndex, columnIndex } = state.selectedCell;
+      const cellKey = `${rowIndex},${columnIndex}`;
+      const cellStyle = activeObj.cellStyles?.[cellKey];
+      if (cellStyle && cellStyle.fontSize) {
+        displaySize = cellStyle.fontSize;
+      } else {
+        const selectedCellEl = stage.querySelector(`[data-object-id="${activeObj.id}"] table .is-cell-selected`);
+        const computedSize = selectedCellEl ? Number.parseFloat(getComputedStyle(selectedCellEl).fontSize) : null;
+        displaySize = computedSize || activeObj.fontSize || 16;
+      }
+    } else {
+      const canvasTextEl = stage.querySelector(`[data-object-id="${state.activeTextObjectId}"] .canvas-text`);
+      const computedSize = canvasTextEl ? Number.parseFloat(getComputedStyle(canvasTextEl).fontSize) : null;
+      displaySize = activeObj?.fontSize || computedSize || 28;
+    }
+    const resetSize = Math.round(displaySize);
+    input.value = resetSize;
+    input.dataset.lastCommittedValue = String(resetSize);
     return;
   }
   const size = clamp(8, Math.round(parsed), 160);
   input.value = size;
+  if (input.dataset.lastCommittedValue === String(size)) {
+    return;
+  }
+  input.dataset.lastCommittedValue = String(size);
   updateActiveTextStyle("fontSize", size);
 }
 
