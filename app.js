@@ -3714,30 +3714,33 @@ function beginDrag(event, object) {
   stage.focus({ preventScroll: true });
   hideTextToolbar();
 
-  if (event.ctrlKey || event.metaKey) {
-    if (state.selectedIds.has(object.id)) state.selectedIds.delete(object.id);
-    else state.selectedIds.add(object.id);
-    updateSelectionClasses();
-    renderControls();
-    return;
-  }
+  const isCtrl = event.ctrlKey || event.metaKey;
+  const wasAlreadySelected = state.selectedIds.has(object.id);
 
-  if (!state.selectedIds.has(object.id)) {
-    state.selectedIds.clear();
-    state.selectedIds.add(object.id);
+  if (isCtrl) {
+    if (!wasAlreadySelected) {
+      state.selectedIds.add(object.id);
+    }
+  } else {
+    if (!wasAlreadySelected) {
+      state.selectedIds.clear();
+      state.selectedIds.add(object.id);
+    }
   }
   updateSelectionClasses();
   renderControls();
+
   const start = getStagePoint(event);
   const selected = currentPage().objects.filter((item) => state.selectedIds.has(item.id));
   const origins = selected.map((item) => ({ item, x: item.x, y: item.y }));
-  const bounds = getObjectBounds(selected);
+  const bounds = selected.length > 0 ? getObjectBounds(selected) : null;
   const targets = getSnapTargets(state.selectedIds);
   const thresholdX = SNAP_DISTANCE_PX / stage.clientWidth * 100;
   const thresholdY = SNAP_DISTANCE_PX / stage.clientHeight * 100;
   let dragStarted = false;
 
   const move = (moveEvent) => {
+    if (!bounds || !origins.length) return;
     const point = getStagePoint(moveEvent);
     const distanceX = (point.x - start.x) / 100 * stage.clientWidth;
     const distanceY = (point.y - start.y) / 100 * stage.clientHeight;
@@ -3772,6 +3775,25 @@ function beginDrag(event, object) {
     if (dragStarted) {
       state.guides = [];
       renderStage();
+    } else {
+      if (isCtrl && wasAlreadySelected) {
+        state.selectedIds.delete(object.id);
+        updateSelectionClasses();
+        renderControls();
+      } else if (!isCtrl && wasAlreadySelected && state.selectedIds.size > 1) {
+        state.selectedIds.clear();
+        state.selectedIds.add(object.id);
+        updateSelectionClasses();
+        renderControls();
+      }
+    }
+    if (state.selectedIds.size === 1) {
+      const singleId = [...state.selectedIds][0];
+      const singleObj = currentPage()?.objects?.find((o) => o.id === singleId);
+      const singleEl = stage.querySelector(`[data-object-id="${singleId}"]`);
+      if (singleObj && singleEl && singleObj.type !== "timer") {
+        showTextToolbar(singleObj, singleEl);
+      }
     }
   };
   window.addEventListener("pointermove", move);
@@ -5143,6 +5165,91 @@ stage.addEventListener("click", (event) => {
     navigateFullscreenNext();
   }
 }, true);
+
+function isStageBackgroundTarget(target) {
+  if (!target || target === stage) return true;
+  if (target.classList.contains("stage-background") || target.classList.contains("presentation-stage") || target.classList.contains("empty-page")) return true;
+  if (target.closest(".canvas-object") || target.closest(".resize-handle") || target.closest(".stage-floating-actions") || target.closest("button") || target.closest("input") || target.closest("select") || target.closest("a")) {
+    return false;
+  }
+  return true;
+}
+
+stage.addEventListener("pointerdown", (event) => {
+  if (event.button !== 0 || document.fullscreenElement === stage) return;
+  if (!isStageBackgroundTarget(event.target)) return;
+
+  event.preventDefault();
+  stage.focus({ preventScroll: true });
+  hideTextToolbar();
+
+  const startPoint = getStagePoint(event);
+  const isCtrl = event.ctrlKey || event.metaKey;
+  const initialSelectedIds = new Set(isCtrl ? state.selectedIds : []);
+
+  if (!isCtrl) {
+    state.selectedIds.clear();
+    updateSelectionClasses();
+    renderControls();
+  }
+
+  const box = document.createElement("div");
+  box.className = "stage-marquee-box";
+  box.style.left = `${startPoint.x}%`;
+  box.style.top = `${startPoint.y}%`;
+  box.style.width = "0%";
+  box.style.height = "0%";
+  stage.append(box);
+
+  const move = (moveEvent) => {
+    const currentPoint = getStagePoint(moveEvent);
+    const minX = Math.min(startPoint.x, currentPoint.x);
+    const maxX = Math.max(startPoint.x, currentPoint.x);
+    const minY = Math.min(startPoint.y, currentPoint.y);
+    const maxY = Math.max(startPoint.y, currentPoint.y);
+
+    const widthPct = maxX - minX;
+    const heightPct = maxY - minY;
+
+    box.style.left = `${minX}%`;
+    box.style.top = `${minY}%`;
+    box.style.width = `${widthPct}%`;
+    box.style.height = `${heightPct}%`;
+
+    const page = currentPage();
+    if (!page || !Array.isArray(page.objects)) return;
+
+    const intersectedIds = new Set();
+    page.objects.forEach((object) => {
+      const objRight = object.x + object.w;
+      const objBottom = object.y + object.h;
+      if (object.x < maxX && objRight > minX && object.y < maxY && objBottom > minY) {
+        intersectedIds.add(object.id);
+      }
+    });
+
+    state.selectedIds = new Set([...initialSelectedIds, ...intersectedIds]);
+    updateSelectionClasses();
+  };
+
+  const end = () => {
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", end);
+    box.remove();
+    renderControls();
+    if (state.selectedIds.size === 1) {
+      const singleId = [...state.selectedIds][0];
+      const singleObj = currentPage()?.objects?.find((o) => o.id === singleId);
+      const singleEl = stage.querySelector(`[data-object-id="${singleId}"]`);
+      if (singleObj && singleEl && singleObj.type !== "timer") {
+        showTextToolbar(singleObj, singleEl);
+      }
+    }
+  };
+
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", end);
+});
 
 $("#stageCopyBtn")?.addEventListener("click", () => executeCopy());
 $("#stageCutBtn")?.addEventListener("click", () => {
