@@ -550,3 +550,9 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 ### 56. .agents 커스터마이징 구조 표준화 및 git-commit 스킬 단일화
 - **.agents 커스터마이징 구조 정돈**: 기존 `.antigravity/rules.md` 및 중복 스킬(`update-readme-push`)을 정리하고 프로젝트 `.agents/` 디렉토리 하위의 `rules/rules.md` 및 `skills/git-commit/SKILL.md` 표준 규격으로 일원화했습니다.
 - **Git 자동 커밋 & 문서화 워크플로우 통합**: `/git-commit` 및 사용자 Git 푸시 요청 시 변경 및 검증 사항을 `README.md`에 기록하고, 상세 커밋 메시지 양식(`docs: update README.md and detailed commit results`)에 맞춰 GitHub 원격 저장소(`main` 브랜치)로 자동 커밋 및 푸시하는 절차를 동기화했습니다.
+
+### 57. 데이터 차트 & 테이블 썸네일 규격 단일화 및 SVG/표 그리드 디자인 개선
+- **SVG 차트 썸네일 이탈 방지 (`style.css`, `app.js`)**: `line` 및 `area` 차트의 SVG 요소에 `preserveAspectRatio="none"` 속성과 `width: 100% !important; height: 100% !important;` CSS를 지정하여, 브라우저 기본 300px 크기로 인한 카드가 좌우로 이탈·침범하던 현상을 완전 수정했습니다.
+- **차트 & 테이블 썸네일 크기 및 정렬 통일**: `.layout-variant-button` 및 `.chart-thumbnail`에 `width: 100%`, `aspect-ratio: 16/9`, `box-sizing: border-box`, `overflow: hidden`을 강제 적용하고, `column`(세로 막대 차트) 5개 막대의 높이 비율(45%, 75%, 55%, 90%, 65%)과 상단 라운드를 부여하여 모든 썸네일 카드가 균일한 크기로 정렬되도록 개선했습니다.
+- **표 전용 썸네일 디자인 적용 (`table`, `tableStats`)**: `table`(기본 데이터 테이블) 및 `tableStats`(메인 테이블 + 우측 지표) 썸네일에 파란색 상단 헤더 바와 데이터 셀 그리드가 조합된 전용 시각화 HTML/CSS 구조(`table-thumb-grid`, `table-stats-thumb`)를 새로 추가했습니다.
+

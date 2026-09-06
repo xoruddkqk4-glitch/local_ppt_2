@@ -4072,8 +4072,8 @@ function getLayoutThumbnailMarkup(variant) {
   if (variant === "image_top") return '<span class="layout-thumbnail img-thumb-top"><span class="t-img-banner"></span><span class="t-text-row"><span class="t-card"></span><span class="t-card"></span></span></span>';
   if (variant === "image_bottom") return '<span class="layout-thumbnail img-thumb-bottom"><span class="t-text-row"><span class="t-card"></span><span class="t-card"></span></span><span class="t-img-banner"></span></span>';
 
-  if (variant === "table") return '<span class="layout-thumbnail card-thumb-box"><span class="thumb-card-grid col-3"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span></span>';
-  if (variant === "tableStats") return '<span class="layout-thumbnail summary-thumb-right"><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span></span><span class="t-dark-panel">지표</span></span>';
+  if (variant === "table") return '<span class="layout-thumbnail table-thumb-grid"><span class="t-table-header"></span><span class="t-table-row"><span></span><span></span><span></span></span><span class="t-table-row"><span></span><span></span><span></span></span><span class="t-table-row"><span></span><span></span><span></span></span></span>';
+  if (variant === "tableStats") return '<span class="layout-thumbnail table-stats-thumb"><span class="t-table-col"><span class="t-table-header"></span><span class="t-table-row"><span></span><span></span></span><span class="t-table-row"><span></span><span></span></span></span><span class="t-dark-panel">지표</span></span>';
 
   return '<span class="layout-thumbnail card-thumb-box"><span class="thumb-card-single"><i></i></span></span>';
 }
@@ -4101,10 +4101,10 @@ function getChartThumbnailMarkup(variant) {
   const bars = '<i></i><i></i><i></i><i></i><i></i>';
   const previews = {
     column: `<span class="chart-thumbnail chart-thumb-column">${bars}</span>`,
-    line: '<span class="chart-thumbnail chart-thumb-line"><svg viewBox="0 0 100 50" aria-hidden="true"><polyline points="5,39 27,25 48,30 70,11 95,18"></polyline></svg></span>',
+    line: '<span class="chart-thumbnail chart-thumb-line"><svg viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true"><polyline points="5,39 27,25 48,30 70,11 95,18"></polyline></svg></span>',
     pie: '<span class="chart-thumbnail chart-thumb-pie"><i></i></span>',
     bar: `<span class="chart-thumbnail chart-thumb-bar">${bars}</span>`,
-    area: '<span class="chart-thumbnail chart-thumb-area"><svg viewBox="0 0 100 50" aria-hidden="true"><polygon points="5,43 5,35 27,25 48,30 70,11 95,18 95,43"></polygon><polyline points="5,35 27,25 48,30 70,11 95,18"></polyline></svg></span>'
+    area: '<span class="chart-thumbnail chart-thumb-area"><svg viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true"><polygon points="5,43 5,35 27,25 48,30 70,11 95,18 95,43"></polygon><polyline points="5,35 27,25 48,30 70,11 95,18"></polyline></svg></span>'
   };
   return previews[variant] || previews.column;
 }
