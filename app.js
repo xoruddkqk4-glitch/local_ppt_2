@@ -2015,6 +2015,20 @@ function renderControls() {
   }
   $("#tableAxisLabel").hidden = !selectedTable;
   $("#tableAxisSelect").value = tableManagementAxis;
+  const tableDimControls = $("#tableDimensionControls");
+  if (tableDimControls) {
+    tableDimControls.hidden = !selectedTable;
+    if (selectedTable) {
+      const currentCell = (state.selectedCell && state.selectedCell.objectId === selectedTable.id) ? state.selectedCell : { rowIndex: 0, columnIndex: 0 };
+      const colsCount = selectedTable.cells[0]?.length || 1;
+      const colWInput = $("#tableColWidthInput");
+      const rowHInput = $("#tableRowHeightInput");
+      const colW = selectedTable.colWidths?.[currentCell.columnIndex] ?? Math.round(100 / colsCount);
+      const rowH = selectedTable.rowHeights?.[currentCell.rowIndex] ?? (currentCell.rowIndex === 0 ? 38 : 30);
+      if (colWInput && document.activeElement !== colWInput) colWInput.value = Math.round(colW);
+      if (rowHInput && document.activeElement !== rowHInput) rowHInput.value = Math.round(rowH);
+    }
+  }
   $("#addItemButton").disabled = (!isCover && !page.template) || !canAddItem(page, selected);
   $("#removeItemButton").disabled = (!isCover && !page.template) || !canRemoveItem(page, selected);
   $("#addItemButton").textContent = selectedChart ? "+ 데이터" : selectedTable ? `+ ${tableManagementAxis === "column" ? "열" : "행"}` : "+ 항목";
@@ -3168,19 +3182,121 @@ function applyObjectBox(element, object) {
   element.style.height = `${object.h}%`;
 }
 
+function setTableColumnWidth(table, colIndex, newWidthPercent) {
+  const cols = table.cells[0]?.length || 1;
+  if (!Array.isArray(table.colWidths) || table.colWidths.length !== cols) {
+    table.colWidths = Array(cols).fill(100 / cols);
+  }
+  const clampedWidth = Math.max(5, Math.min(90, newWidthPercent));
+  const oldWidth = table.colWidths[colIndex] || (100 / cols);
+  const diff = clampedWidth - oldWidth;
+  const otherIndices = table.colWidths.map((_, i) => i).filter((i) => i !== colIndex);
+  const otherSum = otherIndices.reduce((sum, i) => sum + (table.colWidths[i] || 0), 0);
+
+  table.colWidths[colIndex] = clampedWidth;
+  if (otherSum > 0) {
+    otherIndices.forEach((i) => {
+      const ratio = table.colWidths[i] / otherSum;
+      table.colWidths[i] = Math.max(3, table.colWidths[i] - diff * ratio);
+    });
+  }
+}
+
+function setTableRowHeight(table, rowIndex, newHeightPx) {
+  const rows = table.cells.length;
+  if (!Array.isArray(table.rowHeights) || table.rowHeights.length !== rows) {
+    table.rowHeights = Array(rows).fill(30);
+    if (table.rowHeights.length > 0) table.rowHeights[0] = 38;
+  }
+  table.rowHeights[rowIndex] = Math.max(20, Math.min(300, newHeightPx));
+}
+
 function createTableElement(object) {
   const table = document.createElement("table");
   table.className = "table-object";
+
+  const colsCount = object.cells[0]?.length || 1;
+  const colWidths = Array.isArray(object.colWidths) && object.colWidths.length === colsCount
+    ? object.colWidths
+    : Array(colsCount).fill(100 / colsCount);
+
+  const colgroup = document.createElement("colgroup");
+  colWidths.forEach((w) => {
+    const col = document.createElement("col");
+    col.style.width = `${w}%`;
+    colgroup.append(col);
+  });
+  table.append(colgroup);
+
+  const rowHeights = Array.isArray(object.rowHeights) && object.rowHeights.length === object.cells.length
+    ? object.rowHeights
+    : object.cells.map((_, i) => (i === 0 ? 38 : 30));
+  const totalRowHeight = rowHeights.reduce((sum, h) => sum + h, 0) || 1;
+
   object.cells.forEach((row, rowIndex) => {
     const tr = document.createElement("tr");
+    const rowH = rowHeights[rowIndex] || (rowIndex === 0 ? 38 : 30);
+    const rowPct = (rowH / totalRowHeight) * 100;
+    tr.style.height = `${rowPct}%`;
+
     row.forEach((value, columnIndex) => {
-      const cell = document.createElement(rowIndex === 0 ? "th" : "td");
+      const isHeader = rowIndex === 0;
+      const cell = document.createElement(isHeader ? "th" : "td");
       cell.textContent = value;
-      cell.addEventListener("click", () => {
+      cell.style.height = `${rowH}px`;
+
+      const cellKey = `${rowIndex},${columnIndex}`;
+      const styleConfig = object.cellStyles?.[cellKey];
+      if (styleConfig) {
+        if (styleConfig.bgColor) {
+          cell.style.setProperty("background-color", styleConfig.bgColor, "important");
+        }
+        if (styleConfig.textColor) {
+          cell.style.setProperty("color", styleConfig.textColor, "important");
+        }
+        if (styleConfig.fontSize) {
+          cell.style.setProperty("font-size", `${styleConfig.fontSize}px`, "important");
+        }
+      }
+
+      if (
+        state.selectedCell &&
+        state.selectedCell.objectId === object.id &&
+        state.selectedCell.rowIndex === rowIndex &&
+        state.selectedCell.columnIndex === columnIndex
+      ) {
+        cell.classList.add("is-cell-selected");
+      }
+
+      cell.addEventListener("click", (event) => {
+        if (cell.isContentEditable) return;
+        event.stopPropagation();
+        const wasSelected = state.selectedCell &&
+          state.selectedCell.objectId === object.id &&
+          state.selectedCell.rowIndex === rowIndex &&
+          state.selectedCell.columnIndex === columnIndex;
+
         state.selectedIds = new Set([object.id]);
+        state.selectedCell = { objectId: object.id, rowIndex, columnIndex };
+
+        const parentTable = cell.closest("table");
+        if (parentTable) {
+          parentTable.querySelectorAll(".is-cell-selected").forEach((c) => c.classList.remove("is-cell-selected"));
+        }
+        cell.classList.add("is-cell-selected");
+
         renderControls();
+        const wrapper = stage?.querySelector(`[data-object-id="${object.id}"]`);
+        if (wrapper) showTextToolbar(object, wrapper);
+
+        if (wasSelected) {
+          beginCellEdit(event, object, rowIndex, columnIndex, cell);
+        }
       });
-      cell.addEventListener("dblclick", (event) => beginCellEdit(event, object, rowIndex, columnIndex, cell));
+
+      cell.addEventListener("dblclick", (event) => {
+        beginCellEdit(event, object, rowIndex, columnIndex, cell);
+      });
       tr.append(cell);
     });
     table.append(tr);
@@ -3422,22 +3538,43 @@ function showTextToolbar(object, textElement) {
 
   try {
     const themeDefaults = getThemeDefaultTimerColors();
-    if ($("#textColorInput")) {
-      const textColor = object.type === "timer" && (!object.isCustomTextColor || !object.textColor)
-        ? themeDefaults.textColor
-        : (object.textColor || (textElement ? getComputedStyle(textElement).color : "#ffffff") || "#ffffff");
-      $("#textColorInput").value = normalizeColor(textColor);
+
+    if (object.type === "table" && state.selectedCell && state.selectedCell.objectId === object.id) {
+      const { rowIndex, columnIndex } = state.selectedCell;
+      const cellKey = `${rowIndex},${columnIndex}`;
+      const cellStyle = object.cellStyles?.[cellKey];
+      const isHeader = rowIndex === 0;
+      if ($("#textColorInput")) {
+        const textColor = cellStyle?.textColor || (isHeader ? "#ffffff" : "#0f172a");
+        $("#textColorInput").value = normalizeColor(textColor);
+      }
+      if ($("#bgColorInput")) {
+        const bgColor = cellStyle?.bgColor || (isHeader ? "#2563eb" : "#ffffff");
+        $("#bgColorInput").value = normalizeColor(bgColor);
+      }
+      if ($("#noBgColorButton")) {
+        const isNoBg = cellStyle?.bgColor === "transparent" || cellStyle?.bgColor === "none";
+        $("#noBgColorButton").classList.toggle("is-active", isNoBg);
+      }
+    } else {
+      if ($("#textColorInput")) {
+        const textColor = object.type === "timer" && (!object.isCustomTextColor || !object.textColor)
+          ? themeDefaults.textColor
+          : (object.textColor || (textElement ? getComputedStyle(textElement).color : "#ffffff") || "#ffffff");
+        $("#textColorInput").value = normalizeColor(textColor);
+      }
+      if ($("#bgColorInput")) {
+        const bgColor = object.type === "timer" && (!object.isCustomBgColor || !object.bgColor)
+          ? themeDefaults.bgColor
+          : (object.bgColor || (textElement ? getComputedStyle(textElement.parentElement || textElement).backgroundColor : "#ffffff") || "#ffffff");
+        $("#bgColorInput").value = normalizeColor(bgColor);
+      }
+      if ($("#noBgColorButton")) {
+        const isNoBg = object.bgColor === "transparent" || object.bgColor === "none";
+        $("#noBgColorButton").classList.toggle("is-active", isNoBg);
+      }
     }
-    if ($("#bgColorInput")) {
-      const bgColor = object.type === "timer" && (!object.isCustomBgColor || !object.bgColor)
-        ? themeDefaults.bgColor
-        : (object.bgColor || (textElement ? getComputedStyle(textElement.parentElement || textElement).backgroundColor : "#ffffff") || "#ffffff");
-      $("#bgColorInput").value = normalizeColor(bgColor);
-    }
-    if ($("#noBgColorButton")) {
-      const isNoBg = object.bgColor === "transparent" || object.bgColor === "none";
-      $("#noBgColorButton").classList.toggle("is-active", isNoBg);
-    }
+
     if ($("#borderColorInput")) {
       $("#borderColorInput").value = normalizeColor(object.borderColor || "#0f172a");
     }
@@ -3491,9 +3628,17 @@ function updateActiveTextStyle(property, value) {
   if (!selectedObjects.length) return;
   snapshot();
   selectedObjects.forEach((target) => {
-    target[property] = value;
-    if (property === "textColor") target.isCustomTextColor = true;
-    if (property === "bgColor") target.isCustomBgColor = true;
+    if (target.type === "table" && state.selectedCell && state.selectedCell.objectId === target.id) {
+      const { rowIndex, columnIndex } = state.selectedCell;
+      const cellKey = `${rowIndex},${columnIndex}`;
+      target.cellStyles = target.cellStyles || {};
+      target.cellStyles[cellKey] = target.cellStyles[cellKey] || {};
+      target.cellStyles[cellKey][property] = value;
+    } else {
+      target[property] = value;
+      if (property === "textColor") target.isCustomTextColor = true;
+      if (property === "bgColor") target.isCustomBgColor = true;
+    }
   });
   renderStage();
   if (selectedObjects.length === 1 && selectedObjects[0].type !== "timer") {
@@ -3504,24 +3649,43 @@ function updateActiveTextStyle(property, value) {
 
 function beginCellEdit(event, object, rowIndex, columnIndex, cell) {
   if (document.fullscreenElement) return;
-  event.preventDefault();
-  event.stopPropagation();
+  if (cell.isContentEditable) return;
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
   snapshot();
   cell.contentEditable = "true";
   cell.focus();
+  try {
+    const range = document.createRange();
+    range.selectNodeContents(cell);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  } catch (e) {}
+
+  const stopEvt = (e) => e.stopPropagation();
+  cell.addEventListener("pointerdown", stopEvt);
+  cell.addEventListener("mousedown", stopEvt);
+
   const finish = () => {
+    cell.removeEventListener("pointerdown", stopEvt);
+    cell.removeEventListener("mousedown", stopEvt);
     object.cells[rowIndex][columnIndex] = cell.innerText.trim() || "내용";
     cell.contentEditable = "false";
+    renderStage();
   };
   cell.addEventListener("blur", finish, { once: true });
   cell.addEventListener("keydown", (keyEvent) => {
+    if (keyEvent.key === "Escape") cell.blur();
     if (keyEvent.key === "Enter" && keyEvent.altKey) {
       keyEvent.preventDefault();
       keyEvent.stopPropagation();
       insertEditableLineBreak(cell);
       return;
     }
-    if (keyEvent.key === "Enter") {
+    if (keyEvent.key === "Enter" && !keyEvent.shiftKey) {
       keyEvent.preventDefault();
       cell.blur();
     }
@@ -4552,6 +4716,48 @@ $("#tableAxisSelect").addEventListener("change", (event) => {
   tableManagementAxis = event.target.value;
   renderControls();
 });
+$("#tableColWidthInput")?.addEventListener("input", (event) => {
+  const page = currentPage();
+  const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
+  const table = selectedObjects.find((obj) => obj.type === "table");
+  if (!table) return;
+  const currentCell = (state.selectedCell && state.selectedCell.objectId === table.id) ? state.selectedCell : { rowIndex: 0, columnIndex: 0 };
+  const val = Number(event.target.value) || 10;
+  snapshot();
+  setTableColumnWidth(table, currentCell.columnIndex, val);
+  renderStage();
+});
+$("#tableRowHeightInput")?.addEventListener("input", (event) => {
+  const page = currentPage();
+  const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
+  const table = selectedObjects.find((obj) => obj.type === "table");
+  if (!table) return;
+  const currentCell = (state.selectedCell && state.selectedCell.objectId === table.id) ? state.selectedCell : { rowIndex: 0, columnIndex: 0 };
+  const val = Number(event.target.value) || 30;
+  snapshot();
+  setTableRowHeight(table, currentCell.rowIndex, val);
+  renderStage();
+});
+$("#resetCellStylesBtn")?.addEventListener("click", () => {
+  const page = currentPage();
+  const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
+  const table = selectedObjects.find((obj) => obj.type === "table");
+  if (!table) return;
+  snapshot();
+  delete table.cellStyles;
+  renderStage();
+});
+$("#resetTableSizesBtn")?.addEventListener("click", () => {
+  const page = currentPage();
+  const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
+  const table = selectedObjects.find((obj) => obj.type === "table");
+  if (!table) return;
+  snapshot();
+  delete table.colWidths;
+  delete table.rowHeights;
+  renderControls();
+  renderStage();
+});
 $("#undoButton").addEventListener("click", undo);
 
 $("#textColorInput")?.addEventListener("change", (event) => updateActiveTextStyle("textColor", event.target.value));
@@ -4630,12 +4836,8 @@ document.querySelectorAll(".theme-color-btn").forEach((btn) => {
         if ($("#borderStyleSelect")) $("#borderStyleSelect").value = "solid";
       }
     } else {
-      const selectedObjects = page.objects.filter((item) => state.selectedIds.has(item.id));
-      if (!selectedObjects.length) return;
-      snapshot();
-      selectedObjects.forEach((item) => { item.bgColor = color; });
+      updateActiveTextStyle("bgColor", color);
       if ($("#bgColorInput")) $("#bgColorInput").value = normalizeColor(color);
-      renderStage();
     }
   });
 });

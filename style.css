@@ -1194,6 +1194,32 @@ body[data-design="tactile-minimal"] .resize-handle { width:13px; height:13px; ri
   to { opacity: 0; transform: translateY(12px) scale(0.95); }
 }
 
+/* Table Cell Selection Highlight & Granular Formatting */
+.table-object th.is-cell-selected,
+.table-object td.is-cell-selected {
+  outline: 3px solid #2563eb !important;
+  outline-offset: -3px !important;
+  box-shadow: inset 0 0 0 1px #ffffff !important;
+  z-index: 5 !important;
+  position: relative !important;
+}
+
+.table-object {
+  width: 100% !important;
+  height: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+}
+
+.table-object th,
+.table-object td {
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color 0.12s ease, color 0.12s ease, outline 0.12s ease;
+}
+
 
 
 

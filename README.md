@@ -556,3 +556,10 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **차트 & 테이블 썸네일 크기 및 정렬 통일**: `.layout-variant-button` 및 `.chart-thumbnail`에 `width: 100%`, `aspect-ratio: 16/9`, `box-sizing: border-box`, `overflow: hidden`을 강제 적용하고, `column`(세로 막대 차트) 5개 막대의 높이 비율(45%, 75%, 55%, 90%, 65%)과 상단 라운드를 부여하여 모든 썸네일 카드가 균일한 크기로 정렬되도록 개선했습니다.
 - **표 전용 썸네일 디자인 적용 (`table`, `tableStats`)**: `table`(기본 데이터 테이블) 및 `tableStats`(메인 테이블 + 우측 지표) 썸네일에 파란색 상단 헤더 바와 데이터 셀 그리드가 조합된 전용 시각화 HTML/CSS 구조(`table-thumb-grid`, `table-stats-thumb`)를 새로 추가했습니다.
 
+### 58. 테이블 개체 세분화 편집 (행 높이/열 너비 수치 조절 및 셀별 배경색·글자색·글자크기 지정)
+- **테이블 행 높이 & 열 너비 수치 컨트롤 추가 (`index.html`, `app.js`)**: 02 개체 관리 패널에 테이블 전용 크기 관리 패널(`tableDimensionControls`)을 구축하여, 선택한 열의 너비(%) 및 행의 높이(px)를 수치 입력으로 세분화 조절할 수 있도록 개선했습니다. `tr.style.height = "${pct}%"` 및 `cell.style.height = "${rowH}px"`를 동시 적용하여 캔버스상 행 높이가 즉시 반영됩니다.
+- **개별 셀 선택 및 독립 서식 지정 (`app.js`, `style.css`)**: 테이블 셀 클릭 시 파란색 윤곽선(`is-cell-selected`)으로 해당 셀만 독립 선택되며, 상단 서식 툴바 및 테마 3색 퀵 버튼(`.theme-color-btn`)을 이용하여 셀별 배경색(`bgColor`), 글자색(`textColor`), 글자 크기(`fontSize`)를 개별 지정할 수 있습니다.
+- **셀 텍스트 편집 및 마우스 선택 이벤트 안정화**: 셀 단일 클릭 시 전체 캔버스를 재렌더링하던 현상을 제거하여 텍스트 드래그 선택 및 Typing 수정(contentEditable) 사용성을 대폭 개선했습니다.
+- **JSON 저장/복원 완벽 지원**: 셀별 커스텀 스타일(`cellStyles`), 열 너비(`colWidths`), 행 높이(`rowHeights`)가 프로젝트 구조체에 보존되어 `.txt` 저장 및 불러올 때 100% 원본 상태로 복원됩니다.
+
+
