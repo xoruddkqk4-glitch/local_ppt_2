@@ -2049,10 +2049,10 @@ function renderControls() {
   }
 
   const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
-  if (selectedObjects.length === 1) {
+  if (selectedObjects.length >= 1) {
     const el = stage?.querySelector(`[data-object-id="${selectedObjects[0].id}"]`);
-    showTextToolbar(selectedObjects[0], el);
-  } else if (selectedObjects.length === 0) {
+    showTextToolbar(selectedObjects[0], el, selectedObjects);
+  } else {
     hideTextToolbar();
   }
 }
@@ -3041,11 +3041,27 @@ function createObjectElement(object) {
   handle.className = "resize-handle";
   handle.addEventListener("pointerdown", (event) => beginResize(event, object));
   element.append(handle);
+  let lastClickTime = 0;
   element.addEventListener("pointerdown", (event) => {
     if (isAnimMode) {
       event.preventDefault();
       event.stopPropagation();
       handleAnimModeClick(event, object);
+      return;
+    }
+    const now = Date.now();
+    const isDoubleClick = (now - lastClickTime < 350);
+    lastClickTime = now;
+
+    const isNonTextObject = ["image", "table", "chart", "scale"].includes(object.type);
+    const isTextChild = Boolean(event.target.classList?.contains("canvas-text") || event.target.closest?.(".canvas-text"));
+    const isAlreadySelectedText = isTextChild && state.selectedIds.has(object.id) && state.selectedIds.size === 1;
+
+    if ((isDoubleClick || isAlreadySelectedText) && !isNonTextObject) {
+      event.preventDefault();
+      event.stopPropagation();
+      const textEl = element.querySelector(".canvas-text") || element;
+      beginTextEdit(event, object, element, textEl);
       return;
     }
     beginDrag(event, object);
@@ -3098,9 +3114,17 @@ function applyTextObjectStyle(text, object, wrapper) {
     text.style.removeProperty("--hierarchy-scale");
   }
   if (object.fontSize) {
-    text.style.setProperty("--object-font-size", `${object.fontSize}px`);
+    text.style.setProperty("font-size", `${object.fontSize}px`, "important");
+    text.style.setProperty("--object-font-size", `${object.fontSize}px`, "important");
+    text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+      child.style.setProperty("font-size", `${object.fontSize}px`, "important");
+    });
     wrapper.dataset.manualFontSize = "true";
   } else {
+    text.style.removeProperty("font-size");
+    text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+      child.style.removeProperty("font-size");
+    });
     delete wrapper.dataset.manualFontSize;
   }
 
@@ -3469,8 +3493,10 @@ function renderPieChart(container, data) {
 
 function beginTextEdit(event, object, wrapper, text) {
   if (document.fullscreenElement) return;
-  event.preventDefault();
-  event.stopPropagation();
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
   snapshot();
   state.activeTextObjectId = object.id;
   state.selectedIds.clear();
@@ -3478,31 +3504,50 @@ function beginTextEdit(event, object, wrapper, text) {
   renderControls();
   showTextToolbar(object, text);
   wrapper.classList.add("is-editing");
-  if (["timeline-node", "side-accent-card"].includes(object.role) || STRUCTURED_LAYOUT_ROLES.has(object.role)) text.textContent = object.text;
-  text.contentEditable = "true";
-  text.focus();
-  const range = document.createRange();
-  range.selectNodeContents(text);
-  const selection = window.getSelection();
-  selection.removeAllRanges();
-  selection.addRange(range);
 
-  const finish = () => {
+  text.textContent = object.text || "";
+  text.contentEditable = "true";
+
+  try {
+    text.focus();
+    const range = document.createRange();
+    range.selectNodeContents(text);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  } catch (e) {}
+
+  const editStartTime = Date.now();
+  const finish = (blurEvent) => {
+    if (Date.now() - editStartTime < 200) {
+      setTimeout(() => {
+        if (wrapper.classList.contains("is-editing")) text.focus();
+      }, 10);
+      return;
+    }
+    text.removeEventListener("blur", finish);
     object.text = text.innerText.trim() || (["free-text", "shape-box"].includes(object.role) ? "" : "텍스트");
     text.contentEditable = "false";
     wrapper.classList.remove("is-editing");
     renderStage();
   };
-  text.addEventListener("blur", finish, { once: true });
+
+  text.addEventListener("blur", finish);
   text.addEventListener("keydown", (keyEvent) => {
-    if (keyEvent.key === "Escape") text.blur();
-    if (keyEvent.key === "Enter" && keyEvent.altKey) {
+    if (keyEvent.key === "Escape") {
+      text.removeEventListener("blur", finish);
+      text.contentEditable = "false";
+      wrapper.classList.remove("is-editing");
+      renderStage();
+      return;
+    }
+    if (keyEvent.key === "Enter" && (keyEvent.altKey || keyEvent.shiftKey)) {
       keyEvent.preventDefault();
       keyEvent.stopPropagation();
       insertEditableLineBreak(text);
       return;
     }
-    if (keyEvent.key === "Enter" && !keyEvent.shiftKey) {
+    if (keyEvent.key === "Enter" && !keyEvent.shiftKey && !keyEvent.altKey) {
       keyEvent.preventDefault();
       text.blur();
     }
@@ -3524,12 +3569,15 @@ function insertEditableLineBreak(editable) {
   selection.addRange(range);
 }
 
-function showTextToolbar(object, textElement) {
+function showTextToolbar(object, textElement, selectedObjectsParam = null) {
   if (!object) return;
   const toolbar = $("#textToolbar");
   if (!toolbar) return;
   toolbar.hidden = false;
   state.activeTextObjectId = object.id;
+
+  const page = currentPage();
+  const selectedObjects = selectedObjectsParam || page.objects.filter((obj) => state.selectedIds.has(obj.id));
 
   const isTimer = object.type === "timer";
   if ($("#borderToolbarGroup")) $("#borderToolbarGroup").hidden = isTimer;
@@ -3657,9 +3705,9 @@ function updateActiveTextStyle(property, value) {
     }
   });
   renderStage();
-  if (selectedObjects.length === 1 && selectedObjects[0].type !== "timer") {
+  if (selectedObjects.length >= 1 && selectedObjects[0].type !== "timer") {
     const el = stage.querySelector(`[data-object-id="${selectedObjects[0].id}"]`);
-    showTextToolbar(selectedObjects[0], el);
+    showTextToolbar(selectedObjects[0], el, selectedObjects);
   }
 }
 
@@ -4018,8 +4066,16 @@ function fitAllText() {
   const bulletTexts = new Set(stage.querySelectorAll(".bullet-item .canvas-text, .cover-item .canvas-text"));
   const grouped = new Map();
   stage.querySelectorAll(".canvas-text").forEach((text) => {
-    if (mindTexts.has(text) || bulletTexts.has(text)) return;
     const object = getTextObjectForElement(text);
+    if (object && object.fontSize) {
+      text.style.setProperty("font-size", `${object.fontSize}px`, "important");
+      text.style.setProperty("--object-font-size", `${object.fontSize}px`, "important");
+      text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+        child.style.setProperty("font-size", `${object.fontSize}px`, "important");
+      });
+      return;
+    }
+    if (mindTexts.has(text) || bulletTexts.has(text)) return;
     if (!object) return;
     const key = getTextStageKey(object);
     const texts = grouped.get(key) || [];
@@ -4034,7 +4090,7 @@ function fitAllText() {
 
 function getTextObjectForElement(text) {
   const objectId = text.closest(".canvas-object")?.dataset.objectId;
-  return currentPage().objects.find((object) => object.id === objectId && object.type === "text") || null;
+  return currentPage().objects.find((object) => object.id === objectId) || null;
 }
 
 function getTextStageKey(object) {
@@ -4055,7 +4111,19 @@ function getTextGroupMaximum(texts, fallback) {
 
 function fitBulletTextByLevel(bulletTexts) {
   if (!bulletTexts || !bulletTexts.size) return;
-  const list = [...bulletTexts];
+  const list = [...bulletTexts].filter((text) => {
+    const object = getTextObjectForElement(text);
+    if (object && object.fontSize) {
+      text.style.setProperty("font-size", `${object.fontSize}px`, "important");
+      text.style.setProperty("--object-font-size", `${object.fontSize}px`, "important");
+      text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+        child.style.setProperty("font-size", `${object.fontSize}px`, "important");
+      });
+      return false;
+    }
+    return true;
+  });
+  if (!list.length) return;
   const maxCap = getTextGroupMaximum(list, 72);
 
   const levelScales = { 1: 1.0, 2: 0.82, 3: 0.68, 4: 0.56, 5: 0.46 };
@@ -4110,6 +4178,19 @@ function fitTextGroupToCommonSize(texts, minimum, maximum) {
 
 function fitMindmapTextByLevel(mindTexts) {
   if (!mindTexts.size) return;
+  const list = [...mindTexts].filter((text) => {
+    const object = getTextObjectForElement(text);
+    if (object && object.fontSize) {
+      text.style.setProperty("font-size", `${object.fontSize}px`, "important");
+      text.style.setProperty("--object-font-size", `${object.fontSize}px`, "important");
+      text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+        child.style.setProperty("font-size", `${object.fontSize}px`, "important");
+      });
+      return false;
+    }
+    return true;
+  });
+  if (!list.length) return;
   const levelRatios = { 1: 1.65, 2: 1.32, 3: 1.08, 4: .88 };
   const grouped = { 1: [], 2: [], 3: [], 4: [] };
   mindTexts.forEach((text) => {
@@ -4836,7 +4917,12 @@ $("#borderStyleSelect")?.addEventListener("change", (event) => {
 
 function isTextInputTarget(target) {
   const tagName = target?.tagName;
-  return Boolean(target?.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(tagName));
+  return Boolean(
+    target?.isContentEditable ||
+    ["INPUT", "TEXTAREA", "SELECT"].includes(tagName) ||
+    target?.closest?.("[contenteditable='true']") ||
+    target?.closest?.(".is-editing")
+  );
 }
 
 function navigateFullscreenPage(direction) {
@@ -5489,6 +5575,20 @@ document.addEventListener("keydown", (event) => {
       event.preventDefault();
       navigateFullscreenPrev();
       return;
+    }
+  }
+
+  if ((event.key === "Enter" || event.key === "F2") && !isEditingText && !modifier && state.selectedIds.size === 1) {
+    const singleObjId = Array.from(state.selectedIds)[0];
+    const singleObj = page?.objects?.find((o) => o.id === singleObjId);
+    if (singleObj && singleObj.type !== "image" && singleObj.type !== "chart" && singleObj.type !== "scale") {
+      const wrapper = stage?.querySelector(`[data-object-id="${singleObj.id}"]`);
+      const textEl = wrapper?.querySelector(".canvas-text") || wrapper;
+      if (wrapper && textEl) {
+        event.preventDefault();
+        beginTextEdit(event, singleObj, wrapper, textEl);
+        return;
+      }
     }
   }
 
