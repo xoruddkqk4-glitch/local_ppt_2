@@ -51,6 +51,7 @@ AI 생성은 `index.html` 파일을 직접 열지 않고 `node server.js` 실행
 ## 주요 기능
 
 - PAGE 01을 표지로 고정하고 이후 페이지는 본문 페이지로 관리
+- 상단 페이지 목록에서 현재 작업 중인 페이지 탭(.is-current)에 선명한 고대비 블루 배경색 및 입체 스타일을 적용하여 다른 페이지와 한눈에 구분
 - 표지에 도형 없는 텍스트 항목 추가 및 `Tab`/`Shift+Tab` 위계 조정
 - 하나의 프레젠테이션에 하나의 디자인 적용
 - 기존 5종과 Swiss Grid Modern, Functional Bauhaus, Soft Layered Minimal, Controlled Neo-Brutalism, Tactile Product Minimal을 포함한 10종 디자인 제공

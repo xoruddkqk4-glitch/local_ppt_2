@@ -235,8 +235,29 @@ kbd { border:1px solid currentColor; padding:1px 3px; font-size:10px; }
 .page-list { width:100%; min-width:0; display:flex; gap:5px; overflow-x:auto; padding-bottom:2px; }
 .page-item { flex:none; padding:6px 8px; border:2px solid var(--ink); background:#fff; font-size:11px; font-weight:900; cursor:grab; user-select:none; transition:transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease; }
 .page-item > * { pointer-events:none; }
-.page-item:active { cursor:grabbing; }
-.page-item.is-current { background:var(--yellow); }
+.page-item.is-current {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #1d4ed8 !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-2px) scale(1.04) !important;
+  font-weight: 950 !important;
+  position: relative !important;
+  z-index: 5 !important;
+}
+.page-item.is-current > * {
+  color: #ffffff !important;
+}
+.page-item.is-current .page-hide-btn,
+.page-item.is-current .page-delete {
+  color: #ffffff !important;
+  opacity: 0.9;
+}
+.page-item.is-current .page-hide-btn:hover,
+.page-item.is-current .page-delete:hover {
+  opacity: 1;
+  color: #fef08a !important;
+}
 .page-item.is-hidden { opacity:0.55; border-style:dashed; background:#f1f5f9; text-decoration:line-through; }
 .page-item.is-hidden::after { content:" (숨김)"; font-size:10px; color:#64748b; text-decoration:none; display:inline-block; }
 .page-item.cover::before { content:"TITLE · "; }
