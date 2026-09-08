@@ -31,6 +31,34 @@ const AI_OBJECT_DEFAULT_VARIANTS = { layout: "cards", diagram: "process", chart:
 
 let currentProjectFileHandle = null;
 let currentProjectFileName = "local-ppt.txt";
+let currentFolderPath = "c:\\Users\\user\\Desktop\\codex_cli\\.projects\\local_ppt_2\\txts\\";
+
+function escapeHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function updateFilePathDisplay() {
+  const display = $("#currentFilePathDisplay");
+  if (!display) return;
+  const dirPath = currentFolderPath ? (currentFolderPath.endsWith("\\") || currentFolderPath.endsWith("/") ? currentFolderPath : currentFolderPath + "\\") : "";
+  const fileName = currentProjectFileName || "local-ppt.txt";
+  display.innerHTML = `📁 <span class="file-dir-path">${escapeHtml(dirPath)}</span><strong class="file-name-title">${escapeHtml(fileName)}</strong>`;
+}
+
+function updateStageScale() {
+  const stageEl = $("#presentationStage") || (typeof stage !== "undefined" ? stage : null);
+  if (!stageEl) return 1.0;
+  const width = stageEl.clientWidth || 1200;
+  const scale = width / 1200;
+  stageEl.style.setProperty("--stage-scale", scale);
+  stageEl.style.setProperty("--stage-width", `${width}px`);
+  return scale;
+}
 let tableManagementAxis = "row";
 let copiedObjects = [];
 let copiedFromPageId = null;
@@ -2323,6 +2351,8 @@ function renderPages() {
 
 function renderStage() {
   setupStageFileDrop();
+  updateStageScale();
+  updateFilePathDisplay();
   stage.innerHTML = "";
   const page = currentPage();
   if (page.type === "content" && !page.template) {
@@ -3114,10 +3144,10 @@ function applyTextObjectStyle(text, object, wrapper) {
     text.style.removeProperty("--hierarchy-scale");
   }
   if (object.fontSize) {
-    text.style.setProperty("font-size", `${object.fontSize}px`, "important");
     text.style.setProperty("--object-font-size", `${object.fontSize}px`, "important");
+    text.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
     text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
-      child.style.setProperty("font-size", `${object.fontSize}px`, "important");
+      child.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
     });
     wrapper.dataset.manualFontSize = "true";
   } else {
@@ -4062,16 +4092,17 @@ function drawConnection(from, to, targetContainer = stage) {
 }
 
 function fitAllText() {
+  updateStageScale();
   const mindTexts = new Set(stage.querySelectorAll(".mind-root .canvas-text, .mind-node .canvas-text"));
   const bulletTexts = new Set(stage.querySelectorAll(".bullet-item .canvas-text, .cover-item .canvas-text"));
   const grouped = new Map();
   stage.querySelectorAll(".canvas-text").forEach((text) => {
     const object = getTextObjectForElement(text);
     if (object && object.fontSize) {
-      text.style.setProperty("font-size", `${object.fontSize}px`, "important");
       text.style.setProperty("--object-font-size", `${object.fontSize}px`, "important");
+      text.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
       text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
-        child.style.setProperty("font-size", `${object.fontSize}px`, "important");
+        child.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
       });
       return;
     }
@@ -4114,10 +4145,10 @@ function fitBulletTextByLevel(bulletTexts) {
   const list = [...bulletTexts].filter((text) => {
     const object = getTextObjectForElement(text);
     if (object && object.fontSize) {
-      text.style.setProperty("font-size", `${object.fontSize}px`, "important");
       text.style.setProperty("--object-font-size", `${object.fontSize}px`, "important");
+      text.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
       text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
-        child.style.setProperty("font-size", `${object.fontSize}px`, "important");
+        child.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
       });
       return false;
     }
@@ -4181,10 +4212,10 @@ function fitMindmapTextByLevel(mindTexts) {
   const list = [...mindTexts].filter((text) => {
     const object = getTextObjectForElement(text);
     if (object && object.fontSize) {
-      text.style.setProperty("font-size", `${object.fontSize}px`, "important");
       text.style.setProperty("--object-font-size", `${object.fontSize}px`, "important");
+      text.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
       text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
-        child.style.setProperty("font-size", `${object.fontSize}px`, "important");
+        child.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
       });
       return false;
     }
@@ -4200,16 +4231,16 @@ function fitMindmapTextByLevel(mindTexts) {
     if (grouped[level]) grouped[level].push(text);
   });
 
-  const stageScale = stage.clientWidth / 1200;
-  let baseSize = 32 * stageScale;
+  const stageScale = updateStageScale();
+  let baseSize = 32;
   Object.entries(grouped).forEach(([level, texts]) => {
     if (!texts.length) return;
-    const available = Math.min(...texts.map(getTextFitSize));
+    const available = Math.min(...texts.map(getTextFitSize)) / Math.max(0.1, stageScale);
     baseSize = Math.min(baseSize, available / levelRatios[level]);
     const manualMaximum = getTextGroupMaximum(texts, Number.POSITIVE_INFINITY);
     if (Number.isFinite(manualMaximum)) baseSize = Math.min(baseSize, manualMaximum / levelRatios[level]);
   });
-  baseSize = Math.max(8 * stageScale, baseSize);
+  baseSize = Math.max(8, baseSize);
   Object.entries(grouped).forEach(([level, texts]) => {
     if (!texts.length) return;
     const manualMaximum = getTextGroupMaximum(texts, Number.POSITIVE_INFINITY);
@@ -4447,7 +4478,12 @@ async function loadProjectFile(file, handle = null) {
     hideTextToolbar();
     currentProjectFileHandle = handle;
     currentProjectFileName = file.name || "local-ppt.txt";
+    if (file.path) {
+      const lastSep = Math.max(file.path.lastIndexOf("\\"), file.path.lastIndexOf("/"));
+      if (lastSep > 0) currentFolderPath = file.path.substring(0, lastSep + 1);
+    }
     document.title = `Local PPT 2 — ${currentProjectFileName}`;
+    updateFilePathDisplay();
     if (window.LocalPptAiIntake?.syncOptionsUI) {
       window.LocalPptAiIntake.syncOptionsUI();
     }
@@ -4464,6 +4500,7 @@ async function writeProjectToHandle(handle) {
   currentProjectFileHandle = handle;
   currentProjectFileName = handle.name || currentProjectFileName;
   document.title = `Local PPT 2 — ${currentProjectFileName}`;
+  updateFilePathDisplay();
 }
 
 function downloadProject(filename = currentProjectFileName) {
@@ -4478,6 +4515,7 @@ function downloadProject(filename = currentProjectFileName) {
   URL.revokeObjectURL(url);
   currentProjectFileName = anchor.download;
   document.title = `Local PPT 2 — ${currentProjectFileName}`;
+  updateFilePathDisplay();
 }
 
 function suggestedProjectName() {
@@ -5887,3 +5925,16 @@ window.LocalPptApp = {
     render();
   }
 };
+
+if (typeof ResizeObserver !== "undefined") {
+  const stageEl = $("#presentationStage");
+  if (stageEl) {
+    const stageObserver = new ResizeObserver(() => {
+      updateStageScale();
+      requestAnimationFrame(fitAllText);
+    });
+    stageObserver.observe(stageEl);
+  }
+}
+updateStageScale();
+updateFilePathDisplay();

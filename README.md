@@ -568,6 +568,17 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **셀별 커스텀 글자 크기 동기화 (`showTextToolbar`)**: 상단 서식 툴바에서 테이블 셀 선택 시 개체 공통 글자 크기가 아닌 선택된 셀의 지정 글자 크기(`cellStyles[cellKey].fontSize`) 및 셀 실측 계산 크기를 툴바 입력란(`#textSizeInput`)에 반영하도록 개선했습니다.
 - **포커스 해제(`blur`) 시 글자 크기 16 초기화 방지 (`commitTextSizeInput`)**: 다른 셀을 클릭하거나 선택을 전환할 때 툴바 입력 필드가 포커스를 잃으면서(`blur`) 발생하던 이전/전환 셀의 글자 크기 16px 초기화(덮어쓰기) 버그를 `dataset.lastCommittedValue` 추적 로직을 통해 완벽 차단했습니다.
 
-### 60. Ctrl + 마우스 클릭 및 캔버스 배경 드래그(Marquee Box) 복수 개체 다중 선택 기능 구현
-- **Ctrl + 클릭 다중 선택 및 그룹 이동 (`app.js`)**: `Ctrl` (또는 Mac `Cmd`) 키를 누른 채 개체를 클릭하면 이전 선택 항목을 유지하면서 개체를 다중 토글/누적 선택할 수 있도록 개선했습니다. 복수로 선택된 상태에서 선택 개체 중 하나를 드래그하면 그룹 전체가 캔버스에서 함께 동시 이동합니다.
-- **캔버스 배경 드래그 사각형 영역 선택 (`style.css`, `app.js`)**: 캔버스 빈 영역에서 마우스를 드래그할 때 반투명 파란색 점선 영역 박스(`.stage-marquee-box`)가 생성되고, 교차(Intersect)하는 모든 개체들을 실시간 감지하여 복수 선택 영역(`state.selectedIds`)에 지정하는 직관적인 영역 선택 로직을 탑재했습니다. `Ctrl` 키와 조합 시 기존 선택을 유지한 채 영역 추가 선택이 가능합니다.
+### 61. 화면 크기/전체 화면 모드 슬라이드·글자 크기 비율 동적 유지 & 편집 모드 상단 파일 경로 표시
+- **16:9 가로세로 비율(Aspect Ratio) 보호 (`style.css`)**: 전체 화면(프레젠테이션 모드) 진입 시 16:9 비율이 왜곡되거나 찌그러지지 않고 화면 중앙에 정비율로 배치되도록 `.presentation-stage:fullscreen` 스타일을 개선했습니다.
+- **동적 캔버스 스케일링 & 프로포셔널 폰트 연산 (`app.js`, `style.css`)**: `#presentationStage`에 `ResizeObserver` 및 `updateStageScale()`을 도입하여 캔버스 너비 변경 시 `--stage-scale` 변수를 실시간 갱신하고, 수동 폰트 크기 및 자동 텍스트 맞춤이 100% 동일한 시각적 비율을 유지하도록 개선했습니다.
+- **편집 모드 상단 파일/폴더 경로 항상 표시 (`index.html`, `style.css`, `app.js`)**: 상단 헤더에 현재 작업 중인 폴더 경로 및 파일명을 보여주는 파일 경로 뱃지(`.current-file-path-bar`)를 배치하였습니다. 프레젠테이션 모드 시 자동으로 숨겨집니다.
+
+---
+
+## [2026-09-08] 업데이트 이력 (Commit ID: 6aab24a)
+- **수정 내용**:
+  - 화면 크기 변동 및 전체 화면(프레젠테이션) 모드 간 슬라이드 개체 및 글자 크기 비율(Aspect Ratio) 100% 보존 (`ResizeObserver` 및 `--stage-scale` 연산 도입).
+  - 편집 모드 상단 헤더에 저장 폴더 경로 및 파일명 실시간 표시 바 (`.current-file-path-bar`) 추가.
+  - `.agents/rules/rules.md` 및 `AGENTS.md` 파일 경로 누적 기록 규칙 동기화.
+- **검증 결과**: `node --check` static verification clean exit (code 0).
+
