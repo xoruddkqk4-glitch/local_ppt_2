@@ -1594,10 +1594,7 @@ function canAddItem(page, selected) {
 }
 
 function canRemoveItem(page, selected) {
-  if (state.selectedIds.size > 0) {
-    if (page.template === "mindmap" && selected && selected.root) return false;
-    return true;
-  }
+  if (state.selectedIds.size > 0) return true;
   if (!selected) return false;
   if (page.type === "cover") return true;
   if (selected.type === "chart") return getChartData(selected).length > CHART_MIN_ITEMS;
@@ -1605,7 +1602,6 @@ function canRemoveItem(page, selected) {
     const columnCount = selected.cells[0]?.length || 0;
     return tableManagementAxis === "column" ? columnCount > 2 : selected.cells.length > 2;
   }
-  if (page.template === "mindmap") return !selected.root;
   return true;
 }
 
@@ -1657,21 +1653,7 @@ function deleteSelectedObjects() {
   const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
   if (!selectedObjects.length) return false;
 
-  const deletable = selectedObjects.filter((obj) => !obj.root);
-  if (!deletable.length) return false;
-
-  const objectsWithImageSrc = deletable.filter((obj) => obj.imageSrc);
-  if (objectsWithImageSrc.length > 0) {
-    snapshot();
-    objectsWithImageSrc.forEach((obj) => {
-      delete obj.imageSrc;
-    });
-    state.selectedIds.clear();
-    state.guides = [];
-    hideTextToolbar();
-    render();
-    return true;
-  }
+  const deletable = selectedObjects;
 
   snapshot();
 
@@ -1700,10 +1682,10 @@ function deleteSelectedObjects() {
     const cardDeletable = deletable.filter((o) => o.item !== false && !["shape-box", "free-text", "page-title"].includes(o.role) && !["image", "timer"].includes(o.type));
     const removeCount = cardDeletable.length;
     const count = getItemCount(page);
-    const newCount = Math.max(1, count - removeCount);
+    const newCount = count - removeCount;
 
     page.objects = page.objects.filter((object) => !state.selectedIds.has(object.id));
-    if (page.template === "object" && removeCount > 0) {
+    if (page.template === "object" && removeCount > 0 && newCount > 0) {
       rebuildObjectTemplatePreservingContent(page, newCount, cardDeletable[0]);
     }
   } else {
@@ -1830,10 +1812,10 @@ function removeItem() {
   } else {
     const selectedObjects = page.objects.filter((object) => targetIds.has(object.id));
     const removeCount = selectedObjects.length || 1;
-    const newCount = Math.max(1, count - removeCount);
+    const newCount = count - removeCount;
 
     page.objects = page.objects.filter((object) => !targetIds.has(object.id));
-    if (page.template === "object") {
+    if (page.template === "object" && newCount > 0) {
       rebuildObjectTemplatePreservingContent(page, newCount, selectedObjects[0] || selected);
     }
     state.selectedIds.clear();
@@ -2582,8 +2564,20 @@ function createTimerElement(object) {
     });
     presetBar.append(btn);
   });
-  header.append(presetBar);
-  container.append(header);
+  // Loop progress indicator (e.g. 1 / 3) above digital clock
+  const loopIndicator = document.createElement("div");
+  loopIndicator.className = "timer-loop-indicator";
+  loopIndicator.style.fontSize = "13px";
+  loopIndicator.style.fontWeight = "850";
+  loopIndicator.style.color = effectiveTextColor;
+  loopIndicator.style.opacity = "0.85";
+  loopIndicator.style.textAlign = "center";
+  loopIndicator.style.marginTop = "2px";
+  loopIndicator.style.marginBottom = "2px";
+  loopIndicator.style.letterSpacing = "1px";
+  loopIndicator.style.display = (isLoop && repeatCount >= 2) ? "block" : "none";
+  loopIndicator.textContent = `${currentRepeat} / ${repeatCount}`;
+  container.append(loopIndicator);
 
   // Digital Clock Display (80% container height)
   const display = document.createElement("div");
@@ -2735,6 +2729,15 @@ function updateRunningTimerDisplays() {
 
             const fontScale = typeof obj.timerFontSizeScale === "number" ? obj.timerFontSizeScale : 1.0;
             displayEl.style.fontSize = getScaledTimerFontSize(fontScale, displayEl.textContent);
+          }
+
+          const loopIndicator = el.querySelector(".timer-loop-indicator");
+          if (loopIndicator) {
+            const repeatCount = Math.max(1, Number(obj.repeatCount) || 1);
+            const currentRepeat = Math.max(1, Number(obj.currentRepeat) || 1);
+            loopIndicator.style.display = (isLoop && repeatCount >= 2) ? "block" : "none";
+            loopIndicator.style.color = effectiveTextColor;
+            loopIndicator.textContent = `${currentRepeat} / ${repeatCount}`;
           }
 
           if (toggleBtn) {

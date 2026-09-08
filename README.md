@@ -571,7 +571,9 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 ### 61. 화면 크기/전체 화면 모드 슬라이드·글자 크기 비율 동적 유지 & 편집 모드 상단 파일 경로 표시
 - **16:9 가로세로 비율(Aspect Ratio) 보호 (`style.css`)**: 전체 화면(프레젠테이션 모드) 진입 시 16:9 비율이 왜곡되거나 찌그러지지 않고 화면 중앙에 정비율로 배치되도록 `.presentation-stage:fullscreen` 스타일을 개선했습니다.
 - **동적 캔버스 스케일링 & 프로포셔널 폰트 연산 (`app.js`, `style.css`)**: `#presentationStage`에 `ResizeObserver` 및 `updateStageScale()`을 도입하여 캔버스 너비 변경 시 `--stage-scale` 변수를 실시간 갱신하고, 수동 폰트 크기 및 자동 텍스트 맞춤이 100% 동일한 시각적 비율을 유지하도록 개선했습니다.
-- **편집 모드 상단 파일/폴더 경로 항상 표시 (`index.html`, `style.css`, `app.js`)**: 상단 헤더에 현재 작업 중인 폴더 경로 및 파일명을 보여주는 파일 경로 뱃지(`.current-file-path-bar`)를 배치하였습니다. 프레젠테이션 모드 시 자동으로 숨겨집니다.
+### 62. 타이머 2회 이상 반복 모드 'O/O' 루프 진행 수치 표시 & 템플릿 마지막 개체 완전 삭제 구현
+- **타이머 Loop 모드 2회 이상 설정 시 'O/O' 수치 표시 (`app.js`)**: Loop 타이머 모드에서 반복 횟수가 2회 이상(`repeatCount >= 2`)으로 설정되면 디지털 시계 숫자 바로 위쪽에 현재 진행 중인 루프 횟수(예: `1 / 3`, `2 / 3`)를 실시간 표시 및 업데이트하도록 구현했습니다.
+- **모든 템플릿 개체 완전 삭제 보장 (`app.js`)**: 개체 삭제 함수(`deleteSelectedObjects`, `canRemoveItem`, `removeItem`) 내 템플릿 최소 1개 유지 제약(`Math.max(1, 0)`)과 마인드맵 root 노드 및 이미지 속성 삭제 예외 필터를 제거하여, 카드리스트, 레이아웃, 다이어그램, 마인드맵 등 어떤 템플릿에서든 남아있는 마지막 개체를 100% 완전 삭제할 수 있도록 개선했습니다.
 
 ---
 
@@ -581,4 +583,11 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - 편집 모드 상단 헤더에 저장 폴더 경로 및 파일명 실시간 표시 바 (`.current-file-path-bar`) 추가.
   - `.agents/rules/rules.md` 및 `AGENTS.md` 파일 경로 누적 기록 규칙 동기화.
 - **검증 결과**: `node --check` static verification clean exit (code 0).
+
+## [2026-09-08] 업데이트 이력 (Commit ID: 98ef13f)
+- **수정 내용**:
+  - 타이머 Loop 모드 2회 이상 설정 시 타이머 숫자에 'O/O' 루프 횟수 진행 상태 표시 (`.timer-loop-indicator`).
+  - 모든 템플릿 개체 완전 삭제 지원 (마지막 남은 1개 개체 삭제 시 템플릿 재구성 미발동으로 100% 삭제 허용).
+- **검증 결과**: `node --check` static verification clean exit (code 0).
+
 
