@@ -2091,6 +2091,96 @@ function reorderPages(fromIndex, targetIndex) {
   render();
 }
 
+function createPageThumbnailElement(page) {
+  const thumbnailBox = document.createElement("div");
+  thumbnailBox.className = "page-thumbnail-box";
+
+  const miniCanvas = document.createElement("div");
+  miniCanvas.className = "mini-slide-canvas";
+
+  if (Array.isArray(page.objects)) {
+    page.objects.forEach((obj) => {
+      const miniObj = document.createElement("div");
+      miniObj.className = "mini-canvas-object";
+      miniObj.style.left = `${obj.x}%`;
+      miniObj.style.top = `${obj.y}%`;
+      miniObj.style.width = `${obj.w}%`;
+      miniObj.style.height = `${obj.h}%`;
+
+      if (obj.bgColor && obj.bgColor !== "transparent" && obj.bgColor !== "none") {
+        miniObj.style.backgroundColor = obj.bgColor;
+      }
+
+      if (obj.borderColor && obj.borderWidth && obj.borderStyle !== "none") {
+        miniObj.style.border = "0.5px solid " + obj.borderColor;
+      }
+
+      if (obj.type === "image") {
+        if (obj.src) {
+          const img = document.createElement("img");
+          img.src = obj.src;
+          img.style.width = "100%";
+          img.style.height = "100%";
+          img.style.objectFit = "cover";
+          miniObj.append(img);
+        } else {
+          miniObj.style.backgroundColor = "#e2e8f0";
+          miniObj.textContent = "🖼️";
+          miniObj.style.fontSize = "7px";
+        }
+      } else if (obj.type === "table") {
+        miniObj.style.backgroundColor = "#ffffff";
+        miniObj.style.border = "0.5px solid #0f172a";
+        miniObj.textContent = "▦";
+        miniObj.style.fontSize = "8px";
+        miniObj.style.color = "#2563eb";
+      } else if (obj.type === "chart") {
+        miniObj.style.backgroundColor = "#f8fafc";
+        miniObj.style.border = "0.5px solid #2563eb";
+        miniObj.textContent = "📊";
+        miniObj.style.fontSize = "8px";
+      } else if (obj.type === "timer") {
+        miniObj.style.backgroundColor = "#ffffff";
+        miniObj.style.border = "0.5px solid #0f172a";
+        miniObj.textContent = "⏱️";
+        miniObj.style.fontSize = "8px";
+      } else {
+        if (obj.role === "cover-title" || obj.role === "page-title") {
+          miniObj.style.fontWeight = "900";
+          miniObj.style.fontSize = "6px";
+          miniObj.style.color = obj.textColor || "#0f172a";
+          miniObj.style.lineHeight = "1.0";
+          miniObj.style.padding = "0.5px";
+          miniObj.style.textAlign = "center";
+          miniObj.textContent = (obj.text || "").slice(0, 12);
+        } else if (obj.text) {
+          miniObj.style.fontSize = "5px";
+          miniObj.style.color = obj.textColor || "#334155";
+          miniObj.style.lineHeight = "1.0";
+          miniObj.style.padding = "0.5px";
+          miniObj.style.whiteSpace = "nowrap";
+          miniObj.style.textOverflow = "ellipsis";
+          miniObj.textContent = (obj.text || "").slice(0, 16);
+        } else if (obj.shapeType) {
+          miniObj.style.backgroundColor = obj.bgColor || "#2563eb";
+          miniObj.style.border = "0.5px solid " + (obj.borderColor || "#0f172a");
+        } else if (obj.role === "mind-node" || obj.role === "mind-root") {
+          miniObj.style.backgroundColor = obj.bgColor || "var(--content-accent, #2563eb)";
+          miniObj.style.borderRadius = "2px";
+        } else if (obj.item) {
+          miniObj.style.backgroundColor = "#ffffff";
+          miniObj.style.border = "0.5px solid #cbd5e1";
+        }
+      }
+
+      miniCanvas.append(miniObj);
+    });
+  }
+
+  thumbnailBox.append(miniCanvas);
+  return thumbnailBox;
+}
+
 function renderPages() {
   const list = $("#pageList");
   list.innerHTML = "";
@@ -2103,7 +2193,14 @@ function renderPages() {
     itemEl.dataset.pageIndex = index;
     const hideIcon = page.hidden ? "🙈" : "👁";
     const hideTitle = page.hidden ? "페이지 숨김 해제" : "페이지 숨기기 (발표 시 건너뜀)";
-    itemEl.innerHTML = `PAGE ${String(index + 1).padStart(2, "0")}<span class="page-hide-btn" title="${hideTitle}">${hideIcon}</span>${page.type === "content" ? '<span class="page-delete" title="페이지 삭제">×</span>' : ""}`;
+    const labelText = page.type === "cover" ? `TITLE · PAGE ${String(index + 1).padStart(2, "0")}` : `PAGE ${String(index + 1).padStart(2, "0")}`;
+
+    const headerEl = document.createElement("div");
+    headerEl.className = "page-item-header";
+    headerEl.innerHTML = `<span class="page-item-label">${labelText}</span><div><span class="page-hide-btn" title="${hideTitle}">${hideIcon}</span>${page.type === "content" ? '<span class="page-delete" title="페이지 삭제">×</span>' : ""}</div>`;
+
+    itemEl.append(headerEl);
+    itemEl.append(createPageThumbnailElement(page));
 
     itemEl.addEventListener("click", (event) => {
       if (justDropped) {
@@ -2329,7 +2426,22 @@ function renderPages() {
       reorderPages(fromIndex, targetIndex);
     });
   }
+
+  const currentItem = list.querySelector(".page-item.is-current");
+  if (currentItem) {
+    currentItem.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+  }
 }
+
+$("#pageScrollLeftBtn")?.addEventListener("click", () => {
+  const list = $("#pageList");
+  if (list) list.scrollBy({ left: -260, behavior: "smooth" });
+});
+
+$("#pageScrollRightBtn")?.addEventListener("click", () => {
+  const list = $("#pageList");
+  if (list) list.scrollBy({ left: 260, behavior: "smooth" });
+});
 
 function renderStage() {
   setupStageFileDrop();
