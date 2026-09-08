@@ -3805,16 +3805,57 @@ function showTextToolbar(object, textElement, selectedObjectsParam = null) {
       button.classList.toggle("is-active", button.dataset.textAlign === getTextAlign(object));
     });
 
-    const palette = getCurrentPalette();
-    toolbar.querySelectorAll(".theme-color-btn").forEach((btn) => {
-      const idx = Number(btn.dataset.colorIndex) || 0;
-      const color = palette[idx] || "#2563eb";
+    updateColorSwatches();
+  } catch (e) {}
+}
+
+function updateColorSwatches(targetName = null) {
+  const toolbar = $("#textToolbar");
+  if (!toolbar) return;
+  const palette = getCurrentPalette();
+  if (!state.customColorHistory) {
+    state.customColorHistory = { bg: [], text: [], border: [] };
+  }
+
+  const targets = targetName ? [targetName] : ["bg", "text", "border"];
+
+  targets.forEach((target) => {
+    const history = state.customColorHistory[target] || [];
+    const combinedColors = [];
+    history.forEach((c) => {
+      if (c && !combinedColors.includes(c)) combinedColors.push(c);
+    });
+    palette.forEach((c) => {
+      if (c && combinedColors.length < 3 && !combinedColors.includes(c)) {
+        combinedColors.push(c);
+      }
+    });
+    while (combinedColors.length < 3) {
+      combinedColors.push("#2563eb");
+    }
+
+    const groupBtns = toolbar.querySelectorAll(`.theme-color-btn[data-target="${target}"]`);
+    groupBtns.forEach((btn, idx) => {
+      const color = combinedColors[idx] || palette[idx] || "#2563eb";
       btn.style.backgroundColor = color;
       btn.dataset.colorHex = color;
-      const targetName = { text: "글자색", bg: "배경색", border: "테두리색" }[btn.dataset.target] || "색상";
-      btn.title = `${targetName} 테마 ${idx + 1}순위 색상 (${color}) 적용`;
+      const targetTitleMap = { text: "글자색", bg: "배경색", border: "테두리색" };
+      btn.title = `${targetTitleMap[target] || "색상"} 기억 색상 (${color}) 적용`;
     });
-  } catch (e) {}
+  });
+}
+
+function recordCustomColor(target, color) {
+  if (!color || color === "transparent" || color === "none") return;
+  const hex = normalizeColor(color);
+  if (!state.customColorHistory) {
+    state.customColorHistory = { bg: [], text: [], border: [] };
+  }
+  const history = state.customColorHistory[target] || [];
+  const updatedHistory = history.filter((c) => c.toLowerCase() !== hex.toLowerCase());
+  updatedHistory.unshift(hex);
+  state.customColorHistory[target] = updatedHistory.slice(0, 3);
+  updateColorSwatches(target);
 }
 
 function hideTextToolbar() {
@@ -5032,15 +5073,33 @@ $("#resetTableSizesBtn")?.addEventListener("click", () => {
 });
 $("#undoButton").addEventListener("click", undo);
 
-$("#textColorInput")?.addEventListener("change", (event) => updateActiveTextStyle("textColor", event.target.value));
-$("#textColorInput")?.addEventListener("input", (event) => updateActiveTextStyle("textColor", event.target.value));
+$("#textColorInput")?.addEventListener("change", (event) => {
+  updateActiveTextStyle("textColor", event.target.value);
+  recordCustomColor("text", event.target.value);
+});
+$("#textColorInput")?.addEventListener("input", (event) => {
+  updateActiveTextStyle("textColor", event.target.value);
+  recordCustomColor("text", event.target.value);
+});
 
-$("#bgColorInput")?.addEventListener("change", (event) => updateActiveTextStyle("bgColor", event.target.value));
-$("#bgColorInput")?.addEventListener("input", (event) => updateActiveTextStyle("bgColor", event.target.value));
+$("#bgColorInput")?.addEventListener("change", (event) => {
+  updateActiveTextStyle("bgColor", event.target.value);
+  recordCustomColor("bg", event.target.value);
+});
+$("#bgColorInput")?.addEventListener("input", (event) => {
+  updateActiveTextStyle("bgColor", event.target.value);
+  recordCustomColor("bg", event.target.value);
+});
 $("#noBgColorButton")?.addEventListener("click", () => updateActiveTextStyle("bgColor", "transparent"));
 
-$("#borderColorInput")?.addEventListener("change", (event) => updateActiveTextStyle("borderColor", event.target.value));
-$("#borderColorInput")?.addEventListener("input", (event) => updateActiveTextStyle("borderColor", event.target.value));
+$("#borderColorInput")?.addEventListener("change", (event) => {
+  updateActiveTextStyle("borderColor", event.target.value);
+  recordCustomColor("border", event.target.value);
+});
+$("#borderColorInput")?.addEventListener("input", (event) => {
+  updateActiveTextStyle("borderColor", event.target.value);
+  recordCustomColor("border", event.target.value);
+});
 $("#borderWidthInput")?.addEventListener("change", (event) => {
   const val = Number(event.target.value) || 0;
   updateActiveTextStyle("borderWidth", val);

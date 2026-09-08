@@ -583,6 +583,14 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **가로 스크롤바 레이아웃 중첩 제거 (`style.css`)**: `.page-list` 영역의 브라우저 기본 가로 스크롤바를 `scrollbar-width: none;` 및 `::-webkit-scrollbar { display: none; }` 스타일을 적용하여 썸네일 UI와 스크롤바가 겹치는 현상을 완전 해결했습니다.
 - **좌/우 이동 스크롤 버튼 탑재 (`index.html`, `app.js`)**: 상단 툴바 왼쪽 끝(`PAGE 01` 앞)과 오른쪽 끝에 각각 이전(`◀`, `#pageScrollLeftBtn`) 및 다음(`▶`, `#pageScrollRightBtn`) 버튼을 추가하고, 클릭 시 부드러운 좌우 스크롤(`scrollBy({ left: +/-260, behavior: 'smooth' })`)이 동작하도록 구현했습니다.
 
+### 65. 서식 툴바 스마트 색상 기억 팔레트 (customColorHistory) 및 버튼 자동 줄바꿈 방지
+- **팔레트 사용 색상 동적 기억 & 스와치 버튼 연동 (`app.js`)**: 사용자가 색상 선택기(팔레트, `<input type="color">`)에서 배경색/글자색/테두리색을 변경할 때마다 해당 색상을 `state.customColorHistory` 큐에 차례대로 기억하고 3개 동그라미 스와치 버튼(`.theme-color-btn`)에 실시간 업데이트하여 이전에 사용한 커스텀 색상을 원클릭으로 다시 적용할 수 있도록 구현했습니다.
+- **'자동' 버튼 및 도구 버튼 단일 행 고정 (`style.css`)**: `#autoTextSizeButton` 및 모든 서식 버튼에 `white-space: nowrap !important; flex-shrink: 0 !important;`를 적용하여 '자동' 문구가 세로로 꺾이거나 줄바꿈되는 현상을 차단했습니다.
+
+### 66. 상단 썸네일 탐색바 전체 가로 폭 확장 및 개체 편집창–슬라이드 캔버스 정밀 1:1 위치·너비 동기화
+- **페이지 썸네일 탐색바 100% 전체 폭 확장 (`style.css`)**: `.stage-toolbar`의 `max-width: 1200px` 제한을 제거하고 `width: 100%; max-width: 100%;`로 변경하여 편집 패널 좌우 양쪽 끝까지 전체 가로 폭으로 펼쳐지고 `◀`, `▶` 이동 버튼이 양 끝단에 배치되도록 개선했습니다.
+- **슬라이드 캔버스–개체 편집창 1:1 위치 및 가로 길이 정밀 동기화 (`index.html`, `style.css`)**: `.stage-canvas-wrapper` 래퍼 구조를 신규 구성하여 개체 편집창(`#textToolbar`)과 캔버스(`#presentationStage`)를 하나로 묶고, 캔버스의 동적 Aspect-Ratio 너비 수식(`width: min(100%, 1200px, calc((100vh - 150px) * 1.7777))`)과 100% 동일하게 지정함으로써 좌우 테두리가 슬라이드 캔버스 양 끝선과 0px의 오차 없이 수평 위치 및 가로 길이가 완벽하게 일치하도록 구현했습니다.
+
 ---
 
 ## [2026-09-08] 업데이트 이력 (Commit ID: 6aab24a)
@@ -602,6 +610,13 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **수정 내용**:
   - 편집 모드 상단 툴바 페이지 번호 아래 16:9 슬라이드 실시간 썸네일 미리보기 기능 구현 (`createPageThumbnailElement`).
   - 페이지 탭 영역의 브라우저 기본 가로 스크롤바 제거 및 상단 툴바 양 끝 좌/우 이동 버튼(`◀`, `▶`) 탑재.
+- **검증 결과**: `node --check` static verification clean exit (code 0).
+
+## [2026-09-08] 업데이트 이력 (Commit ID: 9cb5763)
+- **수정 내용**:
+  - 팔레트 색상 동적 기억 기능 (`state.customColorHistory`) 및 3색 스와치 버튼 실시간 연동.
+  - 서식 툴바 '자동' 버튼 단일 행 고정 및 컴팩트 레이아웃 정돈.
+  - 상단 썸네일 탐색바 100% 가로 폭 확장 및 `.stage-canvas-wrapper` 도입을 통한 개체 편집창–슬라이드 캔버스 1:1 정밀 위치/너비 동기화.
 - **검증 결과**: `node --check` static verification clean exit (code 0).
 
 
