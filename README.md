@@ -617,6 +617,14 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - 팔레트 색상 동적 기억 기능 (`state.customColorHistory`) 및 3색 스와치 버튼 실시간 연동.
   - 서식 툴바 '자동' 버튼 단일 행 고정 및 컴팩트 레이아웃 정돈.
   - 상단 썸네일 탐색바 100% 가로 폭 확장 및 `.stage-canvas-wrapper` 도입을 통한 개체 편집창–슬라이드 캔버스 1:1 정밀 위치/너비 동기화.
-- **검증 결과**: `node --check` static verification clean exit (code 0).
+
+## [2026-09-09 18:11] 업데이트 이력 (Commit ID: cd4f255)
+- **수정 내용**:
+  - **.agents 커스텀 규칙 및 스킬 동기화**: `AGENTS.md` 및 `.agents/rules/rules.md` 시각 단위 기록 규칙과 `/ask` 전용 정책 추가.
+  - **MS 파워포인트 스타일 듀얼 창 실시간 발표 & 편집 동기화 구현 (`index.html`, `app.js`)**: `🖥️ 발표 (이중 창)` 기능 및 `BroadcastChannel` 기반 초고속 양방향 통신 구현. `window.opener.state` 동시 복제로 팝업 오픈 즉시 현재 편집 슬라이드 출력.
+  - **발표 창 100% 정중앙 배치 및 가로/세로 스크롤바·여백 완벽 제거 (`style.css`, `app.js`)**: `#presentationStage` 50/50 중앙축 정렬 적용, 중앙 세로 스크롤바 및 오른쪽 여백 제거.
+  - **4방향 화살표 키보드 단축키 정교화 (`app.js`)**: `→`, `↓`, `Space`, `PageDown` (다음 단계), `←`, `↑`, `PageUp` (이전 단계), `Esc` (종료) 키보드 단축키 통합 조작 구현.
+- **검증 결과**: `node --check app.js` 및 `node --check server.js` 구문/타입 정적 검사 통과 (Exit code: 0).
+
 
 

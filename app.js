@@ -33,6 +33,27 @@ let currentProjectFileHandle = null;
 let currentProjectFileName = "local-ppt.txt";
 let currentFolderPath = "c:\\Users\\user\\Desktop\\codex_cli\\.projects\\local_ppt_2\\txts\\";
 
+const syncChannel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("local_ppt_sync_channel") : null;
+const isPresentMode = new URLSearchParams(window.location.search).get("mode") === "present";
+let presenterWindowRef = null;
+
+function broadcastState() {
+  if (!syncChannel || isPresentMode) return;
+  try {
+    syncChannel.postMessage({
+      action: "SYNC_STATE",
+      design: state.design,
+      customPalette: state.customPalette,
+      fixedOverlays: state.fixedOverlays,
+      pages: state.pages,
+      currentPageIndex: state.currentPageIndex,
+      fullscreenAnimStep: typeof fullscreenAnimStep !== "undefined" ? fullscreenAnimStep : 0
+    });
+  } catch (err) {
+    console.warn("Sync error:", err);
+  }
+}
+
 function escapeHtml(str) {
   return String(str || "")
     .replace(/&/g, "&amp;")
@@ -53,10 +74,23 @@ function updateFilePathDisplay() {
 function updateStageScale() {
   const stageEl = $("#presentationStage") || (typeof stage !== "undefined" ? stage : null);
   if (!stageEl) return 1.0;
-  const width = stageEl.clientWidth || 1200;
-  const scale = width / 1200;
+  let scale = 1.0;
+  if (isPresentMode || document.fullscreenElement === stageEl || document.fullscreenElement === document.documentElement) {
+    const winW = window.innerWidth;
+    const winH = window.innerHeight;
+    const scaleW = winW / 1200;
+    const scaleH = winH / 675;
+    scale = Math.min(scaleW, scaleH);
+    stageEl.style.width = "100vw";
+    stageEl.style.height = "100vh";
+  } else {
+    const width = stageEl.clientWidth || 1200;
+    scale = width / 1200;
+    stageEl.style.width = "";
+    stageEl.style.height = "";
+  }
   stageEl.style.setProperty("--stage-scale", scale);
-  stageEl.style.setProperty("--stage-width", `${width}px`);
+  stageEl.style.setProperty("--stage-width", `${stageEl.clientWidth || 1200}px`);
   return scale;
 }
 let tableManagementAxis = "row";
@@ -1922,6 +1956,9 @@ function render() {
   renderPages();
   renderStage();
   updateUndoButton();
+  if (!isPresentMode) {
+    broadcastState();
+  }
 }
 
 function renderControls() {
@@ -5429,9 +5466,138 @@ function navigateFullscreenPrev() {
   return moved;
 }
 
+function openPresenterWindow() {
+  const screenW = window.screen?.availWidth || 1920;
+  const screenH = window.screen?.availHeight || 1080;
+  const features = `width=${screenW},height=${screenH},left=0,top=0,menubar=no,toolbar=no,location=no,status=no,resizable=yes`;
+  const url = window.location.origin + window.location.pathname + "?mode=present";
+  if (presenterWindowRef && !presenterWindowRef.closed) {
+    presenterWindowRef.focus();
+  } else {
+    presenterWindowRef = window.open(url, "LocalPptPresenterWindow", features);
+  }
+  showSaveToast("🖥️ 이중 창 발표 모드가 실행되었습니다!");
+  setTimeout(() => broadcastState(), 100);
+}
+
+$("#presenterWindowButton")?.addEventListener("click", openPresenterWindow);
+
 $("#fullscreenButton").addEventListener("click", () => {
   if (document.fullscreenElement) document.exitFullscreen();
   else stage.requestFullscreen();
+});
+
+if (syncChannel) {
+  syncChannel.onmessage = (event) => {
+    const data = event.data;
+    if (!data) return;
+
+    if (isPresentMode) {
+      if (data.action === "SYNC_STATE") {
+        state.design = data.design || state.design;
+        state.customPalette = data.customPalette || null;
+        state.fixedOverlays = data.fixedOverlays || defaultFixedOverlays();
+        state.pages = data.pages || state.pages;
+        state.currentPageIndex = typeof data.currentPageIndex === "number" ? data.currentPageIndex : state.currentPageIndex;
+        if (typeof data.fullscreenAnimStep === "number") {
+          fullscreenAnimStep = data.fullscreenAnimStep;
+        }
+        document.body.dataset.design = state.design;
+        applyThemePalette();
+        renderStage();
+        if (document.fullscreenElement === stage) {
+          updateFullscreenAnimState();
+        }
+      }
+    } else {
+      if (data.action === "REQUEST_INITIAL_STATE") {
+        broadcastState();
+      } else if (data.action === "NAVIGATE_PAGE") {
+        if (data.direction) {
+          navigateFullscreenPage(data.direction);
+        }
+      } else if (data.action === "SET_PAGE") {
+        if (typeof data.pageIndex === "number" && data.pageIndex >= 0 && data.pageIndex < state.pages.length) {
+          state.currentPageIndex = data.pageIndex;
+          render();
+        }
+      }
+    }
+  };
+}
+
+if (isPresentMode) {
+  document.body.classList.add("is-present-mode");
+  stage?.classList.add("is-fullscreen");
+
+  const intakeEl = $("#aiIntake");
+  if (intakeEl) {
+    intakeEl.style.display = "none";
+    intakeEl.hidden = true;
+  }
+  const modalEl = $("#styleConfigModal");
+  if (modalEl) {
+    modalEl.style.display = "none";
+    modalEl.hidden = true;
+  }
+
+  try {
+    if (window.opener && window.opener.state && Array.isArray(window.opener.state.pages)) {
+      state.design = window.opener.state.design || state.design;
+      state.customPalette = window.opener.state.customPalette || null;
+      state.fixedOverlays = window.opener.state.fixedOverlays || defaultFixedOverlays();
+      state.pages = window.opener.state.pages;
+      state.currentPageIndex = typeof window.opener.state.currentPageIndex === "number" ? window.opener.state.currentPageIndex : 0;
+      document.body.dataset.design = state.design;
+      applyThemePalette();
+      renderStage();
+    }
+  } catch (e) {
+    console.warn("Opener sync fallback:", e);
+  }
+
+  setTimeout(() => {
+    try {
+      if (!document.fullscreenElement) {
+        (document.documentElement.requestFullscreen?.() || stage?.requestFullscreen?.())?.catch(() => {});
+      }
+    } catch (e) {}
+  }, 150);
+
+  setTimeout(() => {
+    if (syncChannel) syncChannel.postMessage({ action: "REQUEST_INITIAL_STATE" });
+  }, 100);
+
+  window.addEventListener("keydown", (e) => {
+    if (!isPresentMode) return;
+    if (["ArrowRight", "ArrowDown", " ", "PageDown"].includes(e.key)) {
+      e.preventDefault();
+      navigateFullscreenNext();
+      if (syncChannel) syncChannel.postMessage({ action: "SET_PAGE", pageIndex: state.currentPageIndex });
+    } else if (["ArrowLeft", "ArrowUp", "PageUp"].includes(e.key)) {
+      e.preventDefault();
+      navigateFullscreenPrev();
+      if (syncChannel) syncChannel.postMessage({ action: "SET_PAGE", pageIndex: state.currentPageIndex });
+    } else if (e.key === "Escape") {
+      window.close();
+    }
+  });
+
+  stage?.addEventListener("click", (e) => {
+    if (e.target.closest(".timer-object-card, button, input, select, a")) return;
+    if (!document.fullscreenElement) {
+      (document.documentElement.requestFullscreen?.() || stage?.requestFullscreen?.())?.catch(() => {});
+    } else {
+      navigateFullscreenNext();
+      if (syncChannel) syncChannel.postMessage({ action: "SET_PAGE", pageIndex: state.currentPageIndex });
+    }
+  });
+}
+
+stage?.addEventListener("input", () => {
+  if (!isPresentMode) {
+    broadcastState();
+  }
 });
 
 document.addEventListener("fullscreenchange", () => {
@@ -5706,6 +5872,29 @@ function pasteCopiedObjects() {
 }
 
 document.addEventListener("keydown", (event) => {
+  const isFullscreen = document.fullscreenElement === stage || document.fullscreenElement === document.documentElement;
+
+  if (isPresentMode || isFullscreen) {
+    if (["ArrowRight", "ArrowDown", " ", "PageDown"].includes(event.key)) {
+      event.preventDefault();
+      event.stopPropagation();
+      navigateFullscreenNext();
+      return;
+    }
+    if (["ArrowLeft", "ArrowUp", "PageUp"].includes(event.key)) {
+      event.preventDefault();
+      event.stopPropagation();
+      navigateFullscreenPrev();
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      if (isPresentMode) window.close();
+      else if (document.fullscreenElement) document.exitFullscreen();
+      return;
+    }
+  }
+
   const activeEl = document.activeElement;
   const targetEl = event.target;
   const inFormField = ["INPUT", "TEXTAREA", "SELECT"].includes(activeEl?.tagName) || ["INPUT", "TEXTAREA", "SELECT"].includes(targetEl?.tagName);
@@ -5722,7 +5911,6 @@ document.addEventListener("keydown", (event) => {
   const code = event.code || "";
   const keyCode = event.keyCode;
 
-  const isFullscreen = document.fullscreenElement === stage;
   const page = currentPage();
   let targetTimers = [];
 
@@ -5777,18 +5965,6 @@ document.addEventListener("keydown", (event) => {
     }
   }
 
-  if (document.fullscreenElement === stage) {
-    if (["ArrowRight", " ", "PageDown"].includes(event.key)) {
-      event.preventDefault();
-      navigateFullscreenNext();
-      return;
-    }
-    if (["ArrowLeft", "PageUp"].includes(event.key)) {
-      event.preventDefault();
-      navigateFullscreenPrev();
-      return;
-    }
-  }
 
   if ((event.key === "Enter" || event.key === "F2") && !isEditingText && !modifier && state.selectedIds.size === 1) {
     const singleObjId = Array.from(state.selectedIds)[0];
@@ -5907,7 +6083,10 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-window.addEventListener("resize", () => requestAnimationFrame(fitAllText));
+window.addEventListener("resize", () => {
+  updateStageScale();
+  requestAnimationFrame(fitAllText);
+});
 populateVariantSelects();
 render();
 

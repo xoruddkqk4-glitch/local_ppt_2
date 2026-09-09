@@ -1258,9 +1258,91 @@ body[data-design="tactile-minimal"] .resize-handle { width:13px; height:13px; ri
   transition: background-color 0.12s ease, color 0.12s ease, outline 0.12s ease;
 }
 
+/* ==========================================================================
+   Dual-Window Presenter Mode Styling
+   ========================================================================== */
+html:has(body.is-present-mode),
+body.is-present-mode {
+  overflow: hidden !important;
+  background-color: var(--slide-bg, var(--bg-main, #ffffff)) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+}
 
+body.is-present-mode .app-header,
+body.is-present-mode .editor-panel,
+body.is-present-mode .page-thumbnails-sidebar,
+body.is-present-mode #pageListContainer,
+body.is-present-mode #pageList,
+body.is-present-mode #pageScrollLeftBtn,
+body.is-present-mode #pageScrollRightBtn,
+body.is-present-mode .page-scroll-btn,
+body.is-present-mode .stage-toolbar,
+body.is-present-mode .text-toolbar,
+body.is-present-mode .text-formatting-toolbar,
+body.is-present-mode #animModeBanner,
+body.is-present-mode .header-actions,
+body.is-present-mode #aiIntake,
+body.is-present-mode .ai-intake,
+body.is-present-mode #styleConfigModal,
+body.is-present-mode .stage-floating-actions,
+body.is-present-mode .panel-start-screen-box,
+body.is-present-mode .current-file-path-bar {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 
+body.is-present-mode .workspace,
+body.is-present-mode .stage-panel,
+body.is-present-mode .stage-canvas-row,
+body.is-present-mode .stage-canvas-wrapper,
+body.is-present-mode .stage-container,
+body.is-present-mode #stageContainer {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: var(--slide-bg, var(--bg-main, #ffffff)) !important;
+  border: none !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  gap: 0 !important;
+}
 
+body.is-present-mode #presentationStage {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) scale(var(--stage-scale, 1)) !important;
+  transform-origin: center center !important;
+  width: 1200px !important;
+  height: 675px !important;
+  min-width: 1200px !important;
+  min-height: 675px !important;
+  max-width: 1200px !important;
+  max-height: 675px !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  cursor: pointer;
+  box-sizing: border-box !important;
+  flex-shrink: 0 !important;
+}
 
 
 
