@@ -5570,6 +5570,7 @@ if (isPresentMode) {
 
   window.addEventListener("keydown", (e) => {
     if (!isPresentMode) return;
+    if (e.shiftKey || e.ctrlKey || e.metaKey) return;
     if (["ArrowRight", "ArrowDown", " ", "PageDown"].includes(e.key)) {
       e.preventDefault();
       navigateFullscreenNext();
@@ -5873,19 +5874,22 @@ function pasteCopiedObjects() {
 
 document.addEventListener("keydown", (event) => {
   const isFullscreen = document.fullscreenElement === stage || document.fullscreenElement === document.documentElement;
+  const modifier = event.ctrlKey || event.metaKey;
 
   if (isPresentMode || isFullscreen) {
-    if (["ArrowRight", "ArrowDown", " ", "PageDown"].includes(event.key)) {
-      event.preventDefault();
-      event.stopPropagation();
-      navigateFullscreenNext();
-      return;
-    }
-    if (["ArrowLeft", "ArrowUp", "PageUp"].includes(event.key)) {
-      event.preventDefault();
-      event.stopPropagation();
-      navigateFullscreenPrev();
-      return;
+    if (!event.shiftKey && !modifier) {
+      if (["ArrowRight", "ArrowDown", " ", "PageDown"].includes(event.key)) {
+        event.preventDefault();
+        event.stopPropagation();
+        navigateFullscreenNext();
+        return;
+      }
+      if (["ArrowLeft", "ArrowUp", "PageUp"].includes(event.key)) {
+        event.preventDefault();
+        event.stopPropagation();
+        navigateFullscreenPrev();
+        return;
+      }
     }
     if (event.key === "Escape") {
       event.preventDefault();
@@ -5906,7 +5910,6 @@ document.addEventListener("keydown", (event) => {
     document.querySelector(".canvas-text[contenteditable='true']")
   );
   const isEditingText = inFormField || isContentEditing;
-  const modifier = event.ctrlKey || event.metaKey;
   const key = event.key ? event.key.toLowerCase() : "";
   const code = event.code || "";
   const keyCode = event.keyCode;
@@ -5914,7 +5917,7 @@ document.addEventListener("keydown", (event) => {
   const page = currentPage();
   let targetTimers = [];
 
-  if (isFullscreen) {
+  if (isFullscreen || isPresentMode) {
     const pageTimers = (page?.objects || []).filter((o) => o.type === "timer");
     const runningTimers = pageTimers.filter((o) => o.isRunning);
     targetTimers = runningTimers.length ? runningTimers : pageTimers;
@@ -5932,7 +5935,7 @@ document.addEventListener("keydown", (event) => {
       else if (event.key === "ArrowUp") delta = 60;
       else if (event.key === "ArrowDown") delta = -60;
 
-      if (!isFullscreen) snapshot();
+      if (!isFullscreen && !isPresentMode) snapshot();
 
       targetTimers.forEach((timer) => {
         if (timer.mode === "stopwatch") {
@@ -5945,6 +5948,7 @@ document.addEventListener("keydown", (event) => {
       });
 
       updateRunningTimerDisplays();
+      broadcastState();
       return;
     }
 
@@ -5953,7 +5957,7 @@ document.addEventListener("keydown", (event) => {
       event.stopPropagation();
       const scaleDelta = event.key === "ArrowUp" ? 0.1 : -0.1;
 
-      if (!isFullscreen) snapshot();
+      if (!isFullscreen && !isPresentMode) snapshot();
 
       targetTimers.forEach((timer) => {
         const curScale = typeof timer.timerFontSizeScale === "number" ? timer.timerFontSizeScale : 1.0;
@@ -5961,6 +5965,7 @@ document.addEventListener("keydown", (event) => {
       });
 
       updateRunningTimerDisplays();
+      broadcastState();
       return;
     }
   }
