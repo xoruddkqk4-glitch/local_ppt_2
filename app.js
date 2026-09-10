@@ -81,8 +81,8 @@ function updateStageScale() {
     const scaleW = winW / 1200;
     const scaleH = winH / 675;
     scale = Math.min(scaleW, scaleH);
-    stageEl.style.width = "100vw";
-    stageEl.style.height = "100vh";
+    stageEl.style.width = "";
+    stageEl.style.height = "";
   } else {
     const width = stageEl.clientWidth || 1200;
     scale = width / 1200;
@@ -2498,7 +2498,7 @@ function renderStage() {
   stage.classList.toggle("is-anim-mode", isAnimMode);
   const animBanner = $("#animModeBanner");
   if (animBanner) animBanner.hidden = !isAnimMode;
-  if (document.fullscreenElement === stage) {
+  if (document.fullscreenElement === stage || document.fullscreenElement === document.documentElement || isPresentMode) {
     updateFullscreenAnimState();
   }
   requestAnimationFrame(fitAllText);
@@ -5404,9 +5404,11 @@ function getMaxAnimOrder(page = currentPage()) {
 }
 
 function updateFullscreenAnimState() {
-  const isFullscreen = document.fullscreenElement === stage;
-  if (!isFullscreen) return;
+  const isFullscreen = document.fullscreenElement === stage || document.fullscreenElement === document.documentElement;
+  const isFullscreenOrPresent = isFullscreen || isPresentMode;
+  if (!isFullscreenOrPresent) return;
   const page = currentPage();
+  if (!page || !Array.isArray(page.objects)) return;
   page.objects.forEach((object) => {
     const element = stage.querySelector(`[data-object-id="${object.id}"]`);
     if (!element) return;
@@ -5442,12 +5444,14 @@ function navigateFullscreenNext() {
   if (fullscreenAnimStep < maxOrder) {
     fullscreenAnimStep += 1;
     updateFullscreenAnimState();
+    broadcastState();
     return true;
   }
   const moved = navigateFullscreenPage(1);
   if (moved) {
     fullscreenAnimStep = 0;
     updateFullscreenAnimState();
+    broadcastState();
   }
   return moved;
 }
@@ -5456,12 +5460,14 @@ function navigateFullscreenPrev() {
   if (fullscreenAnimStep > 0) {
     fullscreenAnimStep -= 1;
     updateFullscreenAnimState();
+    broadcastState();
     return true;
   }
   const moved = navigateFullscreenPage(-1);
   if (moved) {
     fullscreenAnimStep = getMaxAnimOrder();
     updateFullscreenAnimState();
+    broadcastState();
   }
   return moved;
 }
@@ -5505,9 +5511,7 @@ if (syncChannel) {
         document.body.dataset.design = state.design;
         applyThemePalette();
         renderStage();
-        if (document.fullscreenElement === stage) {
-          updateFullscreenAnimState();
-        }
+        updateFullscreenAnimState();
       }
     } else {
       if (data.action === "REQUEST_INITIAL_STATE") {
@@ -5586,12 +5590,7 @@ if (isPresentMode) {
 
   stage?.addEventListener("click", (e) => {
     if (e.target.closest(".timer-object-card, button, input, select, a")) return;
-    if (!document.fullscreenElement) {
-      (document.documentElement.requestFullscreen?.() || stage?.requestFullscreen?.())?.catch(() => {});
-    } else {
-      navigateFullscreenNext();
-      if (syncChannel) syncChannel.postMessage({ action: "SET_PAGE", pageIndex: state.currentPageIndex });
-    }
+    navigateFullscreenNext();
   });
 }
 
@@ -5621,7 +5620,8 @@ document.addEventListener("fullscreenchange", () => {
 });
 
 stage.addEventListener("click", (event) => {
-  if (document.fullscreenElement === stage) {
+  const isFullscreen = document.fullscreenElement === stage || document.fullscreenElement === document.documentElement;
+  if (isFullscreen || isPresentMode) {
     if (event.target.closest(".timer-object-card, button, input, select, a")) {
       return;
     }
