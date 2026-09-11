@@ -66,9 +66,13 @@ function escapeHtml(str) {
 function updateFilePathDisplay() {
   const display = $("#currentFilePathDisplay");
   if (!display) return;
-  const dirPath = currentFolderPath ? (currentFolderPath.endsWith("\\") || currentFolderPath.endsWith("/") ? currentFolderPath : currentFolderPath + "\\") : "";
   const fileName = currentProjectFileName || "local-ppt.txt";
-  display.innerHTML = `📁 <span class="file-dir-path">${escapeHtml(dirPath)}</span><strong class="file-name-title">${escapeHtml(fileName)}</strong>`;
+  const dirPath = currentFolderPath && !currentProjectFileHandle ? (currentFolderPath.endsWith("\\") || currentFolderPath.endsWith("/") ? currentFolderPath : currentFolderPath + "\\") : "";
+  if (dirPath) {
+    display.innerHTML = `📁 <span class="file-dir-path">${escapeHtml(dirPath)}</span><strong class="file-name-title">${escapeHtml(fileName)}</strong>`;
+  } else {
+    display.innerHTML = `📁 <strong class="file-name-title">${escapeHtml(fileName)}</strong>`;
+  }
 }
 
 function updateStageScale() {
@@ -2181,6 +2185,13 @@ function createPageThumbnailElement(page) {
         miniObj.style.border = "0.5px solid #0f172a";
         miniObj.textContent = "⏱️";
         miniObj.style.fontSize = "8px";
+      } else if (obj.type === "html-card" || obj.role === "html-container") {
+        miniObj.style.backgroundColor = "#ffffff";
+        miniObj.style.border = "0.5px solid #2563eb";
+        miniObj.textContent = "📄 HTML";
+        miniObj.style.fontSize = "6px";
+        miniObj.style.fontWeight = "800";
+        miniObj.style.color = "#2563eb";
       } else {
         if (obj.role === "cover-title" || obj.role === "page-title") {
           miniObj.style.fontWeight = "900";
@@ -3144,6 +3155,103 @@ function createObjectElement(object) {
       event.stopPropagation();
       openImagePickerForObject(object);
     });
+  } else if (object.type === "html-card" || object.role === "html-container") {
+    element.classList.add("html-card-object");
+    const wrapper = document.createElement("div");
+    wrapper.className = "html-content-wrapper";
+    wrapper.innerHTML = object.htmlContent || "";
+
+    // Allow ALL clicks, mousedown, and pointer events inside HTML content area to pass through natively to elements & document delegates
+    wrapper.addEventListener("pointerdown", (e) => {
+      // Do not stop propagation to document so delegating event listeners work natively
+    });
+
+    // Double-click to edit text inside HTML container (ignore if clicking interactive elements)
+    wrapper.addEventListener("dblclick", (e) => {
+      const isInteractive = e.target.closest("button, a, input, select, textarea, label, [role='button'], .btn, summary, tab, .tab, .interactive, [onclick]");
+      if (isInteractive) return;
+      e.stopPropagation();
+      wrapper.contentEditable = "true";
+      wrapper.focus();
+    });
+
+    wrapper.addEventListener("blur", () => {
+      wrapper.contentEditable = "false";
+      if (object.htmlContent !== wrapper.innerHTML) {
+        snapshot();
+        object.htmlContent = wrapper.innerHTML;
+      }
+    });
+
+    element.append(wrapper);
+
+    // Dynamic Script Execution Re-hydration for interactive HTML slides (with DOMContentLoaded polyfill & external script support)
+    setTimeout(() => {
+      const scripts = Array.from(wrapper.querySelectorAll("script"));
+      const loadScriptSequentially = (index) => {
+        if (index >= scripts.length) return;
+        const oldScript = scripts[index];
+        try {
+          const newScript = document.createElement("script");
+          Array.from(oldScript.attributes).forEach(attr => {
+            try { newScript.setAttribute(attr.name, attr.value); } catch(err){}
+          });
+
+          if (oldScript.src) {
+            newScript.onload = () => loadScriptSequentially(index + 1);
+            newScript.onerror = () => loadScriptSequentially(index + 1);
+            if (oldScript.parentNode) {
+              oldScript.parentNode.replaceChild(newScript, oldScript);
+            }
+          } else {
+            const code = oldScript.textContent;
+            if (code && code.trim()) {
+              const patchedCode = `
+                (function(wrapper) {
+                  const origAddEv = document.addEventListener;
+                  const origWinAddEv = window.addEventListener;
+                  
+                  document.addEventListener = function(type, listener, options) {
+                    if ((type === 'DOMContentLoaded' || type === 'load') && (document.readyState === 'complete' || document.readyState === 'interactive')) {
+                      try { listener.call(document, new Event(type)); } catch(e){ console.error(e); }
+                    } else {
+                      origAddEv.call(document, type, listener, options);
+                    }
+                  };
+                  
+                  window.addEventListener = function(type, listener, options) {
+                    if (type === 'load' && (document.readyState === 'complete' || document.readyState === 'interactive')) {
+                      try { listener.call(window, new Event(type)); } catch(e){ console.error(e); }
+                    } else {
+                      origWinAddEv.call(window, type, listener, options);
+                    }
+                  };
+                  
+                  try {
+                    ${code}
+                  } catch(err) {
+                    console.warn("HTML slide script notice:", err);
+                  }
+                  
+                  if (typeof window.onload === 'function' && (document.readyState === 'complete' || document.readyState === 'interactive')) {
+                    try { window.onload.call(window, new Event('load')); } catch(e){}
+                  }
+                })(document.querySelector('[data-object-id="${object.id}"] .html-content-wrapper'));
+              `;
+              newScript.textContent = patchedCode;
+            }
+            if (oldScript.parentNode) {
+              oldScript.parentNode.replaceChild(newScript, oldScript);
+            }
+            loadScriptSequentially(index + 1);
+          }
+        } catch (err) {
+          console.warn("HTML slide script re-hydration warning:", err);
+          loadScriptSequentially(index + 1);
+        }
+      };
+      loadScriptSequentially(0);
+    }, 15);
   } else if (object.type === "table") {
     element.append(createTableElement(object));
   } else if (object.type === "chart") {
@@ -3231,6 +3339,15 @@ function createObjectElement(object) {
       handleAnimModeClick(event, object);
       return;
     }
+
+    if (object.type === "html-card" || object.role === "html-container") {
+      const isContentArea = event.target.closest(".html-content-wrapper");
+      const isResizeHandle = event.target.closest(".resize-handle");
+      if (isContentArea && !isResizeHandle) {
+        return; // Allow ALL clicks and interactions inside HTML content area to function natively
+      }
+    }
+
     const now = Date.now();
     const isDoubleClick = (now - lastClickTime < 350);
     lastClickTime = now;
@@ -4616,7 +4733,32 @@ function getChartThumbnailMarkup(variant) {
   return previews[variant] || previews.column;
 }
 
+function sanitizePagesData(pages) {
+  if (!Array.isArray(pages)) return [];
+  return pages.map((page, pIdx) => {
+    if (!page) return { id: `page_${pIdx}`, type: "bullet", title: "", objects: [] };
+    const cleanObjects = Array.isArray(page.objects) ? page.objects.map((obj, oIdx) => {
+      if (!obj) return null;
+      return {
+        ...obj,
+        id: obj.id || `obj_${pIdx}_${oIdx}_${Date.now()}`,
+        type: obj.type || "textbox",
+        x: Number.isFinite(Number(obj.x)) ? Number(obj.x) : 10,
+        y: Number.isFinite(Number(obj.y)) ? Number(obj.y) : 10,
+        w: Number.isFinite(Number(obj.w)) ? Number(obj.w) : 20,
+        h: Number.isFinite(Number(obj.h)) ? Number(obj.h) : 20
+      };
+    }).filter(Boolean) : [];
+
+    return {
+      ...page,
+      objects: cleanObjects
+    };
+  });
+}
+
 function serializeProject() {
+  const cleanPages = sanitizePagesData(state.pages);
   return JSON.stringify({
     format: PROJECT_FORMAT,
     version: PROJECT_VERSION,
@@ -4625,14 +4767,19 @@ function serializeProject() {
       design: state.design,
       customPalette: state.customPalette,
       fixedOverlays: state.fixedOverlays,
-      pages: state.pages,
+      pages: cleanPages,
       currentPageIndex: state.currentPageIndex
     }
-  }, null, 2);
+  });
 }
 
 function parseProject(text) {
-  const parsed = JSON.parse(text);
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (err) {
+    throw new Error("유효한 JSON 텍스트 형식이 아닙니다.");
+  }
   if (parsed?.format !== PROJECT_FORMAT || parsed?.version !== PROJECT_VERSION) {
     throw new Error("Local ppt 저장 파일 형식이 아닙니다.");
   }
@@ -4640,20 +4787,15 @@ function parseProject(text) {
   if (!presentation || !Array.isArray(presentation.pages) || !presentation.pages.length) {
     throw new Error("페이지 데이터가 없습니다.");
   }
-  presentation.pages.forEach((page, pageIndex) => {
-    if (!page || !Array.isArray(page.objects)) throw new Error(`PAGE ${pageIndex + 1}의 개체 데이터가 올바르지 않습니다.`);
-    page.objects.forEach((object) => {
-      if (!object?.id || !object.type || ![object.x, object.y, object.w, object.h].every(Number.isFinite)) {
-        throw new Error(`PAGE ${pageIndex + 1}에 잘못된 개체가 있습니다.`);
-      }
-    });
-  });
+
+  const sanitizedPages = sanitizePagesData(presentation.pages);
+
   return {
     design: designs[presentation.design] ? presentation.design : "bauhaus",
     customPalette: Array.isArray(presentation.customPalette) && presentation.customPalette.length === 3 ? presentation.customPalette : null,
     fixedOverlays: presentation.fixedOverlays ? { ...defaultFixedOverlays(), ...presentation.fixedOverlays } : defaultFixedOverlays(),
-    pages: JSON.parse(JSON.stringify(presentation.pages)),
-    currentPageIndex: clamp(0, Number(presentation.currentPageIndex) || 0, presentation.pages.length - 1)
+    pages: sanitizedPages,
+    currentPageIndex: clamp(0, Number(presentation.currentPageIndex) || 0, sanitizedPages.length - 1)
   };
 }
 
@@ -4674,6 +4816,8 @@ async function loadProjectFile(file, handle = null) {
     if (file.path) {
       const lastSep = Math.max(file.path.lastIndexOf("\\"), file.path.lastIndexOf("/"));
       if (lastSep > 0) currentFolderPath = file.path.substring(0, lastSep + 1);
+    } else if (!handle) {
+      currentFolderPath = "";
     }
     document.title = `Local PPT 2 — ${currentProjectFileName}`;
     updateFilePathDisplay();
@@ -4681,19 +4825,25 @@ async function loadProjectFile(file, handle = null) {
       window.LocalPptAiIntake.syncOptionsUI();
     }
     render();
+    snapshot();
   } catch (error) {
     window.alert(`파일을 불러올 수 없습니다.\n${error.message}`);
   }
 }
 
 async function writeProjectToHandle(handle) {
-  const writable = await handle.createWritable();
-  await writable.write(serializeProject());
-  await writable.close();
-  currentProjectFileHandle = handle;
-  currentProjectFileName = handle.name || currentProjectFileName;
-  document.title = `Local PPT 2 — ${currentProjectFileName}`;
-  updateFilePathDisplay();
+  try {
+    const writable = await handle.createWritable();
+    await writable.write(serializeProject());
+    await writable.close();
+    currentProjectFileHandle = handle;
+    currentProjectFileName = handle.name || currentProjectFileName;
+    document.title = `Local PPT 2 — ${currentProjectFileName}`;
+    updateFilePathDisplay();
+  } catch (error) {
+    currentProjectFileHandle = null;
+    throw error;
+  }
 }
 
 function downloadProject(filename = currentProjectFileName) {
@@ -4768,8 +4918,14 @@ async function saveCurrentProject() {
   try {
     let saved = false;
     if (currentProjectFileHandle) {
-      await writeProjectToHandle(currentProjectFileHandle);
-      saved = true;
+      try {
+        await writeProjectToHandle(currentProjectFileHandle);
+        saved = true;
+      } catch (handleError) {
+        console.warn("파일 핸들 저장 실패, 다른 이름으로 저장으로 전환합니다:", handleError);
+        currentProjectFileHandle = null;
+        saved = await saveProjectAs();
+      }
     } else {
       saved = await saveProjectAs();
     }
@@ -4917,14 +5073,14 @@ $("#resetPaletteButton")?.addEventListener("click", () => {
     if (!state.fixedOverlays[pos]) state.fixedOverlays[pos] = { text: "", size: "13px", weight: "700" };
     snapshot();
     state.fixedOverlays[pos].size = event.target.value;
-    render();
+    renderStage();
   });
 
   weightSelect?.addEventListener("change", (event) => {
     if (!state.fixedOverlays[pos]) state.fixedOverlays[pos] = { text: "", size: "13px", weight: "700" };
     snapshot();
     state.fixedOverlays[pos].weight = event.target.value;
-    render();
+    renderStage();
   });
 });
 
@@ -5002,7 +5158,6 @@ categoryToggles.forEach(({ toggle, grid }) => {
   });
 });
 
-
 $("#addPageButton").addEventListener("click", () => {
   snapshot();
   state.pages.push(createContentPage());
@@ -5010,6 +5165,301 @@ $("#addPageButton").addEventListener("click", () => {
   state.selectedIds.clear();
   hideTextToolbar();
   render();
+});
+
+function parseHtmlToSlideObjects(htmlString, applyThemeColors = true) {
+  if (!htmlString || !htmlString.trim()) return [];
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlString, "text/html");
+
+  // 1. Remove non-visual & script/style tags to prevent code leakage
+  doc.querySelectorAll("script, style, link, meta, noscript, iframe, svg").forEach(el => el.remove());
+
+  const body = doc.body;
+  if (!body) return [];
+
+  const objects = [];
+
+  // 2. Smart Title Extraction
+  let titleText = "";
+  const headTitle = doc.querySelector("head title")?.textContent?.trim();
+  const titleEl = body.querySelector("h1, h2, .title, .header-title, header h1, header h2, .heading");
+
+  if (titleEl && titleEl.textContent.trim()) {
+    titleText = titleEl.textContent.trim();
+    titleEl.remove();
+  } else if (headTitle && headTitle !== "Document" && headTitle.length < 80) {
+    titleText = headTitle;
+  } else {
+    const firstH = body.querySelector("h3, h4, strong");
+    if (firstH && firstH.textContent.trim() && firstH.textContent.trim().length < 60) {
+      titleText = firstH.textContent.trim();
+      firstH.remove();
+    }
+  }
+
+  // Only create title object if a valid title was found
+  if (titleText) {
+    const titleObj = createTextObject("page-title", titleText, 7, 6, 86, 15, { textAlign: "left" });
+    if (!applyThemeColors && titleEl && titleEl.style?.color) {
+      titleObj.textColor = titleEl.style.color;
+    }
+    objects.push(titleObj);
+  }
+
+  const startY = titleText ? 24 : 10;
+
+  // 3. Card / Box / Section Grid Detection
+  const cardElements = Array.from(body.querySelectorAll(".card, .box, .item, .card-item, article, section, fieldset")).filter(el => {
+    const text = el.textContent.trim();
+    return text.length > 0 && !el.querySelector(".card, .box, article, section");
+  });
+
+  if (cardElements.length >= 1) {
+    const count = Math.min(cardElements.length, 6);
+    const availableW = 86;
+    const gap = count > 3 ? 2 : 3;
+    const cardW = (availableW - (count - 1) * gap) / count;
+    const cardH = titleText ? 62 : 76;
+
+    cardElements.slice(0, count).forEach((cardEl, idx) => {
+      const x = 7 + idx * (cardW + gap);
+      const h3El = cardEl.querySelector("h2, h3, h4, h5, strong, .card-title, header");
+      const cardTitleText = h3El ? h3El.textContent.trim() : (cardEl.dataset.title || `항목 ${idx + 1}`);
+      if (h3El) h3El.remove();
+
+      const textNodes = Array.from(cardEl.querySelectorAll("p, li, span, td, div"))
+        .map(el => el.textContent.trim())
+        .filter(t => t.length > 0);
+
+      const uniqueText = textNodes.length > 0 ? Array.from(new Set(textNodes)).join("\n") : cardEl.textContent.trim();
+      const fullCardText = cardTitleText ? (uniqueText && uniqueText !== cardTitleText ? `${cardTitleText}\n${uniqueText}` : cardTitleText) : uniqueText;
+
+      const extra = {
+        item: true,
+        sequence: idx,
+        textAlign: "left"
+      };
+
+      if (!applyThemeColors) {
+        if (cardEl.style?.backgroundColor) extra.bgColor = cardEl.style.backgroundColor;
+        if (cardEl.style?.color) extra.textColor = cardEl.style.color;
+        if (cardEl.style?.borderColor) extra.borderColor = cardEl.style.borderColor;
+      }
+
+      objects.push(createTextObject("card-title", fullCardText, x, startY, cardW, cardH, extra));
+    });
+  } else {
+    // 4. General Block Element Parsing with Dynamic Spacing
+    const blockElements = Array.from(body.children).filter(el => {
+      return el.textContent.trim().length > 0 || el.querySelector("img");
+    });
+
+    if (blockElements.length === 0) {
+      const rawText = body.textContent.trim();
+      if (rawText) {
+        objects.push(createTextObject("bullet-item", rawText, 10, startY, 80, 50, { item: true, textAlign: "left" }));
+      }
+    } else {
+      let currentY = startY;
+
+      blockElements.forEach((el) => {
+        if (currentY > 84) return;
+
+        const tagName = el.tagName.toLowerCase();
+
+        // Image Tag
+        if (tagName === "img" || el.querySelector("img")) {
+          const imgEl = tagName === "img" ? el : el.querySelector("img");
+          const src = imgEl.getAttribute("src") || "";
+          if (src) {
+            objects.push({
+              id: createId("image"),
+              type: "image",
+              role: "image-object",
+              src: src,
+              x: 10,
+              y: currentY,
+              w: 42,
+              h: 30,
+              objectFit: "contain"
+            });
+            currentY += 34;
+            return;
+          }
+        }
+
+        // List Tags
+        if (tagName === "ul" || tagName === "ol") {
+          const listItems = Array.from(el.querySelectorAll("li"))
+            .map(li => li.textContent.trim())
+            .filter(t => t.length > 0);
+
+          listItems.forEach((itemText) => {
+            if (currentY > 84) return;
+            const lineCount = Math.ceil(itemText.length / 45);
+            const boxH = Math.max(8, lineCount * 7);
+            objects.push(createTextObject("bullet-item", itemText, 10, currentY, 80, boxH, { item: true, bulletLevel: 1, textAlign: "left" }));
+            currentY += boxH + 3;
+          });
+        }
+        // Table Tag
+        else if (tagName === "table") {
+          const rows = Array.from(el.querySelectorAll("tr"));
+          const rowTexts = rows
+            .map(r => Array.from(r.querySelectorAll("th, td")).map(c => c.textContent.trim()).join("  |  "))
+            .filter(t => t.length > 0);
+          const tableText = rowTexts.join("\n");
+          const boxH = Math.min(45, rows.length * 8 + 6);
+          objects.push(createTextObject("free-text", tableText, 10, currentY, 80, boxH, { item: true, textAlign: "left" }));
+          currentY += boxH + 4;
+        }
+        // Paragraph / Heading / Generic Block
+        else {
+          const text = el.textContent.trim();
+          if (text) {
+            const lineCount = Math.ceil(text.length / 50);
+            const boxH = Math.max(9, lineCount * 7.5);
+            const isHeading = ["h3", "h4", "h5", "h6"].includes(tagName);
+
+            const extra = {
+              item: true,
+              textAlign: "left"
+            };
+
+            if (isHeading) {
+              extra.bulletLevel = 0;
+              if (!applyThemeColors && el.style?.color) extra.textColor = el.style.color;
+            } else {
+              extra.bulletLevel = 1;
+            }
+
+            objects.push(createTextObject(isHeading ? "card-title" : "bullet-item", text, 10, currentY, 80, boxH, extra));
+            currentY += boxH + 3;
+          }
+        }
+      });
+    }
+  }
+
+  // Fallback if no objects created
+  if (objects.length === 0 && body.textContent.trim()) {
+    objects.push(createTextObject("bullet-item", body.textContent.trim(), 10, 20, 80, 50, { item: true }));
+  }
+
+  return objects;
+}
+
+// HTML Import Modal handlers
+$("#openHtmlImportButton")?.addEventListener("click", () => {
+  const modal = $("#htmlImportModal");
+  if (!modal) return;
+  modal.hidden = false;
+  const textarea = $("#htmlImportText");
+  if (textarea) textarea.focus();
+  const statusEl = $("#htmlImportStatus");
+  if (statusEl) statusEl.textContent = "";
+});
+
+$("#cancelHtmlImportButton")?.addEventListener("click", () => {
+  const modal = $("#htmlImportModal");
+  if (modal) modal.hidden = true;
+});
+
+// File upload handler for HTML file
+$("#htmlFileInput")?.addEventListener("change", (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const text = event.target.result;
+    const textarea = $("#htmlImportText");
+    if (textarea) textarea.value = text;
+    const statusEl = $("#htmlImportStatus");
+    if (statusEl) statusEl.textContent = `📂 파일 '${file.name}'을(를) 불러왔습니다.`;
+  };
+  reader.readAsText(file);
+});
+
+// Confirm HTML Import
+$("#confirmHtmlImportButton")?.addEventListener("click", () => {
+  const htmlText = $("#htmlImportText")?.value || "";
+  const selectedMode = document.querySelector('input[name="htmlImportMode"]:checked')?.value || "raw-layout";
+  const statusEl = $("#htmlImportStatus");
+
+  if (!htmlText.trim()) {
+    if (statusEl) statusEl.textContent = "⚠️ HTML 코드를 입력하거나 파일을 선택해 주세요.";
+    return;
+  }
+
+  if (selectedMode === "raw-layout") {
+    // Mode A: 100% Visual Render & Interactive JS Execution (Sanitize unsafe iframes/meta only)
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlText, "text/html");
+    doc.querySelectorAll("iframe, noscript").forEach(el => el.remove());
+
+    // Preserve full <head> styles, links, and scripts with viewport fit override
+    let headHtml = `<style>
+      html, body, .app, .frame {
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+      }
+      ::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+      * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+    </style>\n`;
+    doc.head.querySelectorAll("style, script, link").forEach(el => {
+      headHtml += el.outerHTML + "\n";
+    });
+
+    const sanitizedHtml = headHtml + (doc.body.innerHTML || htmlText);
+
+    snapshot();
+    const newPage = createContentPage();
+    newPage.template = "html-custom";
+    newPage.objects = [
+      {
+        id: createId("html-card"),
+        type: "html-card",
+        role: "html-container",
+        htmlContent: sanitizedHtml,
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 100
+      }
+    ];
+    state.pages.push(newPage);
+    state.currentPageIndex = state.pages.length - 1;
+    state.selectedIds.clear();
+    hideTextToolbar();
+    render();
+  } else {
+    // Mode B: Convert to PPT objects
+    const objects = parseHtmlToSlideObjects(htmlText, true);
+    if (objects.length === 0) {
+      if (statusEl) statusEl.textContent = "⚠️ HTML 코드에서 변환 가능한 유효한 요소를 찾지 못했습니다.";
+      return;
+    }
+
+    snapshot();
+    const newPage = createContentPage();
+    newPage.objects = objects;
+    state.pages.push(newPage);
+    state.currentPageIndex = state.pages.length - 1;
+    state.selectedIds.clear();
+    hideTextToolbar();
+    render();
+  }
+
+  const modal = $("#htmlImportModal");
+  if (modal) modal.hidden = true;
+  if ($("#htmlImportText")) $("#htmlImportText").value = "";
+  if (statusEl) statusEl.textContent = "";
 });
 
 $("#addItemButton").addEventListener("click", addItem);
@@ -5589,7 +6039,7 @@ if (isPresentMode) {
   });
 
   stage?.addEventListener("click", (e) => {
-    if (e.target.closest(".timer-object-card, button, input, select, a")) return;
+    if (e.target.closest(".timer-object-card, button, input, select, a, .html-content-wrapper, .html-card-object")) return;
     navigateFullscreenNext();
   });
 }
@@ -5622,7 +6072,7 @@ document.addEventListener("fullscreenchange", () => {
 stage.addEventListener("click", (event) => {
   const isFullscreen = document.fullscreenElement === stage || document.fullscreenElement === document.documentElement;
   if (isFullscreen || isPresentMode) {
-    if (event.target.closest(".timer-object-card, button, input, select, a")) {
+    if (event.target.closest(".timer-object-card, button, input, select, a, .html-content-wrapper, .html-card-object")) {
       return;
     }
     event.preventDefault();

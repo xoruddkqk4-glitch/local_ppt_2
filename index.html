@@ -19,6 +19,7 @@
       <button id="saveProjectButton" class="button button-blue">txt에 저장</button>
       <button id="undoButton" class="button">되돌리기 <kbd>Ctrl Z</kbd></button>
       <button id="addPageButton" class="button button-dark">+ 본문 페이지</button>
+      <button id="openHtmlImportButton" class="button button-dark" title="HTML 코드를 파싱하여 새로운 슬라이드로 추가합니다.">📄 HTML 불러오기</button>
       <button id="fullscreenButton" class="button button-blue">전체 화면 <kbd>F</kbd></button>
       <button id="presenterWindowButton" class="button button-dark" title="두 번째 창(프로젝터)에 전체 화면 발표 창을 띄우고 본 창에서 실시간으로 편집합니다.">🖥️ 발표 (이중 창)</button>
       <input id="projectFileInput" type="file" accept=".txt,.json,text/plain,application/json" hidden>
@@ -849,6 +850,58 @@
         <div class="modal-actions-row" style="margin-top:16px; display:flex; gap:10px; justify-content:flex-end;">
           <button id="cancelStyleModalButton" class="button" type="button">취소</button>
           <button id="applyStyleModalButton" class="button button-dark" type="button" style="padding:10px 24px; font-weight:900;">✨ 적용하기</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HTML Import Modal -->
+  <section id="htmlImportModal" class="ai-intake" hidden role="dialog" aria-modal="true" aria-labelledby="htmlImportTitle">
+    <div class="ai-intake-card" style="max-width: 680px; width: 90vw;">
+      <div class="ai-intake-heading">
+        <p class="ai-eyebrow">LOCAL PPT · HTML IMPORT</p>
+        <h2 id="htmlImportTitle" style="margin: 4px 0 8px; font-size: 22px;">📄 HTML 코드로 슬라이드 추가</h2>
+        <p style="margin: 0; font-size: 13px; color: #475569;">외부 HTML 코드나 HTML 파일을 작성/업로드하여 새로운 슬라이드로 파싱·추가합니다.</p>
+      </div>
+      <div class="html-import-content" style="display: flex; flex-direction: column; gap: 14px; margin-top: 14px;">
+        <div class="intake-field">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-weight:800; font-size:13px; color:#0f172a;">HTML 코드 입력</span>
+            <label class="button" style="font-size:11.5px; padding:4px 10px; cursor:pointer; font-weight:700;">
+              📂 HTML 파일 선택
+              <input id="htmlFileInput" type="file" accept=".html,.htm,text/html" hidden>
+            </label>
+          </div>
+          <textarea id="htmlImportText" rows="9" placeholder="여기에 HTML 코드를 붙여넣으세요. 예:
+<h1>슬라이드 제목</h1>
+<p>주요 설명 텍스트입니다.</p>
+<div class=&quot;card&quot;>
+  <h3>첫 번째 핵심 요소</h3>
+  <p>세부 설명 및 개조식 내용</p>
+</div>
+<div class=&quot;card&quot;>
+  <h3>두 번째 핵심 요소</h3>
+  <p>세부 설명 및 개조식 내용</p>
+</div>" style="width: 100%; font-family: monospace; font-size: 12px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; line-height: 1.5; resize: vertical; background: #fafafa;"></textarea>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px;">
+          <strong style="font-size: 12px; color: #0f172a; font-weight: 800;">⚙️ HTML 슬라이드 구현 방식 선택:</strong>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; cursor: pointer; color: #1e293b;">
+            <input type="radio" name="htmlImportMode" value="raw-layout" checked>
+            <span>✨ HTML 원문 디자인 &amp; CSS 레이아웃 그대로 슬라이드 구현 (1:1 Visual Render)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; cursor: pointer; color: #475569;">
+            <input type="radio" name="htmlImportMode" value="convert-objects">
+            <span>📝 PPT 기본 텍스트/카드 개체로 분해 변환</span>
+          </label>
+        </div>
+
+        <p id="htmlImportStatus" class="guide" style="margin: 0; min-height: 18px; color: #2563eb; font-weight: 700;"></p>
+
+        <div class="modal-actions-row" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px;">
+          <button id="cancelHtmlImportButton" class="button" type="button">취소</button>
+          <button id="confirmHtmlImportButton" class="button button-dark" type="button" style="padding: 9px 20px; font-weight: 900;">✨ 슬라이드로 추가</button>
         </div>
       </div>
     </div>

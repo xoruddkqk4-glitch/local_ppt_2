@@ -608,6 +608,12 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **마우스 클릭 및 화살표 키 조작 동기화 (`app.js`)**: 발표 창 및 메인 창에서 마우스 캔버스 클릭 또는 화살표 키(`→`, `↓`, `Space`, `PageDown` / `←`, `↑`, `PageUp`) 입력 시 애니메이션 단계(`fullscreenAnimStep`)가 조작되고 `broadcastState()`를 통해 양쪽 화면에 실시간 방송되어 두 창 모두 동시에 개체가 등장/퇴장합니다.
 - **발표 창 애니메이션 뱃지 숨김 (`style.css`)**: 발표 진행 시 개체 좌상단에 표시되던 편집용 순서 뱃지(`.anim-badge`)를 가림 처리했습니다.
 
+### 70. Local PPT 2 `.txt` (JSON) 프로젝트 저장 및 불러오기 기능 안정화
+- **파일 핸들(`currentProjectFileHandle`) 저장 실패 시 자동 회복 및 Fallback 메커니즘 구축 (`app.js`)**: File System Access API 사용 중 권한 상실 또는 파일 삭제로 저장 실패 시 핸들을 `null`로 자동 초기화하고, 다른 이름으로 저장(`saveProjectAs`) 및 파일 다운로드 팝업으로 즉시 Fallback 되도록 개선했습니다.
+- **수치 자동 보정 (Sanitization) 및 파싱 오류 방지 (`app.js`)**: `sanitizePagesData()` 함수를 도입하여 개체 좌표 및 크기(`x, y, w, h`)의 `NaN`, `null`, `undefined` 유입을 자동 교정하고, 단일 개체 수치 이상으로 인해 전체 프로젝트가 열리지 않던 파싱 거부 현상을 차단했습니다.
+- **JSON 압축 직렬화 (파일 용량 절감)**: Base64 인코딩 이미지가 다수 포함된 파일의 용량 불필요 확증을 막기 위해 들여쓰기가 제거된 압축 JSON으로 저장되도록 직렬화(`serializeProject`)를 최적화했습니다.
+- **로컬 경로 UI 및 로드 시 Snapshot 기준점 자동 등록 (`app.js`)**: 보안 정책으로 실제 OS 절대 경로 취득이 불가능한 웹 브라우저 환경에서 하드코딩 경로 표시를 숨기고 깔끔한 파일명 UI로 반응하며, 파일 로드 직후 `snapshot()`을 자동 등록하여 Undo/Redo의 안전한 기준점을 보장했습니다.
+
 ---
 
 ## [2026-09-08] 업데이트 이력 (Commit ID: 6aab24a)
@@ -657,7 +663,8 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - 발표(이중 창) 모드에서 마우스 클릭 및 키보드 화살표 키 조작에 따른 개체 보이기 애니메이션(`animOrder`) 순차 동작 및 이중 창 실시간 방송 동기화.
 - **검증 결과**: `node --check app.js` 구문 및 정적 오류 검증 통과 (Exit code: 0).
 
-
-
-
-
+## [2026-09-11 14:02] 업데이트 이력 (Commit ID: 79291e7)
+- **수정 내용**:
+  - `app.js`: txt 프로젝트 저장 및 불러오기 기능 안정화 (`sanitizePagesData`, 파일 핸들 에러 자동 초기화 & Fallback, JSON 압축 직렬화, 로드 직후 Snapshot 등록).
+  - `.agents`: .agents 실행 규칙 및 스킬 설정 적용 및 질의응답/계획/커밋 스킬 정돈.
+- **검증 결과**: `node -c app.js` 구문 및 정적 정밀 검증 통과 (Exit code: 0).
