@@ -663,8 +663,9 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - 발표(이중 창) 모드에서 마우스 클릭 및 키보드 화살표 키 조작에 따른 개체 보이기 애니메이션(`animOrder`) 순차 동작 및 이중 창 실시간 방송 동기화.
 - **검증 결과**: `node --check app.js` 구문 및 정적 오류 검증 통과 (Exit code: 0).
 
-## [2026-09-11 14:02] 업데이트 이력 (Commit ID: 79291e7)
+## [2026-09-11 14:05] 업데이트 이력 (Commit ID: ee6c68d)
 - **수정 내용**:
   - `app.js`: txt 프로젝트 저장 및 불러오기 기능 안정화 (`sanitizePagesData`, 파일 핸들 에러 자동 초기화 & Fallback, JSON 압축 직렬화, 로드 직후 Snapshot 등록).
+  - `index.html` & `scratch/attached_slide.html`: HTML 소스 코드 불러오기 UI/구조 및 스크래치 첨부 슬라이드 동기화.
   - `.agents`: .agents 실행 규칙 및 스킬 설정 적용 및 질의응답/계획/커밋 스킬 정돈.
 - **검증 결과**: `node -c app.js` 구문 및 정적 정밀 검증 통과 (Exit code: 0).
