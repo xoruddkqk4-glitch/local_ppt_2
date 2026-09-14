@@ -1019,6 +1019,7 @@ body[data-design="tactile-minimal"] .resize-handle { width:13px; height:13px; ri
 
 /* Animation Order Badge & Fullscreen Appear Transition */
 .anim-badge { position:absolute; top:-10px; left:-10px; z-index:15; display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; padding:0 6px; border:2px solid var(--ink); border-radius:11px; background:var(--blue); color:#fff; font-size:11px; font-weight:950; letter-spacing:-.02em; box-shadow:2px 2px 0 var(--ink); pointer-events:none; }
+.anim-badge.is-out { background:#e11d48 !important; }
 .presentation-stage:fullscreen .anim-badge, body.is-present-mode .anim-badge { display:none !important; }
 .canvas-object.fullscreen-anim-hidden { opacity:0 !important; transform:translateY(20px) !important; pointer-events:none !important; transition:opacity .35s cubic-bezier(.16,1,.3,1), transform .35s cubic-bezier(.16,1,.3,1); }
 .canvas-object.fullscreen-anim-visible { opacity:1 !important; transform:translateY(0) !important; transition:opacity .35s cubic-bezier(.16,1,.3,1), transform .35s cubic-bezier(.16,1,.3,1); }
@@ -1028,6 +1029,11 @@ body[data-design="tactile-minimal"] .resize-handle { width:13px; height:13px; ri
 .anim-mode-btn.is-active { background:var(--red); color:#fff; box-shadow:3px 3px 0 var(--ink); }
 .anim-mode-banner { width:100%; max-width:1200px; margin-bottom:8px; padding:8px 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; border:2px solid var(--ink); background:linear-gradient(135deg,#ffe5e5,#ffd4d4); box-shadow:4px 4px 0 var(--ink); color:var(--ink); font-size:12px; font-weight:850; animation:pulseBanner 2s infinite ease-in-out; }
 .anim-mode-banner[hidden] { display:none; }
+.anim-type-switch { display:inline-flex; border:1.5px solid var(--ink); border-radius:4px; overflow:hidden; background:#fff; box-shadow:1px 1px 0 var(--ink); }
+.anim-type-btn { padding:2px 9px; font-size:11px; font-weight:850; border:0; background:#fff; color:#475569; cursor:pointer; transition:all .15s ease; }
+.anim-type-btn:hover { background:#f1f5f9; }
+.anim-type-btn.is-active[data-type="in"] { background:var(--blue); color:#fff; }
+.anim-type-btn.is-active[data-type="out"] { background:#e11d48; color:#fff; }
 @keyframes pulseBanner { 0%,100% { border-color:var(--ink); } 50% { border-color:#e11d48; } }
 .presentation-stage.is-anim-mode { cursor:crosshair !important; outline:3px dashed #e11d48; outline-offset:-3px; }
 .presentation-stage.is-anim-mode .canvas-object { cursor:pointer !important; }

@@ -598,6 +598,7 @@ const RELAYOUT_TEXT_PROPERTIES = [
   "textAlign",
   "color",
   "animOrder",
+  "animType",
   "bulletLevel",
   "mindLevel"
 ];
@@ -3135,9 +3136,11 @@ function createObjectElement(object) {
   }
 
   if (typeof object.animOrder === "number" && object.animOrder > 0) {
+    const isOut = object.animType === "out";
     const badge = document.createElement("span");
-    badge.className = "anim-badge";
-    badge.textContent = `A${object.animOrder}`;
+    badge.className = `anim-badge ${isOut ? "is-out" : "is-in"}`;
+    badge.textContent = `${isOut ? "D" : "A"}${object.animOrder}`;
+    badge.title = `애니메이션 ${object.animOrder}번 (${isOut ? "사라지기" : "나타나기"})`;
     element.append(badge);
   }
 
@@ -3963,38 +3966,36 @@ function showTextToolbar(object, textElement, selectedObjectsParam = null) {
   } catch (e) {}
 }
 
+function getTargetColorSlots(target) {
+  const palette = getCurrentPalette();
+  const defaultSlots = [
+    palette[0] || "#2563eb",
+    palette[1] || "#d97706",
+    palette[2] || "#059669"
+  ];
+  if (!state.customColorSlots) {
+    state.customColorSlots = { bg: [...defaultSlots], text: [...defaultSlots], border: [...defaultSlots] };
+  }
+  if (!state.customColorSlots[target] || !Array.isArray(state.customColorSlots[target]) || state.customColorSlots[target].length < 3) {
+    state.customColorSlots[target] = [...defaultSlots];
+  }
+  return state.customColorSlots[target];
+}
+
 function updateColorSwatches(targetName = null) {
   const toolbar = $("#textToolbar");
   if (!toolbar) return;
-  const palette = getCurrentPalette();
-  if (!state.customColorHistory) {
-    state.customColorHistory = { bg: [], text: [], border: [] };
-  }
-
   const targets = targetName ? [targetName] : ["bg", "text", "border"];
 
   targets.forEach((target) => {
-    const history = state.customColorHistory[target] || [];
-    const combinedColors = [];
-    history.forEach((c) => {
-      if (c && !combinedColors.includes(c)) combinedColors.push(c);
-    });
-    palette.forEach((c) => {
-      if (c && combinedColors.length < 3 && !combinedColors.includes(c)) {
-        combinedColors.push(c);
-      }
-    });
-    while (combinedColors.length < 3) {
-      combinedColors.push("#2563eb");
-    }
-
+    const slots = getTargetColorSlots(target);
     const groupBtns = toolbar.querySelectorAll(`.theme-color-btn[data-target="${target}"]`);
     groupBtns.forEach((btn, idx) => {
-      const color = combinedColors[idx] || palette[idx] || "#2563eb";
+      const color = slots[idx] || "#2563eb";
       btn.style.backgroundColor = color;
       btn.dataset.colorHex = color;
       const targetTitleMap = { text: "글자색", bg: "배경색", border: "테두리색" };
-      btn.title = `${targetTitleMap[target] || "색상"} 기억 색상 (${color}) 적용`;
+      btn.title = `${targetTitleMap[target] || "색상"} ${idx + 1}순위 (${color}) 적용`;
     });
   });
 }
@@ -4002,14 +4003,26 @@ function updateColorSwatches(targetName = null) {
 function recordCustomColor(target, color) {
   if (!color || color === "transparent" || color === "none") return;
   const hex = normalizeColor(color);
-  if (!state.customColorHistory) {
-    state.customColorHistory = { bg: [], text: [], border: [] };
+  const slots = getTargetColorSlots(target);
+  if (slots[0]?.toLowerCase() === hex.toLowerCase()) {
+    return;
   }
-  const history = state.customColorHistory[target] || [];
-  const updatedHistory = history.filter((c) => c.toLowerCase() !== hex.toLowerCase());
-  updatedHistory.unshift(hex);
-  state.customColorHistory[target] = updatedHistory.slice(0, 3);
+  // 3개 중 맨 앞부터 1개씩만 변경되고, 이어서 색을 바꾸면 기존의 맨 앞 색이 두번째로 이동, 이번 변경색을 맨 앞에 배치
+  const newSlots = [hex, slots[0], slots[1]];
+  state.customColorSlots[target] = newSlots;
   updateColorSwatches(target);
+}
+
+function previewCustomColor(target, color) {
+  if (!color || color === "transparent" || color === "none") return;
+  const hex = normalizeColor(color);
+  const toolbar = $("#textToolbar");
+  if (!toolbar) return;
+  const firstBtn = toolbar.querySelector(`.theme-color-btn[data-target="${target}"][data-color-index="0"]`);
+  if (firstBtn) {
+    firstBtn.style.backgroundColor = hex;
+    firstBtn.dataset.colorHex = hex;
+  }
 }
 
 function hideTextToolbar() {
@@ -4351,6 +4364,7 @@ function renderTimelinePath(page, targetContainer = $("#pageCanvas") || stage) {
     path.setAttribute("marker-end", "url(#timeline-arrow)");
     if (typeof node.animOrder === "number" && node.animOrder > 0) {
       path.dataset.animOrder = node.animOrder;
+      path.dataset.animType = node.animType || "in";
     }
     svg.append(path);
   });
@@ -4394,8 +4408,12 @@ function drawConnection(from, to, targetContainer = stage) {
   const animOrder = typeof to.animOrder === "number" && to.animOrder > 0
     ? to.animOrder
     : (typeof from.animOrder === "number" && from.animOrder > 0 ? from.animOrder : null);
+  const animType = typeof to.animOrder === "number" && to.animOrder > 0
+    ? (to.animType || "in")
+    : (typeof from.animOrder === "number" && from.animOrder > 0 ? (from.animType || "in") : "in");
   if (typeof animOrder === "number" && animOrder > 0) {
     line.dataset.animOrder = animOrder;
+    line.dataset.animType = animType;
   }
 
   container.append(line);
@@ -5011,12 +5029,14 @@ $("#designSelect")?.addEventListener("change", (event) => {
   snapshot();
   state.design = event.target.value;
   state.customPalette = null;
+  state.customColorSlots = null;
   render();
 });
 
 $("#resetPaletteButton")?.addEventListener("click", () => {
   snapshot();
   state.customPalette = null;
+  state.customColorSlots = null;
   render();
 });
 
@@ -5160,9 +5180,21 @@ categoryToggles.forEach(({ toggle, grid }) => {
 
 $("#addPageButton").addEventListener("click", () => {
   snapshot();
-  state.pages.push(createContentPage());
-  state.currentPageIndex = state.pages.length - 1;
+  const newPage = createContentPage();
+  const hasValidSelection = typeof state.currentPageIndex === "number" &&
+    state.currentPageIndex >= 0 &&
+    state.currentPageIndex < state.pages.length;
+
+  if (hasValidSelection) {
+    const insertIndex = state.currentPageIndex + 1;
+    state.pages.splice(insertIndex, 0, newPage);
+    state.currentPageIndex = insertIndex;
+  } else {
+    state.pages.push(newPage);
+    state.currentPageIndex = state.pages.length - 1;
+  }
   state.selectedIds.clear();
+  state.guides = [];
   hideTextToolbar();
   render();
 });
@@ -5566,7 +5598,7 @@ $("#textColorInput")?.addEventListener("change", (event) => {
 });
 $("#textColorInput")?.addEventListener("input", (event) => {
   updateActiveTextStyle("textColor", event.target.value);
-  recordCustomColor("text", event.target.value);
+  previewCustomColor("text", event.target.value);
 });
 
 $("#bgColorInput")?.addEventListener("change", (event) => {
@@ -5575,7 +5607,7 @@ $("#bgColorInput")?.addEventListener("change", (event) => {
 });
 $("#bgColorInput")?.addEventListener("input", (event) => {
   updateActiveTextStyle("bgColor", event.target.value);
-  recordCustomColor("bg", event.target.value);
+  previewCustomColor("bg", event.target.value);
 });
 $("#noBgColorButton")?.addEventListener("click", () => updateActiveTextStyle("bgColor", "transparent"));
 
@@ -5585,7 +5617,7 @@ $("#borderColorInput")?.addEventListener("change", (event) => {
 });
 $("#borderColorInput")?.addEventListener("input", (event) => {
   updateActiveTextStyle("borderColor", event.target.value);
-  recordCustomColor("border", event.target.value);
+  previewCustomColor("border", event.target.value);
 });
 $("#borderWidthInput")?.addEventListener("change", (event) => {
   const val = Number(event.target.value) || 0;
@@ -5804,6 +5836,18 @@ $("#imageInput").addEventListener("change", (event) => {
 
 let fullscreenAnimStep = 0;
 let isAnimMode = false;
+let currentAnimType = "in"; // "in": 나타나기, "out": 사라지기
+
+function setAnimType(type) {
+  currentAnimType = type === "out" ? "out" : "in";
+  const inBtn = $("#animTypeInBtn");
+  const outBtn = $("#animTypeOutBtn");
+  if (inBtn) inBtn.classList.toggle("is-active", currentAnimType === "in");
+  if (outBtn) outBtn.classList.toggle("is-active", currentAnimType === "out");
+}
+
+$("#animTypeInBtn")?.addEventListener("click", () => setAnimType("in"));
+$("#animTypeOutBtn")?.addEventListener("click", () => setAnimType("out"));
 
 function toggleAnimMode(active) {
   isAnimMode = Boolean(active);
@@ -5812,6 +5856,7 @@ function toggleAnimMode(active) {
     state.guides = [];
     hideTextToolbar();
   }
+  setAnimType(currentAnimType);
   render();
 }
 
@@ -5820,13 +5865,20 @@ function handleAnimModeClick(event, object) {
   const hasOrder = typeof object.animOrder === "number" && object.animOrder > 0;
   snapshot();
   if (hasOrder) {
-    const deletedOrder = object.animOrder;
-    delete object.animOrder;
-    page.objects.forEach((obj) => {
-      if (typeof obj.animOrder === "number" && obj.animOrder > deletedOrder) {
-        obj.animOrder -= 1;
-      }
-    });
+    if (event.altKey) {
+      object.animType = object.animType === "out" ? "in" : "out";
+    } else if (object.animType !== currentAnimType) {
+      object.animType = currentAnimType;
+    } else {
+      const deletedOrder = object.animOrder;
+      delete object.animOrder;
+      delete object.animType;
+      page.objects.forEach((obj) => {
+        if (typeof obj.animOrder === "number" && obj.animOrder > deletedOrder) {
+          obj.animOrder -= 1;
+        }
+      });
+    }
   } else {
     if (event.ctrlKey || event.metaKey) {
       const maxOrder = getMaxAnimOrder(page);
@@ -5834,6 +5886,7 @@ function handleAnimModeClick(event, object) {
     } else {
       object.animOrder = getMaxAnimOrder(page) + 1;
     }
+    object.animType = currentAnimType;
   }
   render();
 }
@@ -5863,7 +5916,9 @@ function updateFullscreenAnimState() {
     const element = stage.querySelector(`[data-object-id="${object.id}"]`);
     if (!element) return;
     if (typeof object.animOrder === "number" && object.animOrder > 0) {
-      if (object.animOrder > fullscreenAnimStep) {
+      const isOut = object.animType === "out";
+      const shouldHide = isOut ? (fullscreenAnimStep >= object.animOrder) : (fullscreenAnimStep < object.animOrder);
+      if (shouldHide) {
         element.classList.add("fullscreen-anim-hidden");
         element.classList.remove("fullscreen-anim-visible");
       } else {
@@ -5877,8 +5932,10 @@ function updateFullscreenAnimState() {
 
   stage.querySelectorAll(".connection, .timeline-curve, [data-anim-order]").forEach((element) => {
     const order = Number(element.dataset.animOrder);
+    const isOut = element.dataset.animType === "out";
     if (Number.isFinite(order) && order > 0) {
-      if (order > fullscreenAnimStep) {
+      const shouldHide = isOut ? (fullscreenAnimStep >= order) : (fullscreenAnimStep < order);
+      if (shouldHide) {
         element.classList.add("fullscreen-anim-hidden");
         element.classList.remove("fullscreen-anim-visible");
       } else {
@@ -6440,7 +6497,10 @@ document.addEventListener("keydown", (event) => {
     event.preventDefault();
     if (event.shiftKey) {
       snapshot();
-      currentPage().objects.forEach((object) => delete object.animOrder);
+      currentPage().objects.forEach((object) => {
+        delete object.animOrder;
+        delete object.animType;
+      });
       render();
       return;
     }

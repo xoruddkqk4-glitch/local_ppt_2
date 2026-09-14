@@ -182,7 +182,7 @@
         <div class="section-heading"><span class="badge-help">?</span><h2>도움말 & 단축키 안내</h2></div>
         <div class="anim-guide-box" style="margin-bottom:10px;">
           <button id="toggleAnimModeButton" class="button button-blue anim-mode-btn" type="button">애니메이션 지정 (단축키 A)</button>
-          <p class="guide"><kbd>A</kbd> 누른 뒤 개체 클릭: 순서 지정<br><kbd>Ctrl+클릭</kbd>: 이전과 동일 번호 부여<br><kbd>재클릭</kbd>: 번호 삭제 및 자동 재정렬</p>
+          <p class="guide"><kbd>A</kbd> 누른 뒤 개체 클릭: 애니메이션 지정<br><kbd>🟢 나타나기</kbd> / <kbd>🔴 사라지기</kbd> 배너에서 선택<br><kbd>Alt+클릭</kbd>: 나타나기 ↔ 사라지기 유형 전환<br><kbd>Ctrl+클릭</kbd>: 이전과 동일 번호 부여<br><kbd>재클릭</kbd>: 번호 삭제 및 자동 재정렬<br><kbd>Shift+A</kbd>: 페이지 애니메이션 일괄 초기화</p>
         </div>
         <div class="shortcut-guide-box" style="padding:10px; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; font-size:11px; line-height:1.5;">
           <strong style="display:block; margin-bottom:6px; color:#0f172a; font-size:12px;">⌨️ 유용한 단축키 및 버튼 안내</strong>
@@ -213,8 +213,14 @@
         <button id="pageScrollRightBtn" class="page-scroll-btn" type="button" aria-label="다음 페이지 목록 보기" title="다음 페이지 목록 스크롤">▶</button>
       </div>
       <div id="animModeBanner" class="anim-mode-banner" hidden aria-live="polite">
-        <strong>🎬 애니메이션 지정 모드 ON</strong>
-        <span>클릭: 순서 지정 · Ctrl+클릭: 동일 번호 · 클릭(재선택): 삭제/재정렬 · A/Esc: 종료</span>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <strong>🎬 애니메이션 지정 모드</strong>
+          <div class="anim-type-switch" role="group" aria-label="애니메이션 유형 선택">
+            <button id="animTypeInBtn" class="anim-type-btn is-active" data-type="in" type="button" title="나타나기 애니메이션">🟢 나타나기</button>
+            <button id="animTypeOutBtn" class="anim-type-btn" data-type="out" type="button" title="사라지기 애니메이션">🔴 사라지기</button>
+          </div>
+        </div>
+        <span style="font-size:11.5px; opacity:0.95;">클릭: 순서 지정 · Alt+클릭: 유형 전환 · Ctrl+클릭: 동일 번호 · 재클릭: 삭제/재정렬 · A/Esc: 종료</span>
       </div>
       <div class="stage-canvas-row">
         <div class="stage-canvas-wrapper">
