@@ -636,6 +636,19 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **에이전트 규칙 동기화 (`GEMINI.md`, `.antigravity/rules.md`)**:
   - Antigravity IDE 및 Gemini 환경 호환을 위한 `GEMINI.md` 및 `.antigravity/rules.md` 규칙 파일을 동기화 배치했습니다.
 
+### 72. 두 브라우저 탭(HTML) 간 개체 및 슬라이드 복사-붙여넣기 공유 & 대상 테마 자동 적응 & 상단 툴바 DOM 무결성 복원
+- **탭 간 공유 클립보드 스토리지 도입 (`localStorage` & `window.storage` 이벤트 연동) (`app.js`)**:
+  - 기존에는 `copiedObjects`, `copiedPage`가 인메모리 전역 변수로 격리되어 다른 브라우저 탭/창 간 복사-붙여넣기가 불가능했던 문제를 해결했습니다.
+  - `SHARED_CLIPBOARD_STORAGE_KEY`(`local_ppt_shared_clipboard`)를 통해 선택 개체(`copySelectedObjects`) 및 슬라이드 전체(`copyCurrentPage`) 복사 데이터를 실시간 공유합니다.
+  - `window.addEventListener("storage", ...)`를 지원하여 타 탭에서 복사 발생 시 현재 탭 메모리에 즉시 동기화되며, 붙여넣기(`executePaste`) 시에도 최신 공유 스토리지 데이터를 안전하게 취득합니다.
+- **옮겨지는 대상 HTML의 테마 및 팔레트 지능형 자동 적응 (`adaptObjectToTargetTheme`) (`app.js`)**:
+  - 복사된 개체 및 슬라이드가 붙여넣어질 때, 대상 문서의 전체 테마(`state.design`)는 파괴되지 않고 유지됩니다.
+  - 복사 원본에서 테마 3색 팔레트(1, 2, 3순위 슬롯)로 지정되어 있던 배경색(`bgColor`), 글자색(`textColor`), 테두리색(`borderColor`) 및 테이블 셀 스타일 색상이 **붙여넣어지는 문서의 현재 테마 팔레트 색상으로 자동 변환**됩니다.
+- **안전한 복제 및 고유 ID 충돌 방지 (`app.js`)**:
+  - 타 문서에서 붙여넣은 개체 및 슬라이드는 `createId()` 및 `idMap`을 거쳐 새로운 고유 ID가 부여되며, 마인드맵 부모/자식 계층 관계도 대상 슬라이드 구조에 맞춰 안전하게 연결됩니다.
+- **상단 페이지 썸네일 바(`<div class="stage-toolbar">`) DOM 무결성 복원 (`index.html`)**:
+  - 상단 툴바 닫는 태그(`</div>`) 누락으로 인해 슬라이드 캔버스(`.stage-canvas-row`)가 썸네일 Flex 컨테이너 안으로 빨려 들어가 썸네일 목록과 슬라이드가 한 줄로 찌그러지고 오른쪽으로 밀려나던 레이아웃 붕괴 결함을 원천 수정했습니다.
+
 ---
 
 ## [2026-09-08] 업데이트 이력 (Commit ID: 6aab24a)
@@ -714,5 +727,8 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - `style.css`: `.anim-mode-banner`의 고정 최대 너비(`max-width: 1200px`)를 제거하고 `width: 100%`, `margin: 0 0 4px 0`, `border-radius: 6px`, `box-shadow: 3.5px 3.5px 0 var(--ink)`, `z-index: 30` 스타일을 적용하여 개체 서식 툴바와 동일한 규격 및 슬라이드 캔버스 너비와 1:1 정밀 일치화.
 - **검증 결과**: `node -c app.js ai-intake.js server.js` 구문 및 정적 무결성 검증 100% 통과.
 
-
-
+## [2026-09-14 22:20] 업데이트 이력 (Commit ID: 6fa266d)
+- **수정 내용**:
+  - `app.js`: 두 개의 브라우저 탭(HTML) 간 개체 및 슬라이드 복사-붙여넣기 공유 클립보드(`localStorage`, `storage` 이벤트) 구현 및 대상 HTML 테마 팔레트 자동 적응(`adaptObjectToTargetTheme`), ID 충돌 방지.
+  - `index.html`: 상단 페이지 썸네일 바(`.stage-toolbar`)의 누락된 닫는 태그(`</div>`) 복원하여 슬라이드 캔버스가 썸네일 바와 한 줄로 찌그러져 렌더링되던 레이아웃 붕괴 결함 정상 복구.
+- **검증 결과**: `node -c app.js`, HTML 태그 밸런스 검사(0 Mismatch) 및 구문 검증 100% 통과.

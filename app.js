@@ -6298,6 +6298,89 @@ $("#stageCutBtn")?.addEventListener("click", () => {
 });
 $("#stagePasteBtn")?.addEventListener("click", () => executePaste());
 
+const SHARED_CLIPBOARD_STORAGE_KEY = "local_ppt_shared_clipboard";
+
+function saveToSharedClipboard(type, payload = {}) {
+  try {
+    const data = {
+      type,
+      version: 1,
+      timestamp: Date.now(),
+      sourceDesign: state.design,
+      sourcePalette: getCurrentPalette(),
+      ...payload
+    };
+    localStorage.setItem(SHARED_CLIPBOARD_STORAGE_KEY, JSON.stringify(data));
+  } catch (err) {
+    console.warn("Shared clipboard write warning:", err);
+  }
+}
+
+function readFromSharedClipboard() {
+  try {
+    const raw = localStorage.getItem(SHARED_CLIPBOARD_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && (parsed.type === "objects" || parsed.type === "page")) {
+      return parsed;
+    }
+  } catch (err) {
+    console.warn("Shared clipboard read warning:", err);
+  }
+  return null;
+}
+
+function adaptObjectToTargetTheme(object, sourcePalette, targetPalette) {
+  if (!object) return;
+  if (!Array.isArray(sourcePalette) || !Array.isArray(targetPalette)) return;
+
+  const norm = (c) => String(c || "").trim().toLowerCase();
+  const mapColor = (val) => {
+    if (!val || typeof val !== "string") return val;
+    const nVal = norm(val);
+    for (let i = 0; i < Math.min(sourcePalette.length, targetPalette.length); i++) {
+      if (nVal === norm(sourcePalette[i])) {
+        return targetPalette[i];
+      }
+    }
+    return val;
+  };
+
+  if (object.bgColor) object.bgColor = mapColor(object.bgColor);
+  if (object.textColor) object.textColor = mapColor(object.textColor);
+  if (object.borderColor) object.borderColor = mapColor(object.borderColor);
+
+  if (object.type === "table" && object.cellStyles && typeof object.cellStyles === "object") {
+    Object.values(object.cellStyles).forEach((cStyle) => {
+      if (!cStyle) return;
+      if (cStyle.bgColor) cStyle.bgColor = mapColor(cStyle.bgColor);
+      if (cStyle.textColor) cStyle.textColor = mapColor(cStyle.textColor);
+      if (cStyle.borderColor) cStyle.borderColor = mapColor(cStyle.borderColor);
+    });
+  }
+}
+
+window.addEventListener("storage", (event) => {
+  if (event.key === SHARED_CLIPBOARD_STORAGE_KEY && event.newValue) {
+    try {
+      const data = JSON.parse(event.newValue);
+      if (data && data.type === "objects" && Array.isArray(data.objects)) {
+        copiedObjects = data.objects;
+        copiedFromPageId = data.sourcePageId || null;
+        copiedPage = null;
+        pasteOffsetCount = 0;
+      } else if (data && data.type === "page" && data.page) {
+        copiedPage = data.page;
+        copiedObjects = [];
+        copiedFromPageId = null;
+        pasteOffsetCount = 0;
+      }
+    } catch (err) {
+      console.warn("Storage sync error:", err);
+    }
+  }
+});
+
 function copySelectedObjects() {
   const page = currentPage();
   if (!page || !Array.isArray(page.objects)) return false;
@@ -6307,6 +6390,12 @@ function copySelectedObjects() {
   copiedFromPageId = page.id;
   pasteOffsetCount = 0;
   copiedPage = null;
+
+  saveToSharedClipboard("objects", {
+    objects: copiedObjects,
+    sourcePageId: page.id
+  });
+
   showSaveToast(`📋 개체 ${copiedObjects.length}개 복사 완료`);
   return true;
 }
@@ -6318,6 +6407,11 @@ function copyCurrentPage() {
   copiedObjects = [];
   copiedFromPageId = null;
   pasteOffsetCount = 0;
+
+  saveToSharedClipboard("page", {
+    page: copiedPage
+  });
+
   showSaveToast(`📋 현재 슬라이드 복사 완료 (페이지 ${state.currentPageIndex + 1})`);
   return true;
 }
@@ -6333,6 +6427,16 @@ function executeCopy() {
 }
 
 function executePaste() {
+  const shared = readFromSharedClipboard();
+  if (shared) {
+    if (shared.type === "objects" && Array.isArray(shared.objects) && shared.objects.length > 0) {
+      return pasteCopiedObjects(shared.objects, shared.sourcePageId, shared.sourcePalette);
+    }
+    if (shared.type === "page" && shared.page) {
+      return pasteCopiedPage(shared.page, shared.sourcePalette);
+    }
+  }
+
   if (copiedObjects && copiedObjects.length > 0) {
     return pasteCopiedObjects();
   }
@@ -6364,10 +6468,19 @@ function clonePageWithNewIds(sourcePage) {
   return clone;
 }
 
-function pasteCopiedPage() {
-  if (!copiedPage) return false;
-  const clone = clonePageWithNewIds(copiedPage);
+function pasteCopiedPage(sourcePage = copiedPage, sourcePalette = null) {
+  const targetPage = sourcePage || copiedPage;
+  if (!targetPage) return false;
+  const clone = clonePageWithNewIds(targetPage);
   if (!clone) return false;
+
+  // 옮겨지는 HTML(현재 문서)의 테마 팔레트에 맞춤
+  const currentPalette = getCurrentPalette();
+  if (sourcePalette && Array.isArray(clone.objects)) {
+    clone.objects.forEach((obj) => adaptObjectToTargetTheme(obj, sourcePalette, currentPalette));
+  }
+  if (clone.design) delete clone.design;
+
   const insertIndex = state.currentPageIndex + 1;
   snapshot();
   state.pages.splice(insertIndex, 0, clone);
@@ -6380,27 +6493,34 @@ function pasteCopiedPage() {
   return true;
 }
 
-function pasteCopiedObjects() {
-  if (!copiedObjects || !Array.isArray(copiedObjects) || !copiedObjects.length) return false;
+function pasteCopiedObjects(sourceList = copiedObjects, fromPageId = copiedFromPageId, sourcePalette = null) {
+  const targetList = sourceList || copiedObjects;
+  if (!targetList || !Array.isArray(targetList) || !targetList.length) return false;
   const page = currentPage();
   if (!page || !Array.isArray(page.objects)) return false;
 
   const offset = ((pasteOffsetCount % 6) + 1) * 2;
   const idMap = new Map();
-  copiedObjects.forEach((object) => {
+  targetList.forEach((object) => {
     const oldId = object.id || createId("object");
     const newId = createId(object.role || object.type || "object");
     idMap.set(oldId, newId);
   });
 
+  const currentPalette = getCurrentPalette();
   const targetMindRoot = page.objects.find((object) => object.root);
   const clones = [];
 
-  copiedObjects.forEach((source) => {
+  targetList.forEach((source) => {
     if (!source) return;
     const clone = JSON.parse(JSON.stringify(source));
     const newId = idMap.get(source.id) || createId(source.role || source.type || "object");
     clone.id = newId;
+
+    // 옮겨지는 HTML(현재 문서)의 테마 팔레트 색상으로 적응
+    if (sourcePalette) {
+      adaptObjectToTargetTheme(clone, sourcePalette, currentPalette);
+    }
 
     const srcX = Number(source.x);
     const srcY = Number(source.y);
@@ -6422,12 +6542,12 @@ function pasteCopiedObjects() {
       clone.role = "mind-node";
       clone.node = true;
       clone.item = true;
-      clone.parentId = copiedFromPageId === page.id ? source.id : targetMindRoot?.id || null;
+      clone.parentId = fromPageId === page.id ? source.id : targetMindRoot?.id || null;
       clone.mindLevel = clone.parentId ? 2 : 1;
     } else if (source.parentId) {
       clone.parentId = idMap.get(source.parentId)
-        || (copiedFromPageId === page.id ? source.parentId : targetMindRoot?.id || null);
-      if (copiedFromPageId !== page.id && clone.parentId === targetMindRoot?.id) clone.mindLevel = 2;
+        || (fromPageId === page.id ? source.parentId : targetMindRoot?.id || null);
+      if (fromPageId !== page.id && clone.parentId === targetMindRoot?.id) clone.mindLevel = 2;
     }
     clones.push(clone);
   });
