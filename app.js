@@ -6066,6 +6066,8 @@ $("#fullscreenButton").addEventListener("click", () => {
   else stage.requestFullscreen();
 });
 
+let isPresentPageInitialized = false;
+
 if (syncChannel) {
   syncChannel.onmessage = (event) => {
     const data = event.data;
@@ -6077,10 +6079,22 @@ if (syncChannel) {
         state.customPalette = data.customPalette || null;
         state.fixedOverlays = data.fixedOverlays || defaultFixedOverlays();
         state.pages = data.pages || state.pages;
-        state.currentPageIndex = typeof data.currentPageIndex === "number" ? data.currentPageIndex : state.currentPageIndex;
-        if (typeof data.fullscreenAnimStep === "number") {
-          fullscreenAnimStep = data.fullscreenAnimStep;
+
+        // 편집 모드에서 슬라이드를 이동하더라도 이중창 모드 화면의 슬라이드 번호는 이동하지 않음
+        // (최초 1회 시작 슬라이드 인덱스만 동기화하고, 이후에는 이중창 자체의 슬라이드 위치 유지)
+        if (!isPresentPageInitialized) {
+          state.currentPageIndex = typeof data.currentPageIndex === "number" ? data.currentPageIndex : (state.currentPageIndex || 0);
+          if (typeof data.fullscreenAnimStep === "number") {
+            fullscreenAnimStep = data.fullscreenAnimStep;
+          }
+          isPresentPageInitialized = true;
+        } else {
+          // 슬라이드 삭제 등으로 인덱스가 전체 페이지 수를 초과한 경우만 안전하게 보정
+          if (Array.isArray(state.pages) && state.pages.length > 0) {
+            state.currentPageIndex = Math.min(state.currentPageIndex, state.pages.length - 1);
+          }
         }
+
         document.body.dataset.design = state.design;
         applyThemePalette();
         renderStage();
@@ -6128,6 +6142,7 @@ if (isPresentMode) {
       document.body.dataset.design = state.design;
       applyThemePalette();
       renderStage();
+      isPresentPageInitialized = true;
     }
   } catch (e) {
     console.warn("Opener sync fallback:", e);
@@ -6151,11 +6166,9 @@ if (isPresentMode) {
     if (["ArrowRight", "ArrowDown", " ", "PageDown"].includes(e.key)) {
       e.preventDefault();
       navigateFullscreenNext();
-      if (syncChannel) syncChannel.postMessage({ action: "SET_PAGE", pageIndex: state.currentPageIndex });
     } else if (["ArrowLeft", "ArrowUp", "PageUp"].includes(e.key)) {
       e.preventDefault();
       navigateFullscreenPrev();
-      if (syncChannel) syncChannel.postMessage({ action: "SET_PAGE", pageIndex: state.currentPageIndex });
     } else if (e.key === "Escape") {
       window.close();
     }
