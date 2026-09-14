@@ -628,6 +628,11 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - 시각적 뱃지 구분: 나타나기(`A1`, `A2`... 파란색 뱃지), 사라지기(`D1`, `D2`... 로즈 레드 뱃지).
   - 조작 UX: 배너 모드 선택 후 클릭 또는 이미 지정된 개체 `Alt+클릭`을 통한 나타나기 ↔ 사라지기 유형 즉시 전환, 동일 유형 재클릭 시 번호 삭제 및 자동 재정렬, `Shift+A`를 통한 슬라이드 전체 애니메이션 일괄 초기화 지원.
   - 타임라인 곡선 및 개체 간 연결선(connections)도 개체의 `animType`과 100% 일관되게 연동됩니다.
+- **단일 개체 나타나기 + 사라지기 복합 애니메이션 지원 (`app.js`, `style.css`, `index.html`)**:
+  - 하나의 개체에 **나타나기(A)와 사라지기(D) 애니메이션을 동시에 부여**하여, 슬라이드 진행 시 먼저 나타난 뒤 원하는 순서에 화면에서 퇴장하도록 구현했습니다.
+  - **듀얼 뱃지 표시 (`.anim-badge-container`)**: 나타나기(`A1`)와 사라지기(`D3`)가 모두 지정된 개체에는 `[A1] [D3]` 형태로 2개의 뱃지가 나란히 표시되어 설정 상태를 직관적으로 파악할 수 있습니다.
+  - **조작 UX**: 배너에서 `🟢 나타나기` 모드로 개체 클릭 시 `A` 번호 부여, `🔴 사라지기` 모드로 전환 후 동일 개체 재클릭 시 `D` 번호가 추가 부여됩니다. 각 모드에서 재클릭 시 해당 번호만 독립 삭제/재정렬됩니다.
+  - **발표/전체화면 상태 연동 (`updateFullscreenAnimState`)**: 슬라이드 시작 시 숨김(`fullscreen-anim-hidden`) ➔ `animIn` 도달 시 등장(`fullscreen-anim-visible`) ➔ `animOut` 도달 시 퇴장(`fullscreen-anim-hidden`) 흐름으로 페이드아웃 트랜지션이 완벽하게 동작합니다.
 - **에이전트 규칙 동기화 (`GEMINI.md`, `.antigravity/rules.md`)**:
   - Antigravity IDE 및 Gemini 환경 호환을 위한 `GEMINI.md` 및 `.antigravity/rules.md` 규칙 파일을 동기화 배치했습니다.
 
@@ -687,11 +692,20 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - `.agents`: .agents 실행 규칙 및 스킬 설정 적용 및 질의응답/계획/커밋 스킬 정돈.
 - **검증 결과**: `node -c app.js` 구문 및 정적 정밀 검증 통과 (Exit code: 0).
 
-## [2026-09-14 21:48] 업데이트 이력 (Commit ID: 0b5a9db)
+## [2026-09-14 21:48] 업데이트 이력 (Commit ID: 0fd99da)
 - **수정 내용**:
   - `app.js`: 개체 색상(글자색·배경색·테두리색) 변경 시 3색 슬롯 순환 큐 알고리즘 적용 (맨 앞부터 1개씩 변경, 순차 밀림 배치, `previewCustomColor` 분리).
   - `app.js`: 본문 페이지 추가 시 현재 선택된 페이지 바로 뒤(`currentPageIndex + 1`)에 삽입하도록 개선.
   - `app.js`, `index.html`, `style.css`: 사라지기(Disappear) 애니메이션 기능 및 배너 유형 선택기(`[🟢 나타나기] / [🔴 사라지기]`) 추가, `D1`/`A1` 뱃지 시각 구분, `Alt+클릭` 유형 전환, 전체화면/발표 모드 페이드아웃 트랜지션 연동.
   - `GEMINI.md`, `.antigravity/rules.md`: Antigravity IDE 및 Gemini 환경 호환을 위한 에이전트 규칙 파일 동기화.
 - **검증 결과**: `node -c app.js ai-intake.js server.js` 구문 및 정적 무결성 검증 100% 통과.
+
+## [2026-09-14 21:52] 업데이트 이력 (Commit ID: a1607ea)
+- **수정 내용**:
+  - `app.js`: 단일 개체 나타나기+사라지기 동시 지정 지원 (`getObjectAnim`, `animIn` & `animOut` 독립 관리, `reorderAnimOrders` 일괄 번호 재정렬).
+  - `app.js`: 발표 및 전체화면 모드에서 나타난 후 사라지는 3단계 라이프사이클(`updateFullscreenAnimState`) 구현.
+  - `style.css`: 개체 상단 듀얼 뱃지 표시 컨테이너(`.anim-badge-container`) 스타일 추가.
+  - `index.html`: 애니메이션 모드 배너 및 도움말에 단일 개체 나타나기+사라지기 동시 지정 가이드 문구 갱신.
+- **검증 결과**: `node -c app.js ai-intake.js server.js` 구문 및 정적 무결성 검증 100% 통과.
+
 

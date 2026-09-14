@@ -599,6 +599,8 @@ const RELAYOUT_TEXT_PROPERTIES = [
   "color",
   "animOrder",
   "animType",
+  "animIn",
+  "animOut",
   "bulletLevel",
   "mindLevel"
 ];
@@ -3097,6 +3099,20 @@ function renderAlignmentGuides() {
   });
 }
 
+function getObjectAnim(object) {
+  if (!object) return { animIn: null, animOut: null };
+  let animIn = typeof object.animIn === "number" && object.animIn > 0 ? object.animIn : null;
+  let animOut = typeof object.animOut === "number" && object.animOut > 0 ? object.animOut : null;
+  if (!animIn && !animOut && typeof object.animOrder === "number" && object.animOrder > 0) {
+    if (object.animType === "out") {
+      animOut = object.animOrder;
+    } else {
+      animIn = object.animOrder;
+    }
+  }
+  return { animIn, animOut };
+}
+
 function createObjectElement(object) {
   const element = document.createElement("div");
   element.className = `canvas-object ${getObjectClass(object)} ${state.selectedIds.has(object.id) ? "is-selected" : ""}`;
@@ -3135,13 +3151,25 @@ function createObjectElement(object) {
     element.append(shapeSvg);
   }
 
-  if (typeof object.animOrder === "number" && object.animOrder > 0) {
-    const isOut = object.animType === "out";
-    const badge = document.createElement("span");
-    badge.className = `anim-badge ${isOut ? "is-out" : "is-in"}`;
-    badge.textContent = `${isOut ? "D" : "A"}${object.animOrder}`;
-    badge.title = `애니메이션 ${object.animOrder}번 (${isOut ? "사라지기" : "나타나기"})`;
-    element.append(badge);
+  const { animIn, animOut } = getObjectAnim(object);
+  if (animIn || animOut) {
+    const badgeContainer = document.createElement("div");
+    badgeContainer.className = "anim-badge-container";
+    if (animIn) {
+      const badgeIn = document.createElement("span");
+      badgeIn.className = "anim-badge is-in";
+      badgeIn.textContent = `A${animIn}`;
+      badgeIn.title = `나타나기 애니메이션 ${animIn}번`;
+      badgeContainer.append(badgeIn);
+    }
+    if (animOut) {
+      const badgeOut = document.createElement("span");
+      badgeOut.className = "anim-badge is-out";
+      badgeOut.textContent = `D${animOut}`;
+      badgeOut.title = `사라지기 애니메이션 ${animOut}번`;
+      badgeContainer.append(badgeOut);
+    }
+    element.append(badgeContainer);
   }
 
   if (object.type === "image") {
@@ -4362,10 +4390,9 @@ function renderTimelinePath(page, targetContainer = $("#pageCanvas") || stage) {
     path.setAttribute("d", `M ${startX} ${baseline} Q ${centers[index]} ${controlY} ${endX} ${baseline}`);
     path.setAttribute("class", "timeline-curve");
     path.setAttribute("marker-end", "url(#timeline-arrow)");
-    if (typeof node.animOrder === "number" && node.animOrder > 0) {
-      path.dataset.animOrder = node.animOrder;
-      path.dataset.animType = node.animType || "in";
-    }
+    const nodeAnim = getObjectAnim(node);
+    if (nodeAnim.animIn) path.dataset.animIn = nodeAnim.animIn;
+    if (nodeAnim.animOut) path.dataset.animOut = nodeAnim.animOut;
     svg.append(path);
   });
 
@@ -4405,16 +4432,11 @@ function drawConnection(from, to, targetContainer = stage) {
   line.style.height = "3px";
   line.style.zIndex = "1";
 
-  const animOrder = typeof to.animOrder === "number" && to.animOrder > 0
-    ? to.animOrder
-    : (typeof from.animOrder === "number" && from.animOrder > 0 ? from.animOrder : null);
-  const animType = typeof to.animOrder === "number" && to.animOrder > 0
-    ? (to.animType || "in")
-    : (typeof from.animOrder === "number" && from.animOrder > 0 ? (from.animType || "in") : "in");
-  if (typeof animOrder === "number" && animOrder > 0) {
-    line.dataset.animOrder = animOrder;
-    line.dataset.animType = animType;
-  }
+  const toAnim = getObjectAnim(to);
+  const fromAnim = getObjectAnim(from);
+  const targetAnim = (toAnim.animIn || toAnim.animOut) ? toAnim : fromAnim;
+  if (targetAnim.animIn) line.dataset.animIn = targetAnim.animIn;
+  if (targetAnim.animOut) line.dataset.animOut = targetAnim.animOut;
 
   container.append(line);
 }
@@ -5860,33 +5882,63 @@ function toggleAnimMode(active) {
   render();
 }
 
+function reorderAnimOrders(page, deletedOrder) {
+  if (!page || !Array.isArray(page.objects)) return;
+  page.objects.forEach((obj) => {
+    if (typeof obj.animIn === "number" && obj.animIn > deletedOrder) {
+      obj.animIn -= 1;
+    }
+    if (typeof obj.animOut === "number" && obj.animOut > deletedOrder) {
+      obj.animOut -= 1;
+    }
+    if (typeof obj.animOrder === "number" && obj.animOrder > deletedOrder) {
+      obj.animOrder -= 1;
+    }
+  });
+}
+
 function handleAnimModeClick(event, object) {
   const page = currentPage();
-  const hasOrder = typeof object.animOrder === "number" && object.animOrder > 0;
+  const anims = getObjectAnim(object);
   snapshot();
-  if (hasOrder) {
-    if (event.altKey) {
-      object.animType = object.animType === "out" ? "in" : "out";
-    } else if (object.animType !== currentAnimType) {
-      object.animType = currentAnimType;
+
+  // Alt 키를 누르면 현재 선택된 모드와 반대 유형(나타나기/사라지기) 적용
+  const targetType = event.altKey ? (currentAnimType === "in" ? "out" : "in") : currentAnimType;
+
+  if (targetType === "out") {
+    // 사라지기 (Out)
+    if (anims.animOut) {
+      // 이미 사라지기가 지정되어 있으면 사라지기 번호 삭제 및 재정렬
+      const deletedOrder = anims.animOut;
+      delete object.animOut;
+      if (object.animType === "out") {
+        delete object.animOrder;
+        delete object.animType;
+      }
+      reorderAnimOrders(page, deletedOrder);
     } else {
-      const deletedOrder = object.animOrder;
-      delete object.animOrder;
-      delete object.animType;
-      page.objects.forEach((obj) => {
-        if (typeof obj.animOrder === "number" && obj.animOrder > deletedOrder) {
-          obj.animOrder -= 1;
-        }
-      });
+      // 사라지기 번호 새로 부여 (한 개체에 나타나기+사라지기 동시 지정 가능!)
+      const maxOrder = getMaxAnimOrder(page);
+      const nextOrder = (event.ctrlKey || event.metaKey) ? (maxOrder > 0 ? maxOrder : 1) : (maxOrder + 1);
+      object.animOut = nextOrder;
     }
   } else {
-    if (event.ctrlKey || event.metaKey) {
-      const maxOrder = getMaxAnimOrder(page);
-      object.animOrder = maxOrder > 0 ? maxOrder : 1;
+    // 나타나기 (In)
+    if (anims.animIn) {
+      // 이미 나타나기가 지정되어 있으면 나타나기 번호 삭제 및 재정렬
+      const deletedOrder = anims.animIn;
+      delete object.animIn;
+      if (object.animType !== "out") {
+        delete object.animOrder;
+        delete object.animType;
+      }
+      reorderAnimOrders(page, deletedOrder);
     } else {
-      object.animOrder = getMaxAnimOrder(page) + 1;
+      // 나타나기 번호 새로 부여
+      const maxOrder = getMaxAnimOrder(page);
+      const nextOrder = (event.ctrlKey || event.metaKey) ? (maxOrder > 0 ? maxOrder : 1) : (maxOrder + 1);
+      object.animIn = nextOrder;
     }
-    object.animType = currentAnimType;
   }
   render();
 }
@@ -5899,9 +5951,9 @@ function getMaxAnimOrder(page = currentPage()) {
   let max = 0;
   if (!page || !Array.isArray(page.objects)) return max;
   page.objects.forEach((object) => {
-    if (typeof object.animOrder === "number" && object.animOrder > max) {
-      max = object.animOrder;
-    }
+    const { animIn, animOut } = getObjectAnim(object);
+    if (typeof animIn === "number" && animIn > max) max = animIn;
+    if (typeof animOut === "number" && animOut > max) max = animOut;
   });
   return max;
 }
@@ -5912,35 +5964,49 @@ function updateFullscreenAnimState() {
   if (!isFullscreenOrPresent) return;
   const page = currentPage();
   if (!page || !Array.isArray(page.objects)) return;
+
   page.objects.forEach((object) => {
     const element = stage.querySelector(`[data-object-id="${object.id}"]`);
     if (!element) return;
-    if (typeof object.animOrder === "number" && object.animOrder > 0) {
-      const isOut = object.animType === "out";
-      const shouldHide = isOut ? (fullscreenAnimStep >= object.animOrder) : (fullscreenAnimStep < object.animOrder);
-      if (shouldHide) {
-        element.classList.add("fullscreen-anim-hidden");
-        element.classList.remove("fullscreen-anim-visible");
-      } else {
+    const { animIn, animOut } = getObjectAnim(object);
+    if (animIn || animOut) {
+      let isVisible = true;
+      if (animIn && fullscreenAnimStep < animIn) {
+        isVisible = false;
+      }
+      if (animOut && fullscreenAnimStep >= animOut) {
+        isVisible = false;
+      }
+
+      if (isVisible) {
         element.classList.add("fullscreen-anim-visible");
         element.classList.remove("fullscreen-anim-hidden");
+      } else {
+        element.classList.add("fullscreen-anim-hidden");
+        element.classList.remove("fullscreen-anim-visible");
       }
     } else {
       element.classList.remove("fullscreen-anim-hidden", "fullscreen-anim-visible");
     }
   });
 
-  stage.querySelectorAll(".connection, .timeline-curve, [data-anim-order]").forEach((element) => {
-    const order = Number(element.dataset.animOrder);
-    const isOut = element.dataset.animType === "out";
-    if (Number.isFinite(order) && order > 0) {
-      const shouldHide = isOut ? (fullscreenAnimStep >= order) : (fullscreenAnimStep < order);
-      if (shouldHide) {
-        element.classList.add("fullscreen-anim-hidden");
-        element.classList.remove("fullscreen-anim-visible");
-      } else {
+  stage.querySelectorAll(".connection, .timeline-curve").forEach((element) => {
+    const animIn = Number(element.dataset.animIn);
+    const animOut = Number(element.dataset.animOut);
+    const hasIn = Number.isFinite(animIn) && animIn > 0;
+    const hasOut = Number.isFinite(animOut) && animOut > 0;
+
+    if (hasIn || hasOut) {
+      let isVisible = true;
+      if (hasIn && fullscreenAnimStep < animIn) isVisible = false;
+      if (hasOut && fullscreenAnimStep >= animOut) isVisible = false;
+
+      if (isVisible) {
         element.classList.add("fullscreen-anim-visible");
         element.classList.remove("fullscreen-anim-hidden");
+      } else {
+        element.classList.add("fullscreen-anim-hidden");
+        element.classList.remove("fullscreen-anim-visible");
       }
     }
   });
@@ -6500,6 +6566,8 @@ document.addEventListener("keydown", (event) => {
       currentPage().objects.forEach((object) => {
         delete object.animOrder;
         delete object.animType;
+        delete object.animIn;
+        delete object.animOut;
       });
       render();
       return;
