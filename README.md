@@ -700,12 +700,19 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - `GEMINI.md`, `.antigravity/rules.md`: Antigravity IDE 및 Gemini 환경 호환을 위한 에이전트 규칙 파일 동기화.
 - **검증 결과**: `node -c app.js ai-intake.js server.js` 구문 및 정적 무결성 검증 100% 통과.
 
-## [2026-09-14 21:52] 업데이트 이력 (Commit ID: a1607ea)
+## [2026-09-14 21:52] 업데이트 이력 (Commit ID: 6ccaf45)
 - **수정 내용**:
   - `app.js`: 단일 개체 나타나기+사라지기 동시 지정 지원 (`getObjectAnim`, `animIn` & `animOut` 독립 관리, `reorderAnimOrders` 일괄 번호 재정렬).
   - `app.js`: 발표 및 전체화면 모드에서 나타난 후 사라지는 3단계 라이프사이클(`updateFullscreenAnimState`) 구현.
   - `style.css`: 개체 상단 듀얼 뱃지 표시 컨테이너(`.anim-badge-container`) 스타일 추가.
   - `index.html`: 애니메이션 모드 배너 및 도움말에 단일 개체 나타나기+사라지기 동시 지정 가이드 문구 갱신.
 - **검증 결과**: `node -c app.js ai-intake.js server.js` 구문 및 정적 무결성 검증 100% 통과.
+
+## [2026-09-14 21:58] 업데이트 이력 (Commit ID: 94f11ca)
+- **수정 내용**:
+  - `index.html`: 애니메이션 편집창(`#animModeBanner`)을 슬라이드 캔버스 컨테이너인 `.stage-canvas-wrapper` 내부(개체 서식 툴바 `#textToolbar` 바로 위)로 이동하여 슬라이드 캔버스와의 겹침 현상 원천 차단 및 수평/수직 위치 일치화.
+  - `style.css`: `.anim-mode-banner`의 고정 최대 너비(`max-width: 1200px`)를 제거하고 `width: 100%`, `margin: 0 0 4px 0`, `border-radius: 6px`, `box-shadow: 3.5px 3.5px 0 var(--ink)`, `z-index: 30` 스타일을 적용하여 개체 서식 툴바와 동일한 규격 및 슬라이드 캔버스 너비와 1:1 정밀 일치화.
+- **검증 결과**: `node -c app.js ai-intake.js server.js` 구문 및 정적 무결성 검증 100% 통과.
+
 
 

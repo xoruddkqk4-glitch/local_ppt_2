@@ -211,19 +211,18 @@
         <button id="pageScrollLeftBtn" class="page-scroll-btn" type="button" aria-label="이전 페이지 목록 보기" title="이전 페이지 목록 스크롤">◀</button>
         <div id="pageList" class="page-list"></div>
         <button id="pageScrollRightBtn" class="page-scroll-btn" type="button" aria-label="다음 페이지 목록 보기" title="다음 페이지 목록 스크롤">▶</button>
-      </div>
-      <div id="animModeBanner" class="anim-mode-banner" hidden aria-live="polite">
-        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-          <strong>🎬 애니메이션 지정 모드</strong>
-          <div class="anim-type-switch" role="group" aria-label="애니메이션 유형 선택">
-            <button id="animTypeInBtn" class="anim-type-btn is-active" data-type="in" type="button" title="나타나기 애니메이션">🟢 나타나기</button>
-            <button id="animTypeOutBtn" class="anim-type-btn" data-type="out" type="button" title="사라지기 애니메이션">🔴 사라지기</button>
-          </div>
-        </div>
-        <span style="font-size:11.5px; opacity:0.95;">클릭: 선택 유형 번호 지정 (한 개체에 나타나기+사라지기 동시 지정 가능) · 재클릭: 해당 번호 삭제 · A/Esc: 종료</span>
-      </div>
       <div class="stage-canvas-row">
         <div class="stage-canvas-wrapper">
+          <div id="animModeBanner" class="anim-mode-banner" hidden aria-live="polite">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <strong>🎬 애니메이션 지정 모드</strong>
+              <div class="anim-type-switch" role="group" aria-label="애니메이션 유형 선택">
+                <button id="animTypeInBtn" class="anim-type-btn is-active" data-type="in" type="button" title="나타나기 애니메이션">🟢 나타나기</button>
+                <button id="animTypeOutBtn" class="anim-type-btn" data-type="out" type="button" title="사라지기 애니메이션">🔴 사라지기</button>
+              </div>
+            </div>
+            <span style="font-size:11.5px; opacity:0.95;">클릭: 선택 유형 번호 지정 (한 개체에 나타나기+사라지기 동시 지정 가능) · 재클릭: 해당 번호 삭제 · A/Esc: 종료</span>
+          </div>
           <div id="textToolbar" class="text-toolbar" hidden aria-label="개체 서식">
             <label>글자
               <input id="textColorInput" type="color" value="#151515" aria-label="텍스트 색상">

@@ -1029,8 +1029,8 @@ body[data-design="tactile-minimal"] .resize-handle { width:13px; height:13px; ri
 .anim-guide-box { margin-top:14px; padding:10px; border:2px dashed var(--blue); background:#f4f7ff; }
 .anim-mode-btn { width:100%; font-size:12px; font-weight:900; }
 .anim-mode-btn.is-active { background:var(--red); color:#fff; box-shadow:3px 3px 0 var(--ink); }
-.anim-mode-banner { width:100%; max-width:1200px; margin-bottom:8px; padding:8px 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; border:2px solid var(--ink); background:linear-gradient(135deg,#ffe5e5,#ffd4d4); box-shadow:4px 4px 0 var(--ink); color:var(--ink); font-size:12px; font-weight:850; animation:pulseBanner 2s infinite ease-in-out; }
-.anim-mode-banner[hidden] { display:none; }
+.anim-mode-banner { position:relative; z-index:30; width:100%; margin:0 0 4px 0; padding:6px 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; border:2px solid var(--ink); background:linear-gradient(135deg,#ffe5e5,#ffd4d4); box-shadow:3.5px 3.5px 0 var(--ink); color:var(--ink); font-size:11.5px; font-weight:850; border-radius:6px; box-sizing:border-box; animation:pulseBanner 2s infinite ease-in-out; }
+.anim-mode-banner[hidden], body.is-fullscreen .anim-mode-banner { display:none !important; }
 .anim-type-switch { display:inline-flex; border:1.5px solid var(--ink); border-radius:4px; overflow:hidden; background:#fff; box-shadow:1px 1px 0 var(--ink); }
 .anim-type-btn { padding:2px 9px; font-size:11px; font-weight:850; border:0; background:#fff; color:#475569; cursor:pointer; transition:all .15s ease; }
 .anim-type-btn:hover { background:#f1f5f9; }
