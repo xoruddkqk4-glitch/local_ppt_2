@@ -659,6 +659,13 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **이중창 키보드 탐색 독립 분리 (`app.js`)**:
   - 이중창 모드에서 다음/이전 슬라이드로 넘길 때 편집 창을 강제로 이동시키던 `SET_PAGE` 메시지 간섭을 제거하여 두 창의 슬라이드 네비게이션이 서로를 방해하지 않도록 정돈했습니다.
 
+### 74. 이중창(발표) 모드 타이머 진행 상태 보존 & 편집 모드 수정 시 리셋 방지
+- **타이머 런타임 진행 상태 보존 (`runningTimers` Map 캐싱) (`app.js`)**:
+  - 편집 모드에서 텍스트, 카드, 스타일 등을 실시간 수정할 때 `SYNC_STATE`가 전송되어 최신 슬라이드 데이터(`data.pages`)로 갱신되더라도, 기존 이중창 화면에서 카운트다운/스탑워치가 진행 중이던 타이머 객체들의 동적 런타임 상태(`isRunning`, `remainingSeconds`, `elapsedSeconds`, `currentRepeat`, `inRest`, `restRemainingSeconds`)를 추출하여 덮어쓰기 전 안전하게 보존합니다.
+  - 새로 수신된 `data.pages` 내 동일 ID 타이머에 보존된 런타임 상태를 복원(병합)한 후 `state.pages`를 교체함으로써, 편집 작업 중에도 타이머가 05:00 등 초기 상태로 되돌아가지 않고 끊김 없이 흘러가도록 구현했습니다.
+- **타이머 인터벌 틱커 지속 가동 보장 (`ensureTimerTicker`) (`app.js`)**:
+  - `renderStage()` 재호출 이후에도 실행 중인 타이머(`isRunning: true`)가 존재할 경우 `ensureTimerTicker()`를 호출하여 초 단위 카운트다운 타이머 인터벌이 안정적으로 유지되도록 보장했습니다.
+
 ---
 
 ## [2026-09-08] 업데이트 이력 (Commit ID: 6aab24a)
@@ -747,3 +754,10 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **수정 내용**:
   - `app.js`: 발표(이중창) 모드와 편집 모드 간 슬라이드 탐색 독립화(`isPresentPageInitialized`), 편집 창에서 슬라이드를 이동해도 이중창 발표 화면의 슬라이드는 이동하지 않고 유지, 슬라이드 내 수정 내용은 이중창에 실시간 라이브 동기화(`renderStage`), 이중창 탐색 시 편집 창 간섭 제거.
 - **검증 결과**: `node -c app.js` 구문 및 정적 무결성 검증 100% 통과.
+
+## [2026-09-15 11:25] 업데이트 이력 (Commit ID: 89cfcda)
+- **수정 내용**:
+  - `app.js`: 이중창(발표) 모드에서 실행 중이거나 진행 중인 타이머 런타임 상태(`isRunning`, `remainingSeconds`, `elapsedSeconds`, `currentRepeat`, `inRest`, `restRemainingSeconds`) 보존 로직 구현, 편집 모드에서 슬라이드 내용 수정 시 `SYNC_STATE`를 수신하더라도 타이머가 초기 시간(05:00 등)으로 리셋되지 않고 끊김 없이 유지되도록 병합 처리, `ensureTimerTicker` 재가동 보장.
+  - `.agents/rules/rules.md`: `README.md` 누적 기록 규칙 동기화.
+- **검증 결과**: `node -c app.js` 구문 및 정적 무결성 검증 100% 통과.
+

@@ -6078,6 +6078,49 @@ if (syncChannel) {
         state.design = data.design || state.design;
         state.customPalette = data.customPalette || null;
         state.fixedOverlays = data.fixedOverlays || defaultFixedOverlays();
+
+        // 이중창(발표) 모드에서 진행 중이거나 조작된 타이머 객체의 런타임 상태 보존
+        const runningTimers = new Map();
+        if (Array.isArray(state.pages)) {
+          state.pages.forEach((page) => {
+            if (page && Array.isArray(page.objects)) {
+              page.objects.forEach((obj) => {
+                if (obj && obj.type === "timer") {
+                  runningTimers.set(obj.id, {
+                    isRunning: !!obj.isRunning,
+                    remainingSeconds: obj.remainingSeconds,
+                    elapsedSeconds: obj.elapsedSeconds,
+                    currentRepeat: obj.currentRepeat,
+                    inRest: obj.inRest,
+                    restRemainingSeconds: obj.restRemainingSeconds,
+                  });
+                }
+              });
+            }
+          });
+        }
+
+        // 수신된 data.pages에 이중창 타이머 진행 상태 복원
+        if (Array.isArray(data.pages)) {
+          data.pages.forEach((page) => {
+            if (page && Array.isArray(page.objects)) {
+              page.objects.forEach((obj) => {
+                if (obj && obj.type === "timer" && runningTimers.has(obj.id)) {
+                  const preserved = runningTimers.get(obj.id);
+                  if (preserved.isRunning || typeof preserved.remainingSeconds === "number" || typeof preserved.elapsedSeconds === "number") {
+                    obj.isRunning = preserved.isRunning;
+                    if (typeof preserved.remainingSeconds === "number") obj.remainingSeconds = preserved.remainingSeconds;
+                    if (typeof preserved.elapsedSeconds === "number") obj.elapsedSeconds = preserved.elapsedSeconds;
+                    if (typeof preserved.currentRepeat === "number") obj.currentRepeat = preserved.currentRepeat;
+                    if (typeof preserved.inRest === "boolean") obj.inRest = preserved.inRest;
+                    if (typeof preserved.restRemainingSeconds === "number") obj.restRemainingSeconds = preserved.restRemainingSeconds;
+                  }
+                }
+              });
+            }
+          });
+        }
+
         state.pages = data.pages || state.pages;
 
         // 편집 모드에서 슬라이드를 이동하더라도 이중창 모드 화면의 슬라이드 번호는 이동하지 않음
@@ -6099,6 +6142,21 @@ if (syncChannel) {
         applyThemePalette();
         renderStage();
         updateFullscreenAnimState();
+
+        // 복원된 타이머 중 실행 중(isRunning)인 것이 있다면 타이머 인터벌 재가동 보장
+        let hasRunningTimer = false;
+        if (Array.isArray(state.pages)) {
+          state.pages.forEach((page) => {
+            if (page && Array.isArray(page.objects)) {
+              if (page.objects.some((o) => o.type === "timer" && o.isRunning)) {
+                hasRunningTimer = true;
+              }
+            }
+          });
+        }
+        if (hasRunningTimer) {
+          ensureTimerTicker();
+        }
       }
     } else {
       if (data.action === "REQUEST_INITIAL_STATE") {

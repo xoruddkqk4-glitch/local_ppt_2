@@ -31,6 +31,7 @@
 - **`README.md` 변경 이력 누적 기록 규칙:**
   - `README.md` 파일을 수정할 때, 업데이트되는 내용을 `README.md` 파일의 맨 뒷부분(하단)에 **날짜 및 시간(서울 기준 시각: YYYY-MM-DD HH:mm)** 기준으로 누적하여 기록해야 합니다.
   - 누적 기록에는 **날짜 및 시간(Date & Time, 서울 기준 KST)**, **커밋 ID(Commit Hash)**, **수정 내용(Modification Details)**이 반드시 포함되어야 합니다.
+  - `README.md`의 기존 본문 내용을 수정하는 것도 허용되며, 변경 이력은 맨 뒷부분에 지속해서 누적됩니다.
 - 커밋 메시지는 한국어로 작성하며, `docs: update README.md and detailed commit results` 포맷을 따릅니다.
 
 ## 5. `/ask` 질의응답 및 계획 전용 모드 정책 (No Code Modification & No Auto-Execution)
