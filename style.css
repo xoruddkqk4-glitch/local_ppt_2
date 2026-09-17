@@ -316,6 +316,8 @@ body.is-fullscreen .canvas-object {
 .canvas-text[contenteditable="true"] { user-select:text !important; cursor:text !important; overflow:auto; outline:none !important; pointer-events:auto !important; }
 .cover-title { font-weight:950; letter-spacing:-.07em; line-height:.92; }
 .cover-subtitle { font-weight:750; }
+.page-title { font-weight:900; letter-spacing:-.03em; }
+.page-title .canvas-text { justify-content:flex-start !important; text-align:left !important; padding-left:2px; }
 .bullet-item .canvas-text { padding-left:16px; padding-right:16px; }
 .bullet-item { border-left:16px solid var(--content-accent); }
 .cover-item .canvas-text { padding-left:4px; padding-right:4px; }

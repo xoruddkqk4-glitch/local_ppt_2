@@ -114,7 +114,7 @@ AI 생성은 `index.html` 파일을 직접 열지 않고 `node server.js` 실행
 - 개체를 선택하지 않은 상태에서는 현재 본문 페이지를 `Ctrl+C`/`Cmd+C`로 복사하고 현재 페이지 뒤에 `Ctrl+V`/`Cmd+V`로 붙여넣기
 - `Ctrl+Z`/`Cmd+Z` 되돌리기
 - 한 페이지에 여러 이미지 삽입
-- 개조식 항목의 `Tab`/`Shift+Tab` 위계 조정, 위계별 공통 글자 크기 자동 맞춤 및 한글 단어 단위 줄바꿈
+- 개조식 항목의 `Tab`/`Shift+Tab` 위계 조정, 위계별 공통 글자 크기 자동 맞춤 및 한글 단어 단위 줄바꿈, 제목–본문 간 독립 여백 및 좌측 정렬 레이아웃 최적화
 - 레이아웃·다이어그램 항목 추가·삭제 시 기존 텍스트와 서식을 유지하고 남은 카드 폭을 가용 영역에 맞게 자동 재배치
 - 마인드맵 4단계 계층, 방사형 배치, 부모–자식 연결선 및 단계별 색상
 - 마인드맵 항목 추가·삭제 시 기존 노드 위치 유지
@@ -809,12 +809,14 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - `app.js`: 동기화 메시지 페이로드 및 `syncChannel.onmessage` 수신부에 세션 ID 불일치 필터링 2차 방어벽 적용.
 - **검증 결과**: `node -c app.js; node -c server.js; node -c ai-intake.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
 
-## [2026-09-17 15:05] 업데이트 이력 (Commit ID: 394b1c5)
+## [2026-09-17 15:30] 업데이트 이력 (Commit ID: 1e088d0)
 - **수정 내용**:
-  - `README.md`: 편집 모드 페이지 이동 간 이중창 타이머 무간섭 연속 가동(`runningTimers` 캐싱 및 백그라운드 틱) 및 이중창 시간 조작(단축키·프리셋·상태)의 편집 모드 실시간 양방향 동기화 사양 명문화.
-  - `README.md`: 직전 커밋 해시(`72e28bc`) 동기화 및 문서 최신화.
+  - `app.js`: 개조식(`bullet`) 템플릿의 부모 제목 개체(`page-title`)와 자식 항목(`bullet-item`) 간 수직 영역 겹침 결함 해결.
+    - 제목 개체 기본 좌표를 `y: 10, h: 18`(하단 28%)에서 `y: 7, h: 12`(하단 19%)로 축소하고 기본 정렬을 좌측(`textAlign: "left"`)으로 정렬.
+    - 자식 개조식 항목 시작 위치를 `top: 22`에서 `top: 25`로 하향 조정하여 제목과 본문 간 6%의 안전 여백 확보.
+    - 항목 수가 적을 때(5개 이하) 항목 간 간격(`gap`)을 기존 1에서 2로 확대하여 가독성 개선.
+    - 개조식 자동 배치(`layoutBulletItems`) 실행 시 기존/불러온 슬라이드의 제목 개체가 겹침 영역(`h > 14` 또는 `y + h > 23`)에 있을 경우 자동으로 `y: 7, h: 12`로 자가 치유(Self-healing)되도록 구현.
+    - `applyBulletTemplatePreservingContent` 및 `createAiBulletPage`에서도 동일하게 제목 및 항목 좌표 일치화.
+  - `app.js` (`fitAllText`): 짧은 제목 텍스트("핵심 메시지" 등)가 넓은 영역으로 인해 초대형 폰트(~112px)로 비정상 팽창하여 자식 항목을 침범하던 현상을 방지하기 위해 `page-title` 기본 최대 글자 크기를 `46px`로 상한 제한.
+  - `style.css`: `.page-title` 굵기(`font-weight: 900`), 자간(`letter-spacing: -0.03em`) 및 텍스트 좌측 정렬(`justify-content: flex-start !important; text-align: left !important`) 스타일 보강.
 - **검증 결과**: `node -c app.js; node -c server.js; node -c ai-intake.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
-
-
-
-

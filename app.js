@@ -356,10 +356,10 @@ function buildTemplate(page, template, options = {}) {
 
   if (template === "bullet") {
     page.objects.unshift(
-      createTextObject("page-title", "핵심 메시지", 8, 10, 72, 18),
-      createTextObject("bullet-item", "첫 번째 핵심 내용", 12, 0, 75, 9, { item: true, bulletLevel: 1 }),
-      createTextObject("bullet-item", "두 번째 핵심 내용", 12, 0, 75, 9, { item: true, bulletLevel: 1 }),
-      createTextObject("bullet-item", "세 번째 핵심 내용", 12, 0, 75, 9, { item: true, bulletLevel: 1 })
+      createTextObject("page-title", "핵심 메시지", 8, 7, 84, 12, { textAlign: "left" }),
+      createTextObject("bullet-item", "첫 번째 핵심 내용", 8, 0, 84, 9, { item: true, bulletLevel: 1 }),
+      createTextObject("bullet-item", "두 번째 핵심 내용", 8, 0, 84, 9, { item: true, bulletLevel: 1 }),
+      createTextObject("bullet-item", "세 번째 핵심 내용", 8, 0, 84, 9, { item: true, bulletLevel: 1 })
     );
     layoutBulletItems(page);
   }
@@ -376,18 +376,29 @@ function buildTemplate(page, template, options = {}) {
 }
 
 function layoutBulletItems(page) {
+  const titleObj = page.objects.find((object) => object.role === "page-title");
+  if (titleObj) {
+    titleObj.textAlign = titleObj.textAlign || "left";
+    if (titleObj.h > 14 || titleObj.y + titleObj.h > 23) {
+      titleObj.y = 7;
+      titleObj.h = 12;
+    }
+    if (titleObj.x > 8) titleObj.x = 8;
+    if (titleObj.w < 84) titleObj.w = 84;
+  }
+
   const items = page.objects.filter((object) => object.role === "bullet-item");
   if (!items.length) return;
-  const top = 22;
-  const bottom = 92;
-  const gap = items.length > 30 ? .15 : items.length > 20 ? .25 : items.length > 10 ? .5 : 1;
+  const top = 25;
+  const bottom = 90;
+  const gap = items.length > 30 ? .15 : items.length > 20 ? .25 : items.length > 10 ? .5 : items.length > 5 ? 1 : 2;
   const height = clamp(1.2, (bottom - top - gap * (items.length - 1)) / items.length, 10);
   items.forEach((item, index) => {
     const level = clamp(1, Number(item.bulletLevel) || 1, 5);
     item.bulletLevel = level;
-    item.x = 10 + (level - 1) * 3.5;
+    item.x = 8 + (level - 1) * 3.5;
     item.y = top + index * (height + gap);
-    item.w = 80 - (level - 1) * 3.5;
+    item.w = 84 - (level - 1) * 3.5;
     item.h = height;
   });
 }
@@ -797,7 +808,7 @@ function applyBulletTemplatePreservingContent(page) {
   page.objectCategory = null;
   page.variant = null;
 
-  const title = createTextObject("page-title", titleText, 7, 7, 86, 16, { textAlign: "left" });
+  const title = createTextObject("page-title", titleText, 8, 7, 84, 12, { textAlign: "left" });
   if (snapshotContent.title) copyRelayoutTextProperties(title, snapshotContent.title);
 
   const blocks = snapshotContent.blocks.length
@@ -816,7 +827,7 @@ function applyBulletTemplatePreservingContent(page) {
       bulletLevel = clamp(1, Number(block.mindLevel) - 1, 4);
     }
 
-    return createTextObject("bullet-item", String(block.text || "").trim(), 12, 0, 75, 9, {
+    return createTextObject("bullet-item", String(block.text || "").trim(), 8, 0, 84, 9, {
       item: true,
       bulletLevel,
       textColor: block.textColor,
@@ -4464,7 +4475,10 @@ function fitAllText() {
     texts.push(text);
     grouped.set(key, texts);
   });
-  grouped.forEach((texts) => fitTextGroupToCommonSize(texts, 8, getTextGroupMaximum(texts, 112)));
+  grouped.forEach((texts, key) => {
+    const defaultMax = key && key.startsWith("page-title") ? 46 : 112;
+    fitTextGroupToCommonSize(texts, 8, getTextGroupMaximum(texts, defaultMax));
+  });
   fitBulletTextByLevel(bulletTexts);
   fitMindmapTextByLevel(mindTexts);
   fitTablesToCommonSize([...stage.querySelectorAll(".table-object")]);
@@ -6980,7 +6994,7 @@ function createAiBulletPage(slide, suppliedItems) {
   if (title) title.text = normalizeAiText(slide?.title, 100) || "핵심 내용";
   page.objects = page.objects.filter((object) => object.role !== "bullet-item");
   const bulletItems = (items.length ? items : ["내용을 입력하세요."]).map((text) => (
-    createTextObject("bullet-item", text, 12, 0, 75, 9, { item: true, bulletLevel: 1 })
+    createTextObject("bullet-item", text, 8, 0, 84, 9, { item: true, bulletLevel: 1 })
   ));
   page.objects.push(...bulletItems);
   layoutBulletItems(page);
