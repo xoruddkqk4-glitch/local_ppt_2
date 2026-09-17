@@ -666,6 +666,19 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **타이머 인터벌 틱커 지속 가동 보장 (`ensureTimerTicker`) (`app.js`)**:
   - `renderStage()` 재호출 이후에도 실행 중인 타이머(`isRunning: true`)가 존재할 경우 `ensureTimerTicker()`를 호출하여 초 단위 카운트다운 타이머 인터벌이 안정적으로 유지되도록 보장했습니다.
 
+### 75. 슬라이드 순서 드래그 정렬 버그 수정, 새 본문 개조식 기본 템플릿, 발표창 현재 페이지 연동 & 타이머 동기화/표시 개선
+- **슬라이드 드래그앤드랍 순서 변경 버그 수정 (`app.js`)**:
+  - 기존 썸네일 드래그 시 HTML5 드래그와 중복 실행되던 `mousedown/mousemove/mouseup` 수동 드래그 리스너를 제거하여 `document` 마우스업 이벤트 누수로 인한 잘못된 재정렬 호출 문제를 원천 차단했습니다.
+  - 드래그앤드랍 완료 시 이동된 슬라이드로 활성 페이지(`state.currentPageIndex`)를 즉시 갱신하고 상태를 브로드캐스트(`broadcastState()`)하며, 드랍 직후 100ms 간 클릭 간섭을 방지하도록 처리했습니다.
+- **새 본문 페이지 기본 템플릿 개조식 설정 (`app.js`)**:
+  - `+ 본문 페이지` 추가 시 생성되는 슬라이드의 기본 템플릿을 기존 카드(object)에서 '텍스트 & 구조화' 카테고리의 '개조식'(`bullet`)으로 변경하여 발표 자료 작성 시 구조화된 개조식 텍스트를 바로 편집할 수 있도록 개선했습니다.
+- **발표(이중창) 모드 현재 선택 페이지 즉시 표시 (`app.js`)**:
+  - 발표 모드 호출 시 URL 파라미터(`?mode=present&page=${currentPageIndex}`)를 전달하고 열려 있는 발표 창에 `SET_PAGE` 메시지를 브로드캐스트하여, 항상 1페이지가 아닌 현재 편집기에서 선택되어 있던 슬라이드가 이중창 발표 화면에 즉시 열리도록 개선했습니다.
+- **타이머 편집창 복구 및 루프 횟수 4배 확대 & 발표-편집 간 실시간 시간 동기화 (`app.js`, `style.css`)**:
+  - 타이머 개체 선택 시 모드(루프/스탑워치) 및 횟수 설정 헤더가 정상 표시되도록 돔 추가 누락을 복원했습니다.
+  - Loop 타이머의 루프 횟수 표시(`.timer-loop-indicator`) 폰트 크기를 기존의 4배(`52px`, `font-weight: 850`)로 대폭 확대하여 발표 환경에서도 시인성을 확보했습니다.
+  - 전체화면 및 발표 모드에서 타이머 시간을 조작(프리셋 클릭, `Shift+방향키`로 ±10초/±1분 조절, 리셋 등)할 때 `broadcastTimerUpdate` 및 `SYNC_TIMER_FROM_PRESENT` 메시지를 통해 편집 모드 슬라이드의 타이머 시간도 실시간 1:1 동기화되도록 구현했습니다.
+
 ---
 
 ## [2026-09-08] 업데이트 이력 (Commit ID: 6aab24a)
@@ -755,9 +768,20 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - `app.js`: 발표(이중창) 모드와 편집 모드 간 슬라이드 탐색 독립화(`isPresentPageInitialized`), 편집 창에서 슬라이드를 이동해도 이중창 발표 화면의 슬라이드는 이동하지 않고 유지, 슬라이드 내 수정 내용은 이중창에 실시간 라이브 동기화(`renderStage`), 이중창 탐색 시 편집 창 간섭 제거.
 - **검증 결과**: `node -c app.js` 구문 및 정적 무결성 검증 100% 통과.
 
-## [2026-09-15 11:25] 업데이트 이력 (Commit ID: 89cfcda)
+## [2026-09-15 11:25] 업데이트 이력 (Commit ID: 110465a)
 - **수정 내용**:
   - `app.js`: 이중창(발표) 모드에서 실행 중이거나 진행 중인 타이머 런타임 상태(`isRunning`, `remainingSeconds`, `elapsedSeconds`, `currentRepeat`, `inRest`, `restRemainingSeconds`) 보존 로직 구현, 편집 모드에서 슬라이드 내용 수정 시 `SYNC_STATE`를 수신하더라도 타이머가 초기 시간(05:00 등)으로 리셋되지 않고 끊김 없이 유지되도록 병합 처리, `ensureTimerTicker` 재가동 보장.
   - `.agents/rules/rules.md`: `README.md` 누적 기록 규칙 동기화.
 - **검증 결과**: `node -c app.js` 구문 및 정적 무결성 검증 100% 통과.
+
+## [2026-09-17 14:10] 업데이트 이력 (Commit ID: bb7d409)
+- **수정 내용**:
+  - `app.js`: 썸네일 드래그앤드랍 후 클릭 시 다른 페이지 순서까지 변경되던 이벤트 누수 결함 수정(HTML5 DnD 단일화 및 `justDropped` 보호, 정렬 후 활성 페이지 갱신).
+  - `app.js`: `+본문 페이지` 추가 시 신규 슬라이드 기본 템플릿을 '텍스트 & 구조화'의 '개조식'(`bullet`)으로 지정.
+  - `app.js`: 발표(이중창) 모드 실행 시 현재 편집 중인 페이지 번호를 URL 쿼리 및 `SET_PAGE` 메시지로 전달하여 선택된 슬라이드가 이중창에 즉시 표시되도록 개선.
+  - `app.js`: 타이머 개체 편집 헤더 DOM 복원(루프/스탑워치 모드 및 횟수 설정 정상화), 전체화면/발표창에서 시간 조작 시 편집 창 타이머 실시간 양방향 동기화(`broadcastTimerUpdate`, `SYNC_TIMER_FROM_PRESENT`).
+  - `style.css`: Loop 타이머 반복 횟수(`.timer-loop-indicator`) 글자 크기 4배 확대(`13px` -> `52px`).
+  - `.agents/rules/rules.md`, `AGENTS.md`, `GEMINI.md`: 에이전트 실행 규칙 내 빠른 터미널 정적 검증 명령어(`node -c app.js` 등) 명시 및 동기화.
+- **검증 결과**: `node -c app.js; node -c server.js; node -c ai-intake.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
 

@@ -54,6 +54,29 @@ function broadcastState() {
   }
 }
 
+function broadcastTimerUpdate(timerObj) {
+  if (!syncChannel || !timerObj) return;
+  try {
+    syncChannel.postMessage({
+      action: "SYNC_TIMER_FROM_PRESENT",
+      timerId: timerObj.id,
+      mode: timerObj.mode,
+      duration: timerObj.duration,
+      remainingSeconds: timerObj.remainingSeconds,
+      elapsedSeconds: timerObj.elapsedSeconds,
+      isRunning: timerObj.isRunning,
+      currentRepeat: timerObj.currentRepeat,
+      repeatCount: timerObj.repeatCount,
+      restSeconds: timerObj.restSeconds,
+      inRest: timerObj.inRest,
+      restRemainingSeconds: timerObj.restRemainingSeconds,
+      timerFontSizeScale: timerObj.timerFontSizeScale
+    });
+  } catch (err) {
+    console.warn("Timer sync error:", err);
+  }
+}
+
 function escapeHtml(str) {
   return String(str || "")
     .replace(/&/g, "&amp;")
@@ -225,12 +248,12 @@ function createContentPage() {
   const page = {
     id: createId("page"),
     type: "content",
-    template: "object",
-    objectCategory: "layout",
-    variant: "cards",
+    template: "bullet",
+    objectCategory: null,
+    variant: null,
     objects: []
   };
-  buildTemplate(page, "object");
+  buildTemplate(page, "bullet");
   return page;
 }
 
@@ -2120,19 +2143,15 @@ function reorderPages(fromIndex, targetIndex) {
   if (fromIndex === targetIndex) return;
 
   snapshot();
-  const activePage = state.pages[state.currentPageIndex];
   const [movedPage] = state.pages.splice(fromIndex, 1);
-
   state.pages.splice(targetIndex, 0, movedPage);
 
-  const newActiveIndex = state.pages.indexOf(activePage);
-  if (newActiveIndex !== -1) {
-    state.currentPageIndex = newActiveIndex;
-  }
+  state.currentPageIndex = targetIndex;
   state.selectedIds.clear();
   state.guides = [];
   hideTextToolbar();
   render();
+  broadcastState();
 }
 
 function createPageThumbnailElement(page) {
@@ -2290,78 +2309,6 @@ function renderPages() {
       }
     });
 
-    // Mouse Pointer Drag Fallback (Direct DOM Dragging)
-    itemEl.addEventListener("mousedown", (startEvent) => {
-      if (startEvent.target.classList.contains("page-delete") || startEvent.target.classList.contains("page-hide-btn")) return;
-      if (startEvent.button !== 0) return;
-
-      const startX = startEvent.clientX;
-      const startY = startEvent.clientY;
-      let hasDragged = false;
-
-      const onMouseMove = (moveEvent) => {
-        const dx = Math.abs(moveEvent.clientX - startX);
-        const dy = Math.abs(moveEvent.clientY - startY);
-
-        if (!hasDragged && (dx > 4 || dy > 4)) {
-          hasDragged = true;
-          draggedPageIndex = index;
-          itemEl.classList.add("is-dragging");
-        }
-
-        if (hasDragged) {
-          const elemBelow = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
-          const targetItem = elemBelow?.closest(".page-item");
-
-          list.querySelectorAll(".page-item").forEach((item) => {
-            item.classList.remove("drag-over-before", "drag-over-after");
-          });
-
-          if (targetItem && targetItem !== itemEl) {
-            const targetIdx = parseInt(targetItem.dataset.pageIndex, 10);
-            if (!isNaN(targetIdx)) {
-              if (index < targetIdx) {
-                targetItem.classList.add("drag-over-after");
-              } else {
-                targetItem.classList.add("drag-over-before");
-              }
-            }
-          }
-        }
-      };
-
-      const onMouseUp = (upEvent) => {
-        document.removeEventListener("mousemove", onMouseMove);
-        document.removeEventListener("mouseup", onMouseUp);
-
-        if (hasDragged) {
-          justDropped = true;
-          itemEl.classList.remove("is-dragging");
-
-          const elemBelow = document.elementFromPoint(upEvent.clientX, upEvent.clientY);
-          const targetItem = elemBelow?.closest(".page-item");
-
-          list.querySelectorAll(".page-item").forEach((item) => {
-            item.classList.remove("drag-over-before", "drag-over-after", "is-dragging");
-          });
-
-          if (targetItem) {
-            const targetIdx = parseInt(targetItem.dataset.pageIndex, 10);
-            if (!isNaN(targetIdx) && targetIdx !== index) {
-              reorderPages(index, targetIdx);
-            }
-          }
-
-          setTimeout(() => {
-            draggedPageIndex = null;
-          }, 50);
-        }
-      };
-
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
-    });
-
     // Native HTML5 Drag & Drop handlers
     itemEl.addEventListener("dragstart", (event) => {
       if (event.target.classList.contains("page-delete") || event.target.classList.contains("page-hide-btn")) {
@@ -2412,6 +2359,9 @@ function renderPages() {
       event.preventDefault();
       event.stopPropagation();
       justDropped = true;
+      setTimeout(() => {
+        justDropped = false;
+      }, 100);
 
       list.querySelectorAll(".page-item").forEach((item) => {
         item.classList.remove("drag-over-before", "drag-over-after", "is-dragging");
@@ -2429,6 +2379,9 @@ function renderPages() {
 
     itemEl.addEventListener("dragend", () => {
       draggedPageIndex = null;
+      setTimeout(() => {
+        justDropped = false;
+      }, 100);
       list.querySelectorAll(".page-item").forEach((item) => {
         item.classList.remove("drag-over-before", "drag-over-after", "is-dragging");
       });
@@ -2449,6 +2402,9 @@ function renderPages() {
       if (event.target !== list) return;
       event.preventDefault();
       justDropped = true;
+      setTimeout(() => {
+        justDropped = false;
+      }, 100);
 
       list.querySelectorAll(".page-item").forEach((item) => {
         item.classList.remove("drag-over-before", "drag-over-after", "is-dragging");
@@ -2626,6 +2582,8 @@ function createTimerElement(object) {
       object.elapsedSeconds = 0;
     }
     renderStage();
+    if (isPresentMode) broadcastTimerUpdate(object);
+    else broadcastState();
   });
   leftControls.append(modeSelect);
 
@@ -2654,6 +2612,8 @@ function createTimerElement(object) {
     object.repeatCount = val;
     object.currentRepeat = 1;
     renderStage();
+    if (isPresentMode) broadcastTimerUpdate(object);
+    else broadcastState();
   });
 
   const repeatSuffix = document.createElement("span");
@@ -2687,6 +2647,8 @@ function createTimerElement(object) {
     const val = Math.max(0, Number(e.target.value) || 0);
     object.restSeconds = val;
     renderStage();
+    if (isPresentMode) broadcastTimerUpdate(object);
+    else broadcastState();
   });
 
   const restSuffix = document.createElement("span");
@@ -2724,14 +2686,20 @@ function createTimerElement(object) {
       object.inRest = false;
       object.isRunning = false;
       renderStage();
+      if (isPresentMode) broadcastTimerUpdate(object);
+      else broadcastState();
     });
     presetBar.append(btn);
   });
+  header.append(presetBar);
+  container.append(header);
+
   // Loop progress indicator (e.g. 1 / 3) above digital clock
   const loopIndicator = document.createElement("div");
   loopIndicator.className = "timer-loop-indicator";
-  loopIndicator.style.fontSize = "13px";
+  loopIndicator.style.fontSize = "52px";
   loopIndicator.style.fontWeight = "850";
+  loopIndicator.style.lineHeight = "1.1";
   loopIndicator.style.color = effectiveTextColor;
   loopIndicator.style.opacity = "0.85";
   loopIndicator.style.textAlign = "center";
@@ -2927,6 +2895,11 @@ function toggleTimerRunning(object) {
     ensureTimerTicker();
   }
   updateRunningTimerDisplays();
+  if (isPresentMode) {
+    broadcastTimerUpdate(object);
+  } else {
+    broadcastState();
+  }
 }
 
 function resetTimerObject(object) {
@@ -2937,6 +2910,11 @@ function resetTimerObject(object) {
   object.elapsedSeconds = 0;
   object.currentRepeat = 1;
   updateRunningTimerDisplays();
+  if (isPresentMode) {
+    broadcastTimerUpdate(object);
+  } else {
+    broadcastState();
+  }
 }
 
 function playTimerFinishBeep() {
@@ -6049,9 +6027,13 @@ function openPresenterWindow() {
   const screenW = window.screen?.availWidth || 1920;
   const screenH = window.screen?.availHeight || 1080;
   const features = `width=${screenW},height=${screenH},left=0,top=0,menubar=no,toolbar=no,location=no,status=no,resizable=yes`;
-  const url = window.location.origin + window.location.pathname + "?mode=present";
+  const targetPage = typeof state.currentPageIndex === "number" ? state.currentPageIndex : 0;
+  const url = window.location.origin + window.location.pathname + `?mode=present&page=${targetPage}`;
   if (presenterWindowRef && !presenterWindowRef.closed) {
     presenterWindowRef.focus();
+    if (syncChannel) {
+      syncChannel.postMessage({ action: "SET_PAGE", pageIndex: targetPage });
+    }
   } else {
     presenterWindowRef = window.open(url, "LocalPptPresenterWindow", features);
   }
@@ -6126,7 +6108,10 @@ if (syncChannel) {
         // 편집 모드에서 슬라이드를 이동하더라도 이중창 모드 화면의 슬라이드 번호는 이동하지 않음
         // (최초 1회 시작 슬라이드 인덱스만 동기화하고, 이후에는 이중창 자체의 슬라이드 위치 유지)
         if (!isPresentPageInitialized) {
-          state.currentPageIndex = typeof data.currentPageIndex === "number" ? data.currentPageIndex : (state.currentPageIndex || 0);
+          const urlParams = new URLSearchParams(window.location.search);
+          const pageFromUrl = parseInt(urlParams.get("page"), 10);
+          const targetIdx = !isNaN(pageFromUrl) ? pageFromUrl : (typeof data.currentPageIndex === "number" ? data.currentPageIndex : 0);
+          state.currentPageIndex = Math.min(Math.max(0, targetIdx), (data.pages?.length || 1) - 1);
           if (typeof data.fullscreenAnimStep === "number") {
             fullscreenAnimStep = data.fullscreenAnimStep;
           }
@@ -6157,6 +6142,13 @@ if (syncChannel) {
         if (hasRunningTimer) {
           ensureTimerTicker();
         }
+      } else if (data.action === "SET_PAGE") {
+        if (typeof data.pageIndex === "number" && data.pageIndex >= 0 && Array.isArray(state.pages) && data.pageIndex < state.pages.length) {
+          state.currentPageIndex = data.pageIndex;
+          fullscreenAnimStep = 0;
+          renderStage();
+          updateFullscreenAnimState();
+        }
       }
     } else {
       if (data.action === "REQUEST_INITIAL_STATE") {
@@ -6169,6 +6161,38 @@ if (syncChannel) {
         if (typeof data.pageIndex === "number" && data.pageIndex >= 0 && data.pageIndex < state.pages.length) {
           state.currentPageIndex = data.pageIndex;
           render();
+        }
+      } else if (data.action === "SYNC_TIMER_FROM_PRESENT") {
+        let found = false;
+        if (Array.isArray(state.pages)) {
+          state.pages.forEach((p) => {
+            if (p && Array.isArray(p.objects)) {
+              p.objects.forEach((obj) => {
+                if (obj && obj.type === "timer" && obj.id === data.timerId) {
+                  if (data.mode) obj.mode = data.mode;
+                  if (typeof data.duration === "number") obj.duration = data.duration;
+                  if (typeof data.remainingSeconds === "number") obj.remainingSeconds = data.remainingSeconds;
+                  if (typeof data.elapsedSeconds === "number") obj.elapsedSeconds = data.elapsedSeconds;
+                  if (typeof data.isRunning === "boolean") obj.isRunning = data.isRunning;
+                  if (typeof data.currentRepeat === "number") obj.currentRepeat = data.currentRepeat;
+                  if (typeof data.repeatCount === "number") obj.repeatCount = data.repeatCount;
+                  if (typeof data.restSeconds === "number") obj.restSeconds = data.restSeconds;
+                  if (typeof data.inRest === "boolean") obj.inRest = data.inRest;
+                  if (typeof data.restRemainingSeconds === "number") obj.restRemainingSeconds = data.restRemainingSeconds;
+                  if (typeof data.timerFontSizeScale === "number") obj.timerFontSizeScale = data.timerFontSizeScale;
+                  found = true;
+                }
+              });
+            }
+          });
+        }
+        if (found) {
+          snapshot();
+          updateRunningTimerDisplays();
+          renderStage();
+          if (data.isRunning) {
+            ensureTimerTicker();
+          }
         }
       }
     }
@@ -6190,13 +6214,20 @@ if (isPresentMode) {
     modalEl.hidden = true;
   }
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const pageFromUrl = parseInt(urlParams.get("page"), 10);
+  if (!isNaN(pageFromUrl) && pageFromUrl >= 0) {
+    state.currentPageIndex = pageFromUrl;
+  }
+
   try {
     if (window.opener && window.opener.state && Array.isArray(window.opener.state.pages)) {
       state.design = window.opener.state.design || state.design;
       state.customPalette = window.opener.state.customPalette || null;
       state.fixedOverlays = window.opener.state.fixedOverlays || defaultFixedOverlays();
       state.pages = window.opener.state.pages;
-      state.currentPageIndex = typeof window.opener.state.currentPageIndex === "number" ? window.opener.state.currentPageIndex : 0;
+      const targetIdx = !isNaN(pageFromUrl) ? pageFromUrl : (typeof window.opener.state.currentPageIndex === "number" ? window.opener.state.currentPageIndex : 0);
+      state.currentPageIndex = Math.min(Math.max(0, targetIdx), state.pages.length - 1);
       document.body.dataset.design = state.design;
       applyThemePalette();
       renderStage();
@@ -6259,6 +6290,8 @@ document.addEventListener("fullscreenchange", () => {
     stage.querySelectorAll(".fullscreen-anim-hidden, .fullscreen-anim-visible").forEach((element) => {
       element.classList.remove("fullscreen-anim-hidden", "fullscreen-anim-visible");
     });
+    snapshot();
+    updateRunningTimerDisplays();
     renderStage();
   }
 });
@@ -6699,8 +6732,6 @@ document.addEventListener("keydown", (event) => {
       else if (event.key === "ArrowUp") delta = 60;
       else if (event.key === "ArrowDown") delta = -60;
 
-      if (!isFullscreen && !isPresentMode) snapshot();
-
       targetTimers.forEach((timer) => {
         if (timer.mode === "stopwatch") {
           timer.elapsedSeconds = Math.max(0, (timer.elapsedSeconds || 0) + delta);
@@ -6709,10 +6740,16 @@ document.addEventListener("keydown", (event) => {
           timer.remainingSeconds = Math.max(0, curRem + delta);
           timer.duration = Math.max(0, (timer.duration || 300) + delta);
         }
+        if (isPresentMode) {
+          broadcastTimerUpdate(timer);
+        }
       });
 
+      if (!isPresentMode) {
+        snapshot();
+        broadcastState();
+      }
       updateRunningTimerDisplays();
-      broadcastState();
       return;
     }
 
@@ -6721,15 +6758,19 @@ document.addEventListener("keydown", (event) => {
       event.stopPropagation();
       const scaleDelta = event.key === "ArrowUp" ? 0.1 : -0.1;
 
-      if (!isFullscreen && !isPresentMode) snapshot();
-
       targetTimers.forEach((timer) => {
         const curScale = typeof timer.timerFontSizeScale === "number" ? timer.timerFontSizeScale : 1.0;
         timer.timerFontSizeScale = Math.max(0.3, Math.min(3.0, Math.round((curScale + scaleDelta) * 10) / 10));
+        if (isPresentMode) {
+          broadcastTimerUpdate(timer);
+        }
       });
 
+      if (!isPresentMode) {
+        snapshot();
+        broadcastState();
+      }
       updateRunningTimerDisplays();
-      broadcastState();
       return;
     }
   }

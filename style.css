@@ -665,6 +665,11 @@ body.is-fullscreen .canvas-object {
 .timer-card-preset-btn:hover {
   background: #e2e8f0 !important;
 }
+.timer-loop-indicator {
+  font-size: 52px !important;
+  font-weight: 850 !important;
+  line-height: 1.1 !important;
+}
 .timer-digital-display {
   flex: 1 !important;
   display: flex !important;
