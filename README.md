@@ -690,6 +690,11 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **다중 발표창 독립 지원 및 페이로드 검증 이중 방어벽 (`app.js`)**:
   - `openPresenterWindow()` 호출 시 고유 윈도우 이름(`LocalPptPresenterWindow_${currentSessionId}`)을 부여하여 여러 PPT 문서가 각자의 발표창을 띄워도 상호 간섭이 발생하지 않습니다.
   - 모든 동기화 메시지에 `sessionId`를 포함하고, `syncChannel.onmessage` 수신부에서 세션 ID 불일치 메시지를 즉시 폐기(`return`)하는 2차 검증을 적용했습니다.
+- **편집 모드 페이지 이동 시 이중창 타이머 무간섭 연속 가동 보장 (`app.js`)**:
+  - 편집 모드에서 다른 슬라이드(1페이지, 3페이지 등)로 이동하더라도 이중창 발표 화면은 타이머 슬라이드에 독립 고정되어 타이머가 멈추거나 리셋되지 않고 정상 카운트다운을 유지합니다.
+  - 편집 모드 메모리(`state.pages`)에서도 `ensureTimerTicker()`가 백그라운드에서 모든 페이지의 타이머를 지속 감소시키므로, 편집 모드에서 타이머 슬라이드로 복귀 시 진행된 시간이 그대로 반영됩니다.
+- **이중창 타이머 조작(시간/프리셋/단축키)의 편집 모드 실시간 양방향 동기화 (`app.js`)**:
+  - 이중창에서 `Shift+방향키`(±10초, ±1분), 시간 프리셋 클릭, 시작/일시정지/리셋 조작 시 `broadcastTimerUpdate`를 통해 편집 모드 메모리 및 화면에 100% 일치하게 즉시 동기화됩니다.
 
 ---
 
@@ -796,13 +801,20 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - `.agents/rules/rules.md`, `AGENTS.md`, `GEMINI.md`: 에이전트 실행 규칙 내 빠른 터미널 정적 검증 명령어(`node -c app.js` 등) 명시 및 동기화.
 - **검증 결과**: `node -c app.js; node -c server.js; node -c ai-intake.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
 
-## [2026-09-17 14:20] 업데이트 이력 (Commit ID: 6a26640)
+## [2026-09-17 14:20] 업데이트 이력 (Commit ID: 72e28bc)
 - **수정 내용**:
   - `app.js`: 편집창과 발표창 간 고유 세션 ID(`sessionId`) 발급 및 `sessionStorage` 보존 로직(`getOrCreateSessionId`) 구현.
   - `app.js`: 단일 전역 채널을 세션별 독립 BroadcastChannel(`local_ppt_sync_${sessionId}`)로 전환하여 새 HTML 창/탭 오픈 시 기존 발표창 내용이 리셋되던 결함 원천 해결.
   - `app.js`: `openPresenterWindow` 호출 시 URL 쿼리 및 윈도우 이름에 `sessionId` 전달, 다중 PPT 문서 간 독립 발표창 분리 지원.
   - `app.js`: 동기화 메시지 페이로드 및 `syncChannel.onmessage` 수신부에 세션 ID 불일치 필터링 2차 방어벽 적용.
 - **검증 결과**: `node -c app.js; node -c server.js; node -c ai-intake.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
+## [2026-09-17 15:05] 업데이트 이력 (Commit ID: 394b1c5)
+- **수정 내용**:
+  - `README.md`: 편집 모드 페이지 이동 간 이중창 타이머 무간섭 연속 가동(`runningTimers` 캐싱 및 백그라운드 틱) 및 이중창 시간 조작(단축키·프리셋·상태)의 편집 모드 실시간 양방향 동기화 사양 명문화.
+  - `README.md`: 직전 커밋 해시(`72e28bc`) 동기화 및 문서 최신화.
+- **검증 결과**: `node -c app.js; node -c server.js; node -c ai-intake.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
 
 
 
