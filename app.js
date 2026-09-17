@@ -33,8 +33,29 @@ let currentProjectFileHandle = null;
 let currentProjectFileName = "local-ppt.txt";
 let currentFolderPath = "c:\\Users\\user\\Desktop\\codex_cli\\.projects\\local_ppt_2\\txts\\";
 
-const syncChannel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("local_ppt_sync_channel") : null;
-const isPresentMode = new URLSearchParams(window.location.search).get("mode") === "present";
+function getOrCreateSessionId() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("mode") === "present") {
+    return params.get("sessionId") || "";
+  }
+  try {
+    let sid = sessionStorage.getItem("local_ppt_session_id");
+    if (!sid) {
+      sid = "sess_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+      sessionStorage.setItem("local_ppt_session_id", sid);
+    }
+    return sid;
+  } catch (e) {
+    return "sess_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+  }
+}
+
+const currentSessionId = getOrCreateSessionId();
+const urlParams = new URLSearchParams(window.location.search);
+const isPresentMode = urlParams.get("mode") === "present";
+const targetSessionId = currentSessionId;
+const syncChannelName = targetSessionId ? `local_ppt_sync_${targetSessionId}` : "local_ppt_sync_channel";
+const syncChannel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(syncChannelName) : null;
 let presenterWindowRef = null;
 
 function broadcastState() {
@@ -42,6 +63,7 @@ function broadcastState() {
   try {
     syncChannel.postMessage({
       action: "SYNC_STATE",
+      sessionId: currentSessionId,
       design: state.design,
       customPalette: state.customPalette,
       fixedOverlays: state.fixedOverlays,
@@ -59,6 +81,7 @@ function broadcastTimerUpdate(timerObj) {
   try {
     syncChannel.postMessage({
       action: "SYNC_TIMER_FROM_PRESENT",
+      sessionId: currentSessionId,
       timerId: timerObj.id,
       mode: timerObj.mode,
       duration: timerObj.duration,
@@ -6028,14 +6051,16 @@ function openPresenterWindow() {
   const screenH = window.screen?.availHeight || 1080;
   const features = `width=${screenW},height=${screenH},left=0,top=0,menubar=no,toolbar=no,location=no,status=no,resizable=yes`;
   const targetPage = typeof state.currentPageIndex === "number" ? state.currentPageIndex : 0;
-  const url = window.location.origin + window.location.pathname + `?mode=present&page=${targetPage}`;
+  const sessParam = currentSessionId ? `&sessionId=${encodeURIComponent(currentSessionId)}` : "";
+  const url = window.location.origin + window.location.pathname + `?mode=present&page=${targetPage}${sessParam}`;
+  const windowName = currentSessionId ? `LocalPptPresenterWindow_${currentSessionId}` : "LocalPptPresenterWindow";
   if (presenterWindowRef && !presenterWindowRef.closed) {
     presenterWindowRef.focus();
     if (syncChannel) {
-      syncChannel.postMessage({ action: "SET_PAGE", pageIndex: targetPage });
+      syncChannel.postMessage({ action: "SET_PAGE", pageIndex: targetPage, sessionId: currentSessionId });
     }
   } else {
-    presenterWindowRef = window.open(url, "LocalPptPresenterWindow", features);
+    presenterWindowRef = window.open(url, windowName, features);
   }
   showSaveToast("🖥️ 이중 창 발표 모드가 실행되었습니다!");
   setTimeout(() => broadcastState(), 100);
@@ -6056,6 +6081,9 @@ if (syncChannel) {
     if (!data) return;
 
     if (isPresentMode) {
+      if (data.sessionId && currentSessionId && data.sessionId !== currentSessionId) {
+        return;
+      }
       if (data.action === "SYNC_STATE") {
         state.design = data.design || state.design;
         state.customPalette = data.customPalette || null;
@@ -6151,6 +6179,9 @@ if (syncChannel) {
         }
       }
     } else {
+      if (data.sessionId && currentSessionId && data.sessionId !== currentSessionId) {
+        return;
+      }
       if (data.action === "REQUEST_INITIAL_STATE") {
         broadcastState();
       } else if (data.action === "NAVIGATE_PAGE") {
@@ -6246,7 +6277,7 @@ if (isPresentMode) {
   }, 150);
 
   setTimeout(() => {
-    if (syncChannel) syncChannel.postMessage({ action: "REQUEST_INITIAL_STATE" });
+    if (syncChannel) syncChannel.postMessage({ action: "REQUEST_INITIAL_STATE", sessionId: currentSessionId });
   }, 100);
 
   window.addEventListener("keydown", (e) => {

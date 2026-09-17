@@ -679,6 +679,18 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - Loop 타이머의 루프 횟수 표시(`.timer-loop-indicator`) 폰트 크기를 기존의 4배(`52px`, `font-weight: 850`)로 대폭 확대하여 발표 환경에서도 시인성을 확보했습니다.
   - 전체화면 및 발표 모드에서 타이머 시간을 조작(프리셋 클릭, `Shift+방향키`로 ±10초/±1분 조절, 리셋 등)할 때 `broadcastTimerUpdate` 및 `SYNC_TIMER_FROM_PRESENT` 메시지를 통해 편집 모드 슬라이드의 타이머 시간도 실시간 1:1 동기화되도록 구현했습니다.
 
+### 76. 이중창(발표) 모드 세션 격리 & 다른 HTML 창 오픈 시 리셋 방지
+- **세션 식별자 발급 및 보존 (`getOrCreateSessionId`) (`app.js`)**:
+  - 편집창이 열릴 때 `sessionStorage`를 기반으로 고유 세션 ID(`sess_...`)를 자동 생성 및 유지합니다.
+  - 동일 탭 새로고침(F5) 시에는 세션 ID를 보존하여 기존 발표창과의 통신을 유지하고, 새 탭이나 새 브라우저 창이 열릴 때는 완전히 새로운 세션 ID를 발급합니다.
+  - 이중창 모드(`isPresentMode`)는 URL 파라미터(`sessionId`)에서 부모 편집창의 세션 ID를 읽어와 1:1로 페어링됩니다.
+- **세션별 격리 BroadcastChannel 개설 (`local_ppt_sync_${sessionId}`) (`app.js`)**:
+  - 기존 단일 전역 채널(`local_ppt_sync_channel`)에서 벗어나 세션 전용 채널(`local_ppt_sync_${targetSessionId}`)을 개설하여 다른 창의 메시지와 브라우저 레벨에서 물리적으로 완전히 분리했습니다.
+  - 새 HTML 창(새 탭, 다른 PPT 문서 등)을 열어도 별도의 세션 채널을 사용하므로, 기존에 켜져 있던 발표창의 슬라이드 내용과 실행 중인 타이머가 새 창의 기본 1페이지(표지 슬라이드)로 리셋되는 현상을 원천 차단했습니다.
+- **다중 발표창 독립 지원 및 페이로드 검증 이중 방어벽 (`app.js`)**:
+  - `openPresenterWindow()` 호출 시 고유 윈도우 이름(`LocalPptPresenterWindow_${currentSessionId}`)을 부여하여 여러 PPT 문서가 각자의 발표창을 띄워도 상호 간섭이 발생하지 않습니다.
+  - 모든 동기화 메시지에 `sessionId`를 포함하고, `syncChannel.onmessage` 수신부에서 세션 ID 불일치 메시지를 즉시 폐기(`return`)하는 2차 검증을 적용했습니다.
+
 ---
 
 ## [2026-09-08] 업데이트 이력 (Commit ID: 6aab24a)
@@ -774,7 +786,7 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - `.agents/rules/rules.md`: `README.md` 누적 기록 규칙 동기화.
 - **검증 결과**: `node -c app.js` 구문 및 정적 무결성 검증 100% 통과.
 
-## [2026-09-17 14:10] 업데이트 이력 (Commit ID: bb7d409)
+## [2026-09-17 14:10] 업데이트 이력 (Commit ID: 5e8b0f2)
 - **수정 내용**:
   - `app.js`: 썸네일 드래그앤드랍 후 클릭 시 다른 페이지 순서까지 변경되던 이벤트 누수 결함 수정(HTML5 DnD 단일화 및 `justDropped` 보호, 정렬 후 활성 페이지 갱신).
   - `app.js`: `+본문 페이지` 추가 시 신규 슬라이드 기본 템플릿을 '텍스트 & 구조화'의 '개조식'(`bullet`)으로 지정.
@@ -783,5 +795,14 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - `style.css`: Loop 타이머 반복 횟수(`.timer-loop-indicator`) 글자 크기 4배 확대(`13px` -> `52px`).
   - `.agents/rules/rules.md`, `AGENTS.md`, `GEMINI.md`: 에이전트 실행 규칙 내 빠른 터미널 정적 검증 명령어(`node -c app.js` 등) 명시 및 동기화.
 - **검증 결과**: `node -c app.js; node -c server.js; node -c ai-intake.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
+## [2026-09-17 14:20] 업데이트 이력 (Commit ID: 6a26640)
+- **수정 내용**:
+  - `app.js`: 편집창과 발표창 간 고유 세션 ID(`sessionId`) 발급 및 `sessionStorage` 보존 로직(`getOrCreateSessionId`) 구현.
+  - `app.js`: 단일 전역 채널을 세션별 독립 BroadcastChannel(`local_ppt_sync_${sessionId}`)로 전환하여 새 HTML 창/탭 오픈 시 기존 발표창 내용이 리셋되던 결함 원천 해결.
+  - `app.js`: `openPresenterWindow` 호출 시 URL 쿼리 및 윈도우 이름에 `sessionId` 전달, 다중 PPT 문서 간 독립 발표창 분리 지원.
+  - `app.js`: 동기화 메시지 페이로드 및 `syncChannel.onmessage` 수신부에 세션 ID 불일치 필터링 2차 방어벽 적용.
+- **검증 결과**: `node -c app.js; node -c server.js; node -c ai-intake.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
 
 
