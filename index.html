@@ -208,9 +208,19 @@
 
     <section class="stage-panel" aria-label="프레젠테이션 편집 영역">
       <div class="stage-toolbar">
+        <button id="pageFirstBtn" class="page-scroll-btn" type="button" aria-label="맨 앞으로 이동" title="맨 앞 페이지로 이동 (첫 페이지)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M11 5L3 12L11 19V5ZM20 5L12 12L20 19V5Z"/>
+          </svg>
+        </button>
         <button id="pageScrollLeftBtn" class="page-scroll-btn" type="button" aria-label="이전 페이지 목록 보기" title="이전 페이지 목록 스크롤">◀</button>
         <div id="pageList" class="page-list"></div>
         <button id="pageScrollRightBtn" class="page-scroll-btn" type="button" aria-label="다음 페이지 목록 보기" title="다음 페이지 목록 스크롤">▶</button>
+        <button id="pageLastBtn" class="page-scroll-btn" type="button" aria-label="맨 뒤로 이동" title="맨 뒤 페이지로 이동 (마지막 페이지)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M4 5L12 12L4 19V5ZM13 5L21 12L13 19V5Z"/>
+          </svg>
+        </button>
       </div>
       <div class="stage-canvas-row">
         <div class="stage-canvas-wrapper">

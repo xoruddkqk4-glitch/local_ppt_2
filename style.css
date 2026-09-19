@@ -244,6 +244,7 @@ kbd { border:1px solid currentColor; padding:1px 3px; font-size:10px; }
 .text-tool-button.is-active { position:relative; background:var(--yellow); }
 #autoTextSizeButton { white-space:nowrap !important; flex-shrink:0 !important; min-width:max-content !important; padding:2px 6px !important; font-size:11px !important; }
 .page-scroll-btn { flex:none; height:80px; width:28px; padding:0; display:inline-flex; align-items:center; justify-content:center; border:2px solid var(--ink); background:var(--paper, #fffdf8); color:var(--ink); font-size:13px; font-weight:900; cursor:pointer; box-shadow:2.5px 2.5px 0 var(--ink); border-radius:6px; user-select:none; transition:transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; z-index:2; }
+.page-scroll-btn svg { display:block; width:14px; height:14px; pointer-events:none; flex-shrink:0; fill:currentColor; }
 .page-scroll-btn:hover { transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--ink); background:var(--yellow, #f7d660); }
 .page-scroll-btn:active { transform:translate(1px,1px); box-shadow:1px 1px 0 var(--ink); }
 .page-list { width:100%; min-width:0; display:flex; gap:8px; overflow-x:auto; padding:2px 2px 6px 2px; scrollbar-width:none; -ms-overflow-style:none; }
@@ -1296,8 +1297,10 @@ body.is-present-mode .editor-panel,
 body.is-present-mode .page-thumbnails-sidebar,
 body.is-present-mode #pageListContainer,
 body.is-present-mode #pageList,
+body.is-present-mode #pageFirstBtn,
 body.is-present-mode #pageScrollLeftBtn,
 body.is-present-mode #pageScrollRightBtn,
+body.is-present-mode #pageLastBtn,
 body.is-present-mode .page-scroll-btn,
 body.is-present-mode .stage-toolbar,
 body.is-present-mode .text-toolbar,

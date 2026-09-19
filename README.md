@@ -696,6 +696,14 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **이중창 타이머 조작(시간/프리셋/단축키)의 편집 모드 실시간 양방향 동기화 (`app.js`)**:
   - 이중창에서 `Shift+방향키`(±10초, ±1분), 시간 프리셋 클릭, 시작/일시정지/리셋 조작 시 `broadcastTimerUpdate`를 통해 편집 모드 메모리 및 화면에 100% 일치하게 즉시 동기화됩니다.
 
+### 77. 상단 썸네일 탐색바 양쪽 끝 '맨 앞으로(⏮)' 및 '맨 뒤로(⏭)' 이중 화살표 버튼 탑재
+- **양 끝단 빠른 점프 버튼 탑재 (`index.html`, `style.css`)**: 상단 슬라이드 썸네일 탐색바(`.stage-toolbar`) 양쪽 끝에 각각 맨 앞 페이지로 이동하는 `#pageFirstBtn`과 맨 뒤 페이지로 이동하는 `#pageLastBtn` 버튼을 추가했습니다. 모던 인라인 SVG 듀얼 트라이앵글 화살표(`width: 14px; height: 14px; fill: currentColor;`)를 적용하여 기존 `◀`, `▶` 버튼과 굵기·비율·색상이 완벽히 조화되도록 디자인했습니다.
+- **슬라이드 즉시 전환 및 부드러운 스크롤 연동 (`app.js`)**:
+  - `[맨 앞으로]` 클릭 시 첫 번째 슬라이드(`state.currentPageIndex = 0`)로 즉시 이동하고 썸네일 탐색바(`#pageList`)를 맨 앞(`left: 0`)으로 부드럽게 스크롤합니다.
+  - `[맨 뒤로]` 클릭 시 마지막 슬라이드(`state.currentPageIndex = state.pages.length - 1`)로 즉시 이동하고 썸네일 탐색바를 맨 끝(`left: scrollWidth`)으로 부드럽게 스크롤합니다.
+  - 개체 선택 상태 및 가이드선 초기화, 서식 툴바 은닉 후 `render()` 및 발표(이중 창) 모드와의 실시간 동기화(`broadcastState()`)를 연동했습니다.
+- **발표(이중 창) 모드 은닉 보장 (`style.css`)**: 이중 발표 모드(`.is-present-mode`) 진입 시 `#pageFirstBtn` 및 `#pageLastBtn`이 완전 은닉되도록 스타일 규칙을 적용했습니다.
+
 ---
 
 ## [2026-09-08] 업데이트 이력 (Commit ID: 6aab24a)
@@ -809,7 +817,7 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - `app.js`: 동기화 메시지 페이로드 및 `syncChannel.onmessage` 수신부에 세션 ID 불일치 필터링 2차 방어벽 적용.
 - **검증 결과**: `node -c app.js; node -c server.js; node -c ai-intake.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
 
-## [2026-09-17 15:30] 업데이트 이력 (Commit ID: 1e088d0)
+## [2026-09-17 15:30] 업데이트 이력 (Commit ID: 8366297)
 - **수정 내용**:
   - `app.js`: 개조식(`bullet`) 템플릿의 부모 제목 개체(`page-title`)와 자식 항목(`bullet-item`) 간 수직 영역 겹침 결함 해결.
     - 제목 개체 기본 좌표를 `y: 10, h: 18`(하단 28%)에서 `y: 7, h: 12`(하단 19%)로 축소하고 기본 정렬을 좌측(`textAlign: "left"`)으로 정렬.
@@ -820,3 +828,12 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - `app.js` (`fitAllText`): 짧은 제목 텍스트("핵심 메시지" 등)가 넓은 영역으로 인해 초대형 폰트(~112px)로 비정상 팽창하여 자식 항목을 침범하던 현상을 방지하기 위해 `page-title` 기본 최대 글자 크기를 `46px`로 상한 제한.
   - `style.css`: `.page-title` 굵기(`font-weight: 900`), 자간(`letter-spacing: -0.03em`) 및 텍스트 좌측 정렬(`justify-content: flex-start !important; text-align: left !important`) 스타일 보강.
 - **검증 결과**: `node -c app.js; node -c server.js; node -c ai-intake.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
+## [2026-09-19 15:46] 업데이트 이력 (Commit ID: 2d8daa3)
+- **수정 내용**:
+  - `index.html`: 상단 슬라이드 썸네일 탐색바(`.stage-toolbar`) 양쪽 끝에 맨 앞 페이지로 이동하는 `#pageFirstBtn`과 맨 뒤 페이지로 이동하는 `#pageLastBtn` 버튼 신규 탑재 (모던 인라인 SVG 듀얼 트라이앵글 화살표 아이콘 적용).
+  - `app.js`: `#pageFirstBtn` 및 `#pageLastBtn` 클릭 이벤트 핸들러 구현 (클릭 시 1페이지 및 마지막 페이지로 즉시 슬라이드 전환, 썸네일 탐색바 좌/우 끝단 스무스 스크롤 연동, 발표창 실시간 동기화 `broadcastState()`).
+  - `style.css`: `.page-scroll-btn svg` 중앙 정렬 및 테마 색상 상속(`currentColor`) 스타일 지정, 발표 모드(`.is-present-mode`) 숨김 선택자에 신규 버튼 명시 추가.
+  - `.antigravity/rules.md`: 에이전트 실행 규칙 내 정적 검증 명령어(`node -c app.js` 등) 동기화.
+- **검증 결과**: `node -c app.js; node -c server.js; node -c ai-intake.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+

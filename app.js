@@ -2474,6 +2474,18 @@ function renderPages() {
   }
 }
 
+$("#pageFirstBtn")?.addEventListener("click", () => {
+  if (!state.pages || state.pages.length === 0) return;
+  state.currentPageIndex = 0;
+  state.selectedIds.clear();
+  state.guides = [];
+  hideTextToolbar();
+  render();
+  const list = $("#pageList");
+  if (list) list.scrollTo({ left: 0, behavior: "smooth" });
+  broadcastState();
+});
+
 $("#pageScrollLeftBtn")?.addEventListener("click", () => {
   const list = $("#pageList");
   if (list) list.scrollBy({ left: -260, behavior: "smooth" });
@@ -2482,6 +2494,18 @@ $("#pageScrollLeftBtn")?.addEventListener("click", () => {
 $("#pageScrollRightBtn")?.addEventListener("click", () => {
   const list = $("#pageList");
   if (list) list.scrollBy({ left: 260, behavior: "smooth" });
+});
+
+$("#pageLastBtn")?.addEventListener("click", () => {
+  if (!state.pages || state.pages.length === 0) return;
+  state.currentPageIndex = Math.max(0, state.pages.length - 1);
+  state.selectedIds.clear();
+  state.guides = [];
+  hideTextToolbar();
+  render();
+  const list = $("#pageList");
+  if (list) list.scrollTo({ left: list.scrollWidth, behavior: "smooth" });
+  broadcastState();
 });
 
 function renderStage() {
