@@ -2268,6 +2268,7 @@ function createPageThumbnailElement(page) {
         } else if (obj.shapeType) {
           miniObj.style.backgroundColor = obj.bgColor || "#2563eb";
           miniObj.style.border = "0.5px solid " + (obj.borderColor || "#0f172a");
+          if (obj.rotation) miniObj.style.transform = `rotate(${obj.rotation}deg)`;
         } else if (obj.role === "mind-node" || obj.role === "mind-root") {
           miniObj.style.backgroundColor = obj.bgColor || "var(--content-accent, #2563eb)";
           miniObj.style.borderRadius = "2px";
@@ -3162,7 +3163,22 @@ function createObjectElement(object) {
     shapeSvg.setAttribute("preserveAspectRatio", "none");
     shapeSvg.classList.add("shape-vector-svg");
 
-    const color = object.bgColor || (shapeType === "circle" ? "#ef4444" : shapeType === "triangle" ? "#10b981" : shapeType === "star" ? "#f59e0b" : "#2563eb");
+    const color = object.bgColor || (
+      shapeType === "circle" ? "#ef4444" :
+      shapeType === "triangle" ? "#10b981" :
+      shapeType === "star" ? "#f59e0b" :
+      shapeType === "arrow" ? "#8b5cf6" :
+      shapeType === "plus" ? "#3b82f6" :
+      shapeType === "minus" ? "#64748b" :
+      shapeType === "multiply" ? "#ef4444" :
+      shapeType === "divide" ? "#f59e0b" :
+      shapeType === "double-arrow" ? "#8b5cf6" :
+      shapeType === "vertical-arrow" ? "#8b5cf6" :
+      shapeType === "gt" || shapeType === "lt" ? "#10b981" :
+      shapeType === "equal" ? "#6366f1" :
+      shapeType === "not-equal" ? "#ec4899" :
+      "#2563eb"
+    );
     const fillColor = (color === "transparent" || color === "none") ? "none" : color;
     let strokeColor = object.borderColor || "#0f172a";
     let strokeWidth = (object.borderWidth !== undefined && object.borderWidth !== null) ? Number(object.borderWidth) : 2;
@@ -3181,6 +3197,28 @@ function createObjectElement(object) {
       shapeSvg.innerHTML = `<polygon points="50,4 96,96 4,96" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
     } else if (shapeType === "star") {
       shapeSvg.innerHTML = `<polygon points="50,4 63,35 96,35 70,56 80,94 50,71 20,94 30,56 4,35 37,35" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+    } else if (shapeType === "arrow") {
+      shapeSvg.innerHTML = `<polygon points="4,25 60,25 60,6 96,50 60,94 60,75 4,75" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+    } else if (shapeType === "plus") {
+      shapeSvg.innerHTML = `<polygon points="36,6 64,6 64,36 94,36 94,64 64,64 64,94 36,94 36,64 6,64 6,36 36,36" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+    } else if (shapeType === "minus") {
+      shapeSvg.innerHTML = `<rect x="6" y="36" width="88" height="28" rx="6" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
+    } else if (shapeType === "multiply") {
+      shapeSvg.innerHTML = `<g transform="rotate(45 50 50)"><polygon points="36,6 64,6 64,36 94,36 94,64 64,64 64,94 36,94 36,64 6,64 6,36 36,36" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/></g>`;
+    } else if (shapeType === "divide") {
+      shapeSvg.innerHTML = `<circle cx="50" cy="20" r="12" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/><rect x="8" y="41" width="84" height="18" rx="4" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/><circle cx="50" cy="80" r="12" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
+    } else if (shapeType === "double-arrow") {
+      shapeSvg.innerHTML = `<polygon points="6,50 30,20 30,36 70,36 70,20 94,50 70,80 70,64 30,64 30,80" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+    } else if (shapeType === "vertical-arrow") {
+      shapeSvg.innerHTML = `<polygon points="50,6 20,30 36,30 36,70 20,70 50,94 80,70 64,70 64,30 80,30" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+    } else if (shapeType === "gt") {
+      shapeSvg.innerHTML = `<polygon points="28,12 52,12 84,50 52,88 28,88 60,50" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+    } else if (shapeType === "lt") {
+      shapeSvg.innerHTML = `<polygon points="72,12 48,12 16,50 48,88 72,88 40,50" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+    } else if (shapeType === "equal") {
+      shapeSvg.innerHTML = `<rect x="8" y="24" width="84" height="20" rx="4" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/><rect x="8" y="56" width="84" height="20" rx="4" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
+    } else if (shapeType === "not-equal") {
+      shapeSvg.innerHTML = `<rect x="8" y="24" width="84" height="20" rx="4" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/><rect x="8" y="56" width="84" height="20" rx="4" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/><polygon points="64,6 78,10 36,94 22,90" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
     } else {
       shapeSvg.innerHTML = `<rect x="3" y="3" width="94" height="94" rx="8" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
     }
@@ -3398,12 +3436,25 @@ function createObjectElement(object) {
   handle.className = "resize-handle";
   handle.addEventListener("pointerdown", (event) => beginResize(event, object));
   element.append(handle);
+
+  if (["shape-box", "free-text"].includes(object.role) || Boolean(object.shapeType)) {
+    const rotateHandle = document.createElement("span");
+    rotateHandle.className = "rotate-handle";
+    rotateHandle.title = "드래그하여 360도 회전 (Shift: 15도 단위)";
+    rotateHandle.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>`;
+    rotateHandle.addEventListener("pointerdown", (event) => beginRotate(event, object, element));
+    element.append(rotateHandle);
+  }
   let lastClickTime = 0;
   element.addEventListener("pointerdown", (event) => {
     if (isAnimMode) {
       event.preventDefault();
       event.stopPropagation();
       handleAnimModeClick(event, object);
+      return;
+    }
+
+    if (element.classList.contains("is-editing") || event.target.isContentEditable) {
       return;
     }
 
@@ -3570,6 +3621,8 @@ function applyObjectBox(element, object) {
   element.style.top = `${object.y}%`;
   element.style.width = `${object.w}%`;
   element.style.height = `${object.h}%`;
+  const rot = (object.rotation !== undefined && object.rotation !== null) ? Number(object.rotation) : 0;
+  element.style.setProperty("--object-rotation", `${rot}deg`);
 }
 
 function setTableColumnWidth(table, colIndex, newWidthPercent) {
@@ -3857,11 +3910,64 @@ function renderPieChart(container, data) {
   container.append(layout);
 }
 
+function setCaretAtEventOrEnd(event, targetElement) {
+  if (!targetElement) return;
+  try {
+    targetElement.focus();
+    const rect = targetElement.getBoundingClientRect();
+    let placed = false;
+    const clientX = event?.clientX ?? (event?.touches && event.touches[0]?.clientX);
+    const clientY = event?.clientY ?? (event?.touches && event.touches[0]?.clientY);
+
+    if (typeof clientX === "number" && typeof clientY === "number") {
+      let range = null;
+      if (document.caretRangeFromPoint) {
+        range = document.caretRangeFromPoint(clientX, clientY);
+      } else if (document.caretPositionFromPoint) {
+        const pos = document.caretPositionFromPoint(clientX, clientY);
+        if (pos && pos.offsetNode) {
+          range = document.createRange();
+          range.setStart(pos.offsetNode, pos.offset);
+          range.collapse(true);
+        }
+      }
+      if (range && (targetElement === range.startContainer || targetElement.contains(range.startContainer))) {
+        range.collapse(true);
+        const selection = window.getSelection();
+        if (selection) {
+          selection.removeAllRanges();
+          selection.addRange(range);
+          placed = true;
+        }
+      }
+    }
+
+    if (!placed) {
+      const range = document.createRange();
+      range.selectNodeContents(targetElement);
+      if (typeof clientX === "number" && clientX < rect.left + rect.width / 2) {
+        range.collapse(true);
+      } else {
+        range.collapse(false);
+      }
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    }
+  } catch (e) {}
+}
+
 function beginTextEdit(event, object, wrapper, text) {
   if (document.fullscreenElement) return;
   if (event) {
     event.preventDefault();
     event.stopPropagation();
+  }
+  if (text.isContentEditable && wrapper.classList.contains("is-editing")) {
+    setCaretAtEventOrEnd(event, text);
+    return;
   }
   snapshot();
   state.activeTextObjectId = object.id;
@@ -3874,14 +3980,7 @@ function beginTextEdit(event, object, wrapper, text) {
   text.textContent = object.text || "";
   text.contentEditable = "true";
 
-  try {
-    text.focus();
-    const range = document.createRange();
-    range.selectNodeContents(text);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-  } catch (e) {}
+  setCaretAtEventOrEnd(event, text);
 
   const editStartTime = Date.now();
   const finish = (blurEvent) => {
@@ -3946,9 +4045,19 @@ function showTextToolbar(object, textElement, selectedObjectsParam = null) {
   const selectedObjects = selectedObjectsParam || page.objects.filter((obj) => state.selectedIds.has(obj.id));
 
   const isTimer = object.type === "timer";
+  const isTable = object.type === "table";
   if ($("#borderToolbarGroup")) $("#borderToolbarGroup").hidden = isTimer;
   if ($("#alignToolbarGroup")) $("#alignToolbarGroup").hidden = isTimer;
   if ($("#textSizeGroup")) $("#textSizeGroup").hidden = isTimer;
+  if ($("#rotateToolbarGroup")) $("#rotateToolbarGroup").hidden = isTable || isTimer;
+
+  const rot = (object.rotation !== undefined && object.rotation !== null) ? Number(object.rotation) : 0;
+  const rotInput = $("#objectRotationInput");
+  if (rotInput) rotInput.value = rot;
+  const arrowPresets = $("#arrowDirectionPresets");
+  if (arrowPresets) {
+    arrowPresets.style.display = (object.shapeType === "arrow") ? "flex" : "none";
+  }
 
   try {
     const themeDefaults = getThemeDefaultTimerColors();
@@ -4130,7 +4239,14 @@ function updateActiveTextStyle(property, value) {
 
 function beginCellEdit(event, object, rowIndex, columnIndex, cell) {
   if (document.fullscreenElement) return;
-  if (cell.isContentEditable) return;
+  if (cell.isContentEditable) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      setCaretAtEventOrEnd(event, cell);
+    }
+    return;
+  }
   if (event) {
     event.preventDefault();
     event.stopPropagation();
@@ -4138,13 +4254,7 @@ function beginCellEdit(event, object, rowIndex, columnIndex, cell) {
   snapshot();
   cell.contentEditable = "true";
   cell.focus();
-  try {
-    const range = document.createRange();
-    range.selectNodeContents(cell);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-  } catch (e) {}
+  setCaretAtEventOrEnd(event, cell);
 
   const stopEvt = (e) => e.stopPropagation();
   cell.addEventListener("pointerdown", stopEvt);
@@ -4174,7 +4284,7 @@ function beginCellEdit(event, object, rowIndex, columnIndex, cell) {
 }
 
 function beginDrag(event, object) {
-  if (event.button !== 0 || event.target.classList.contains("resize-handle") || isTextInputTarget(event.target) || document.fullscreenElement) return;
+  if (event.button !== 0 || event.target.classList.contains("resize-handle") || event.target.classList.contains("rotate-handle") || event.target.closest(".rotate-handle") || isTextInputTarget(event.target) || document.fullscreenElement) return;
   event.preventDefault();
   stage.focus({ preventScroll: true });
   hideTextToolbar();
@@ -4309,6 +4419,71 @@ function beginResize(event, object) {
   };
   window.addEventListener("pointermove", move);
   window.addEventListener("pointerup", end);
+}
+
+function beginRotate(event, object, element) {
+  if (event.button !== 0 || document.fullscreenElement) return;
+  event.preventDefault();
+  event.stopPropagation();
+  stage.focus({ preventScroll: true });
+
+  const rect = element.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+
+  snapshot();
+  let currentRotation = Number(object.rotation || 0);
+
+  let badge = document.querySelector("#rotateAngleTooltip");
+  if (!badge) {
+    badge = document.createElement("div");
+    badge.id = "rotateAngleTooltip";
+    badge.className = "rotate-angle-tooltip";
+    document.body.appendChild(badge);
+  }
+  badge.style.display = "block";
+  document.body.style.cursor = "grabbing";
+
+  const updateBadge = (deg, clientX, clientY) => {
+    badge.textContent = `${deg}°`;
+    badge.style.left = `${clientX + 14}px`;
+    badge.style.top = `${clientY - 26}px`;
+  };
+  updateBadge(currentRotation, event.clientX, event.clientY);
+
+  const move = (e) => {
+    e.preventDefault();
+    const dx = e.clientX - centerX;
+    const dy = e.clientY - centerY;
+    let deg = Math.round((Math.atan2(dy, dx) * 180 / Math.PI) + 90);
+    deg = (deg % 360 + 360) % 360;
+
+    if (e.shiftKey) {
+      deg = Math.round(deg / 15) * 15 % 360;
+    }
+
+    currentRotation = deg;
+    object.rotation = deg;
+    element.style.setProperty("--object-rotation", `${deg}deg`);
+
+    const rotInput = $("#objectRotationInput");
+    if (rotInput) rotInput.value = deg;
+
+    updateBadge(deg, e.clientX, e.clientY);
+  };
+
+  const up = () => {
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", up);
+    window.removeEventListener("pointercancel", up);
+    document.body.style.cursor = "";
+    if (badge) badge.style.display = "none";
+    render();
+  };
+
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", up);
+  window.addEventListener("pointercancel", up);
 }
 
 function getObjectBounds(objects) {
@@ -5808,6 +5983,67 @@ document.querySelectorAll("[data-text-align]").forEach((button) => {
 $("#autoTextSizeButton").addEventListener("click", () => updateActiveTextStyle("fontSize", null));
 $("#closeTextToolbarButton").addEventListener("click", hideTextToolbar);
 
+$("#objectRotationInput")?.addEventListener("input", (e) => {
+  let val = parseInt(e.target.value, 10);
+  if (isNaN(val)) return;
+  val = ((val % 360) + 360) % 360;
+  const page = currentPage();
+  const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
+  if (!selectedObjects.length) return;
+  selectedObjects.forEach((obj) => {
+    obj.rotation = val;
+    const el = stage.querySelector(`[data-object-id="${obj.id}"]`);
+    if (el) el.style.setProperty("--object-rotation", `${val}deg`);
+  });
+});
+$("#objectRotationInput")?.addEventListener("change", (e) => {
+  let val = parseInt(e.target.value, 10);
+  if (isNaN(val)) val = 0;
+  val = ((val % 360) + 360) % 360;
+  e.target.value = val;
+  const page = currentPage();
+  const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
+  if (!selectedObjects.length) return;
+  snapshot();
+  selectedObjects.forEach((obj) => { obj.rotation = val; });
+  render();
+});
+$("#rotateLeft90Btn")?.addEventListener("click", () => {
+  const page = currentPage();
+  const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
+  if (!selectedObjects.length) return;
+  snapshot();
+  selectedObjects.forEach((obj) => {
+    const cur = Number(obj.rotation || 0);
+    obj.rotation = ((cur - 90) % 360 + 360) % 360;
+  });
+  render();
+});
+$("#rotateRight90Btn")?.addEventListener("click", () => {
+  const page = currentPage();
+  const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
+  if (!selectedObjects.length) return;
+  snapshot();
+  selectedObjects.forEach((obj) => {
+    const cur = Number(obj.rotation || 0);
+    obj.rotation = (cur + 90) % 360;
+  });
+  render();
+});
+document.querySelectorAll(".arrow-dir-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const angle = Number(btn.dataset.angle || 0);
+    const page = currentPage();
+    const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
+    if (!selectedObjects.length) return;
+    snapshot();
+    selectedObjects.forEach((obj) => {
+      obj.rotation = angle;
+    });
+    render();
+  });
+});
+
 $("#addTextObjectButton")?.addEventListener("click", () => {
   const page = currentPage();
   if (page.type === "cover") return;
@@ -5815,12 +6051,8 @@ $("#addTextObjectButton")?.addEventListener("click", () => {
   page.objects.push(createTextObject("free-text", "새 텍스트 개체", 40, 45, 24, 12, { item: false, textAlign: "center" }));
   render();
 });
-$("#addShapeObjectButton")?.addEventListener("click", () => {
-  const page = currentPage();
-  if (page.type === "cover") return;
-  snapshot();
-  page.objects.push(createTextObject("shape-box", "", 40, 45, 20, 18, { item: false, textAlign: "center", shapeType: "rectangle", bgColor: "#2563eb", textColor: "#ffffff" }));
-  render();
+$("#addImageObjectButton")?.addEventListener("click", () => {
+  $("#imageInput")?.click();
 });
 document.querySelectorAll(".shape-select-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -5829,13 +6061,28 @@ document.querySelectorAll(".shape-select-btn").forEach((btn) => {
     if (page.type === "cover") return;
     snapshot();
     const configMap = {
-      rectangle: { bg: "#2563eb", text: "#ffffff" },
-      circle: { bg: "#ef4444", text: "#ffffff" },
-      triangle: { bg: "#10b981", text: "#ffffff" },
-      star: { bg: "#f59e0b", text: "#1e293b" }
+      rectangle: { bg: "#2563eb", text: "#ffffff", w: 20, h: 18 },
+      circle: { bg: "#ef4444", text: "#ffffff", w: 18, h: 18 },
+      triangle: { bg: "#10b981", text: "#ffffff", w: 20, h: 18 },
+      star: { bg: "#f59e0b", text: "#1e293b", w: 20, h: 20 },
+      arrow: { bg: "#8b5cf6", text: "#ffffff", w: 24, h: 14 },
+      plus: { bg: "#3b82f6", text: "#ffffff", w: 18, h: 18 },
+      minus: { bg: "#64748b", text: "#ffffff", w: 22, h: 12 },
+      multiply: { bg: "#ef4444", text: "#ffffff", w: 18, h: 18 },
+      divide: { bg: "#f59e0b", text: "#1e293b", w: 18, h: 18 },
+      "double-arrow": { bg: "#8b5cf6", text: "#ffffff", w: 26, h: 14 },
+      gt: { bg: "#10b981", text: "#ffffff", w: 18, h: 18 },
+      lt: { bg: "#10b981", text: "#ffffff", w: 18, h: 18 },
+      equal: { bg: "#6366f1", text: "#ffffff", w: 20, h: 16 },
+      "not-equal": { bg: "#ec4899", text: "#ffffff", w: 20, h: 18 },
+      "vertical-arrow": { bg: "#8b5cf6", text: "#ffffff", w: 16, h: 24 }
     };
     const config = configMap[shapeType] || configMap.rectangle;
-    page.objects.push(createTextObject("shape-box", "", 40, 45, 20, 18, {
+    const w = config.w || 20;
+    const h = config.h || 18;
+    const x = Math.round(50 - w / 2);
+    const y = Math.round(50 - h / 2);
+    page.objects.push(createTextObject("shape-box", "", x, y, w, h, {
       item: false,
       textAlign: "center",
       shapeType,

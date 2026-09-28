@@ -160,22 +160,32 @@
 
       <section id="insertSection" class="panel-section">
         <div class="section-heading"><span>03</span><h2>개체 삽입</h2></div>
-        <div class="action-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 6px;">
-          <button id="addTextObjectButton" class="button" type="button">📝 텍스트 추가</button>
-          <button id="addShapeObjectButton" class="button" type="button">🔷 도형 추가</button>
-          <button id="addTimerObjectButton" class="button button-blue" type="button">⏱️ 타이머 추가</button>
+        <div class="action-grid" style="grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px; margin-top: 0;">
+          <button id="addTextObjectButton" class="button insert-btn" type="button" title="텍스트 개체 추가">📝 텍스트 추가</button>
+          <button id="addImageObjectButton" class="button insert-btn" type="button" title="이미지 개체 추가">🖼️ 이미지 추가</button>
+          <button id="addTimerObjectButton" class="button button-blue insert-btn" type="button" title="타이머 개체 추가">⏱️ 타이머 추가</button>
         </div>
-        <div class="shape-selector-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 10px;">
+        <div class="shape-selector-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 4px;">
           <button class="button shape-select-btn" type="button" data-shape-type="rectangle" title="사각형">⬛ 사각형</button>
           <button class="button shape-select-btn" type="button" data-shape-type="circle" title="동그라미">🔴 동그라미</button>
           <button class="button shape-select-btn" type="button" data-shape-type="triangle" title="세모">🔺 세모</button>
           <button class="button shape-select-btn" type="button" data-shape-type="star" title="별표">⭐ 별표</button>
+          <button class="button shape-select-btn" type="button" data-shape-type="arrow" title="화살표">➡️ 화살표</button>
         </div>
-        <label class="image-upload">이미지 개체 추가
-          <input id="imageInput" type="file" accept="image/*" multiple>
-          <strong>이미지 선택</strong>
-        </label>
-        <p id="imageInfo" class="guide">여러 이미지를 한 번에 선택할 수 있습니다.</p>
+        <div class="shape-selector-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 8px;">
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="plus" title="더하기 (+)">+</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="minus" title="빼기 (-)">−</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="multiply" title="곱하기 (×)">×</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="divide" title="나누기 (÷)">÷</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="double-arrow" title="양방향 화살표 (↔)">↔</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="gt" title="보다 큼 (>)">&gt;</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="lt" title="보다 작음 (<)">&lt;</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="equal" title="같음 (=)">=</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="not-equal" title="같지 않음 (≠)">≠</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="vertical-arrow" title="상하 화살표 (↕)">↕</button>
+        </div>
+        <input id="imageInput" type="file" accept="image/*" multiple hidden>
+        <p id="imageInfo" class="guide" style="margin: 0; font-size: 11px;">💡 여러 이미지를 한 번에 선택하여 삽입할 수 있습니다.</p>
       </section>
 
       <section id="helpSection" class="panel-section">
@@ -301,6 +311,20 @@
               <span class="toolbar-divider" style="width:1px; height:16px; background:#cbd5e1; margin:0 1px;"></span>
               <label id="textSizeLabel">크기 <input id="textSizeInput" type="number" min="8" max="160" step="1" style="width:36px;" aria-label="텍스트 크기"></label>
               <button id="autoTextSizeButton" class="text-tool-button" type="button">자동</button>
+            </div>
+            <div id="rotateToolbarGroup" style="display:flex; align-items:center; gap:4px;">
+              <span class="toolbar-divider" style="width:1px; height:16px; background:#cbd5e1; margin:0 1px;"></span>
+              <label style="display:flex; align-items:center; gap:2px; font-size:11px; font-weight:800; cursor:pointer;" title="화살표/개체 회전 각도 (0~360도)">
+                🔄 <input id="objectRotationInput" type="number" min="0" max="359" step="5" value="0" style="width:40px; padding:2px 3px; border:1px solid var(--ink); border-radius:3px; font-weight:800; text-align:center; font-size:11px;" aria-label="회전 각도">°
+              </label>
+              <button id="rotateLeft90Btn" class="text-tool-button" type="button" title="반시계 90도 회전 (↶)">↶</button>
+              <button id="rotateRight90Btn" class="text-tool-button" type="button" title="시계 90도 회전 (↷)">↷</button>
+              <div id="arrowDirectionPresets" style="display:flex; align-items:center; gap:1px;" title="화살표 4방향 빠른 전환">
+                <button class="text-tool-button arrow-dir-btn" type="button" data-angle="0" title="오른쪽 방향 (0°)">➡️</button>
+                <button class="text-tool-button arrow-dir-btn" type="button" data-angle="90" title="아래쪽 방향 (90°)">⬇️</button>
+                <button class="text-tool-button arrow-dir-btn" type="button" data-angle="180" title="왼쪽 방향 (180°)">⬅️</button>
+                <button class="text-tool-button arrow-dir-btn" type="button" data-angle="270" title="위쪽 방향 (270°)">⬆️</button>
+              </div>
             </div>
             <button id="closeTextToolbarButton" class="text-tool-button" type="button" aria-label="개체 서식 닫기">×</button>
           </div>
