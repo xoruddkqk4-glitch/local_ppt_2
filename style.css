@@ -1197,19 +1197,22 @@ body[data-design="tactile-minimal"] .resize-handle { width:13px; height:13px; ri
 .start-with-style-btn { width:100%; margin-top:14px; padding:12px; font-size:15px; font-weight:950; text-align:center; justify-content:center; display:flex; align-items:center; }
 
 /* --- Save Project Button Dynamic Animation & Toast --- */
-#saveProjectButton {
+#saveProjectButton,
+#saveProjectAsButton {
   transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
   overflow: hidden;
 }
 
-#saveProjectButton.is-saving {
+#saveProjectButton.is-saving,
+#saveProjectAsButton.is-saving {
   opacity: 0.85;
   transform: scale(0.96);
   pointer-events: none;
 }
 
-#saveProjectButton.is-saved {
+#saveProjectButton.is-saved,
+#saveProjectAsButton.is-saved {
   background-color: #10b981 !important;
   color: #ffffff !important;
   border-color: #059669 !important;

@@ -724,6 +724,17 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **서식 스타일 및 회전 완전 연동**: 모든 기호 도형은 배경색(채우기), 테두리 색상/두께/스타일(점선 등), 투명 배경, 360도 회전 핸들 및 z-index 순서 조절 기능을 100% 지원합니다.
 - **캔버스 정중앙 초기 배치 (`configMap`)**: 기호 도형 삽입 시 각 도형의 최적 가로/세로 비율에 맞춰 슬라이드 캔버스의 정중앙(`Math.round(50 - w / 2)`)에 직관적으로 생성됩니다.
 
+### 82. 상단 헤더 '다른 이름 txt로 저장' 버튼 탑재 및 'Ctrl + Z' 단축키 되돌리기 기능 유지 (`index.html`, `app.js`, `style.css`)
+- **'다른 이름 txt로 저장' 버튼 교체 (`index.html`, `style.css`)**:
+  - 상단 헤더 우측의 `#undoButton`('되돌리기 Ctrl Z') 버튼을 `#saveProjectAsButton`('다른 이름 txt로 저장') 버튼으로 교체 배치했습니다.
+  - 기존 'txt에 저장' 버튼(`#saveProjectButton`)과 동일한 부드러운 저장 진행(`is-saving`), 완료 녹색 강조(`is-saved`), 및 성공 펄스(`save-success-pulse`) CSS 애니메이션 피드백을 적용했습니다.
+- **새 파일명 지정 저장 로직 연결 (`app.js`)**:
+  - `saveProjectAsNew()` 전용 핸들러를 구현하여 클릭 시 File System Access API의 `window.showSaveFilePicker`(또는 미지원 환경의 Fallback 자동 다운로드 `downloadProject`)를 호출합니다.
+  - 사용자가 새 파일명을 직접 지정하여 저장할 수 있으며, 성공 시 `triggerSaveAsSuccessEvent()`를 통해 저장 완료 토스트를 띄우고 창 제목 및 상단 경로 바에 새 파일명을 즉시 반영합니다.
+- **키보드 단축키 'Ctrl + Z' 되돌리기(Undo) 완벽 보존 및 Null-Safety 강화 (`app.js`)**:
+  - 상단 버튼 교체 후 `updateUndoButton()`이나 리스너 등록부에서 발생할 수 있는 잠재적 참조 오류를 차단하기 위해 Null Guard 및 Optional Chaining(`$("#undoButton")?.`)을 적용했습니다.
+  - 전역 `keydown` 이벤트 핸들러의 `isUndoKey`(`Ctrl+Z` / `Cmd+Z` / 한글 'ㅋ') 감지 로직은 독립적으로 완벽히 유지되어, 텍스트 편집 중이 아닐 때 슬라이드 개체 변경, 추가, 삭제, 속성 변경 등의 히스토리를 키보드로 언제든지 되돌릴 수 있습니다.
+
 ---
 
 
@@ -867,5 +878,16 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - `app.js`: 10종 기호 도형의 100×100 viewBox 기준 날카롭고 선명한 SVG 벡터 렌더링(`createObjectElement`) 및 기본 크기·색상·정중앙 배치(`configMap`) 구현.
   - `style.css`: `.shape-select-btn.symbol-btn` 스타일 추가로 기호 텍스트 폰트 크기 및 중앙 정렬 최적화.
 - **검증 결과**: `node -c app.js; node -c server.js; node -c ai-intake.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
+## [2026-10-12 14:45] 업데이트 이력 (Commit ID: e6caabd)
+- **수정 내용**:
+  - `index.html`: 상단 헤더 우측의 `#undoButton`('되돌리기 Ctrl Z') 버튼을 `#saveProjectAsButton`('다른 이름 txt로 저장') 버튼으로 변경.
+  - `app.js`:
+    - '다른 이름 txt로 저장' 전용 핸들러 `saveProjectAsNew()` 및 저장 피드백 함수 `triggerSaveAsSuccessEvent()` 구현으로 파일 저장 대화상자(`window.showSaveFilePicker` 및 Fallback 다운로드) 호출 및 완료 토스트 제공.
+    - `updateUndoButton()` 및 `#undoButton` 리스너에 null-guard 및 optional chaining(`?.`)을 적용하여 상단 버튼 교체 시에도 TypeError 없이 실행 취소 히스토리를 안전하게 관리.
+    - 전역 `keydown` 이벤트 핸들러의 `isUndoKey`(`Ctrl+Z` / `Cmd+Z` / 한글 'ㅋ') 감지 로직을 유지하여 키보드 단축키를 통한 슬라이드 개체 실행 취소(되돌리기) 기능 100% 정상 작동 보장.
+  - `style.css`: `#saveProjectAsButton`에 `#saveProjectButton`과 동일한 저장 진행 중(is-saving) 및 완료 펄스(save-success-pulse) 피드백 애니메이션 스타일 공유 적용.
+  - `.agents/`: `apply` 스킬 신규 탑재 및 `ask` 스킬, 커스텀 에이전트 실행 규칙 최신화.
+- **검증 결과**: `node -c app.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
 
 

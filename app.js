@@ -312,7 +312,8 @@ function undo() {
 }
 
 function updateUndoButton() {
-  $("#undoButton").disabled = state.history.length === 0;
+  const undoBtn = $("#undoButton");
+  if (undoBtn) undoBtn.disabled = state.history.length === 0;
 }
 
 function getCustomUserImages(page) {
@@ -5214,6 +5215,47 @@ function triggerSaveSuccessEvent(filename = currentProjectFileName) {
   showSaveToast(`💾 저장 완료! 파일이 성공적으로 저장되었습니다. (${filename})`);
 }
 
+async function saveProjectAsNew() {
+  const btn = $("#saveProjectAsButton");
+  const originalText = btn ? btn.textContent : "다른 이름 txt로 저장";
+
+  if (btn) {
+    btn.classList.add("is-saving");
+    btn.textContent = "💾 저장 중...";
+  }
+
+  try {
+    const saved = await saveProjectAs();
+    if (saved) {
+      triggerSaveAsSuccessEvent(currentProjectFileName);
+    } else if (btn) {
+      btn.classList.remove("is-saving");
+      btn.textContent = originalText;
+    }
+  } catch (error) {
+    if (btn) {
+      btn.classList.remove("is-saving");
+      btn.textContent = originalText;
+    }
+    if (error.name !== "AbortError") window.alert(`파일을 저장할 수 없습니다.\n${error.message}`);
+  }
+}
+
+function triggerSaveAsSuccessEvent(filename = currentProjectFileName) {
+  const btn = $("#saveProjectAsButton");
+  if (btn) {
+    btn.classList.remove("is-saving");
+    btn.classList.add("is-saved", "save-success-pulse");
+    btn.textContent = "✅ 저장 완료!";
+    setTimeout(() => {
+      btn.classList.remove("is-saved", "save-success-pulse");
+      btn.textContent = "다른 이름 txt로 저장";
+    }, 1800);
+  }
+
+  showSaveToast(`💾 다른 이름으로 저장 완료! (${filename})`);
+}
+
 function showSaveToast(message) {
   let toast = document.querySelector(".save-toast-notification");
   if (toast) toast.remove();
@@ -5259,6 +5301,7 @@ $("#projectFileInput").addEventListener("change", (event) => {
 });
 
 $("#saveProjectButton")?.addEventListener("click", saveCurrentProject);
+$("#saveProjectAsButton")?.addEventListener("click", saveProjectAsNew);
 
 $("#designSelect")?.addEventListener("change", (event) => {
   if (currentPage()?.type !== "cover") return;
@@ -5826,7 +5869,7 @@ $("#resetTableSizesBtn")?.addEventListener("click", () => {
   renderControls();
   renderStage();
 });
-$("#undoButton").addEventListener("click", undo);
+$("#undoButton")?.addEventListener("click", undo);
 
 $("#textColorInput")?.addEventListener("change", (event) => {
   updateActiveTextStyle("textColor", event.target.value);
