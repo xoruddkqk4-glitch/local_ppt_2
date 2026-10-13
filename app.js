@@ -3903,19 +3903,19 @@ function createObjectElement(object) {
         descriptionElement.textContent = descText;
         text.append(descriptionElement);
       }
-    } else if (["timeline-node", "side-accent-card"].includes(object.role)) {
+    } else if (["timeline-node", "side-accent-card", "card"].includes(object.role)) {
       const [title, ...description] = object.text.split("\n");
       text.dataset.fitText = object.text;
       if (title !== undefined && title !== "") {
         const titleElement = document.createElement("strong");
-        titleElement.className = object.role === "timeline-node" ? "timeline-title" : "side-accent-title";
+        titleElement.className = object.role === "timeline-node" ? "timeline-title" : object.role === "card" ? "card-title" : "side-accent-title";
         titleElement.textContent = title;
         text.append(titleElement);
       }
       const descText = description.join("\n").trim();
       if (descText) {
         const descriptionElement = document.createElement("span");
-        descriptionElement.className = object.role === "timeline-node" ? "timeline-description" : "side-accent-description";
+        descriptionElement.className = object.role === "timeline-node" ? "timeline-description" : object.role === "card" ? "card-description" : "side-accent-description";
         descriptionElement.textContent = descText;
         text.append(descriptionElement);
       }
@@ -4014,7 +4014,7 @@ function getTextAlign(object) {
 function applyTextObjectStyle(text, object, wrapper) {
   const align = getTextAlign(object);
   const flexJustify = { left: "flex-start", center: "center", right: "flex-end" }[align] || "center";
-  const isColumn = STRUCTURED_LAYOUT_ROLES.has(object.role) || ["timeline-node", "side-accent-card"].includes(object.role);
+  const isColumn = STRUCTURED_LAYOUT_ROLES.has(object.role) || ["timeline-node", "side-accent-card", "card"].includes(object.role);
 
   text.style.setProperty("display", "flex", "important");
   text.style.setProperty("text-align", align, "important");
@@ -4075,7 +4075,7 @@ function applyTextObjectStyle(text, object, wrapper) {
     return;
   }
 
-  if (Number(object.borderWidth) === 0 || object.borderStyle === "none" || object.borderWidth === undefined || object.borderWidth === null) {
+  if (["free-text", "page-title", "cover-title", "cover-subtitle"].includes(object.role) && (object.borderWidth === undefined || object.borderWidth === null || Number(object.borderWidth) === 0 || object.borderStyle === "none")) {
     wrapper.style.border = "none";
   } else if (Number(object.borderWidth) > 0 && object.borderStyle && object.borderStyle !== "none") {
     const width = Number(object.borderWidth);
@@ -4083,7 +4083,10 @@ function applyTextObjectStyle(text, object, wrapper) {
     const color = object.borderColor || "#0f172a";
     wrapper.style.border = `${width}px ${style} ${color}`;
     wrapper.style.boxSizing = "border-box";
+  } else if (object.borderWidth !== undefined && (Number(object.borderWidth) === 0 || object.borderStyle === "none")) {
+    wrapper.style.border = "none";
   } else {
+    wrapper.style.removeProperty("border");
     wrapper.style.border = "";
   }
 

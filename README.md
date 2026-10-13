@@ -988,3 +988,21 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - `style.css`:
     - `.mindmap-thumb`: 전용 마인드맵 썸네일 flex 컨테이너 및 SVG 반응형 렌더링 스타일 추가.
 - **검증 결과**: `node -c app.js; node -c charts/options.js; node -c layouts/options.js; node -c server.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
+## [2026-10-13 22:01] 업데이트 이력 (Commit ID: 666fed0)
+- **수정 내용**:
+  - `style.css`:
+    - **측면 강조 카드(`side-accent-card`) 좌측 수직 강조선 복원 및 시각적 차별화**:
+      - 기본 카드(`.card`)와 동일하게 보이던 문제를 해결하기 위해, 좌측에 8px 두께의 선명한 테마 포인트 컬러 강조선(`border-left: 8px solid var(--content-accent) !important;`)과 흰색 배경(`background: #fff`), 4면 외곽선(`border: 2.5px solid var(--ink)`), 최적화된 내부 패딩(`padding: 8px 12px 8px 18px`)을 적용.
+      - 10대 디자인 테마(`Bauhaus`, `Functional Bauhaus`, `Soft Minimal`, `Controlled Brutal`, `Tactile Minimal`, `Swiss`, `Swiss Grid`, `Clay`, `Brutal`, `Skeuomorphism`) 전체에 고유 테마 컬러 및 6px~12px 강조선 두께가 일관되게 동기화되도록 규칙 분기.
+      - Brutal 테마에서 제목/자유 텍스트 개체에 테두리가 잘못 번지지 않도록 예외 무테두리 규칙 명시.
+    - **기본 카드(`.card`) 개체 디자인 및 2단 위계 스타일 추가**:
+      - 4면 균일한 외곽선(`border: 2.5px solid var(--ink)`), 흰색 배경, 라운딩(4px) 적용.
+      - 카드 제목(`.card-title`, `font-weight: 900`)과 설명(`.card-description`, `font-weight: 500`) 스타일 토큰 정의.
+  - `app.js`:
+    - **테두리 인라인 스타일 오버라이드 충돌 해결 (`applyTextObjectStyle`)**:
+      - 개체의 `borderWidth`가 지정되지 않은 기본 상태일 때 `wrapper.style.border = "none"` 인라인 스타일이 강제 적용되어 `.card` 및 `.side-accent-card`의 CSS 클래스 테두리/강조선이 모두 삭제되던 치명적 결함 해결.
+      - 기본 무테두리여야 하는 텍스트 개체(`free-text`, `page-title`, `cover-title`, `cover-subtitle`)만 `border = "none"`을 적용하고, 카드/노드/패널 등 클래스 기반 컴포넌트는 `wrapper.style.removeProperty("border"); wrapper.style.border = ""` 처리하여 CSS 스타일이 100% 정상 발현되도록 개선.
+    - **기본 카드(`card`) 2단 위계 렌더링 동기화**:
+      - `createObjectElement`에서 `card` 역할을 `side-accent-card` 및 `timeline-node`와 함께 2단 구조(`card-title` 볼드 제목 + `card-description` 세부 설명) 및 세로 열(`flex-direction: column`) 배치로 렌더링하도록 일원화.
+- **검증 결과**: `node -c app.js; node -c layouts/options.js; node -c server.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
