@@ -1006,3 +1006,29 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
     - **기본 카드(`card`) 2단 위계 렌더링 동기화**:
       - `createObjectElement`에서 `card` 역할을 `side-accent-card` 및 `timeline-node`와 함께 2단 구조(`card-title` 볼드 제목 + `card-description` 세부 설명) 및 세로 열(`flex-direction: column`) 배치로 렌더링하도록 일원화.
 - **검증 결과**: `node -c app.js; node -c layouts/options.js; node -c server.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
+## [2026-10-13 22:24] 업데이트 이력 (Commit ID: 3543b57)
+- **수정 내용**:
+  - `designs/options.js`:
+    - 10대 디자인 테마(`bauhaus`, `clay`, `brutal`, `skeuo`, `swiss`, `swiss-grid`, `functional-bauhaus`, `soft-minimal`, `controlled-brutal`, `tactile-minimal`)에 영문명(`name`), 한글명(`koreanName`), 그룹 분류(`group`) 메타데이터 추가.
+  - `index.html`:
+    - AI 슬라이드 시작 모달(`#intakeStyleSettings`) 및 에디터 디자인 변경 모달(`#styleConfigModal`)의 `프레젠테이션 전체 디자인` 드롭다운 박스를 10종 썸네일 그리드 컨테이너(`#intakeThemeThumbGrid`, `#modalThemeThumbGrid`)로 전면 개편.
+    - 기존 `<select>` 요소는 hidden으로 유지하여 기존 시스템 로직과의 100% 하위 호환성 보장.
+    - 좌측 패널 래퍼(`.intake-left-column`)의 인라인 스타일을 정리하고 CSS 클래스 기반 완전 제어로 전환.
+  - `style.css`:
+    - **10종 테마 썸네일 카드 컴포넌트 (`theme-thumb-card`) 스타일링**:
+      - 각 테마의 미적 정체성을 담은 미니 슬라이드 프레임(`.theme-thumb-mini-frame`, `.mini-frame-*`) 디자인 (바우하우스 삼원색, 클레이 3D 섀도우, 네오 브루탈리즘 볼드 아웃라인, 스큐어모피즘 가죽/입체, 스위스 그리드 라인 등).
+      - 각 테마의 1·2·3순위 기본 테마색 원형 컬러 칩(`.theme-color-chip`) 및 대표 HEX 코드 배지(`.theme-color-hex-tag`)를 썸네일 내부에 명확히 표기.
+      - 현재 선택된 카드(`.is-selected`) 파란색 테두리, 배경 하이라이트 및 `✓` 체크 배지 표시.
+      - 2열 반응형 썸네일 그리드(`.theme-thumbnail-grid`) 및 얇은 커스텀 스크롤바 구현.
+    - **좌측 및 우측 패널 세로 높이 일치 및 레이아웃 정돈**:
+      - `.intake-left-column`에 `height: 100% !important; min-height: 0; display: flex; flex-direction: column; gap: 12px;` 적용.
+      - 좌측 하단 카드(`.intake-palette-block`)에 `flex: 1 1 auto !important;`를 부여하여 우측 패널(`.intake-design-thumb-block`)과 하단 테두리가 100% 수평 일치하도록 높이 자동 확장.
+      - 우측 패널 상단 메타 영역(`.thumb-meta-wrap`)을 묶어 테마 헤더와 설명문 사이의 불필요한 과도한 공백을 완전히 제거하고, 16:9 슬라이드 프레임(`.thumb-slide-frame`)에 `margin: auto auto 0 auto; max-width: 500px;`를 적용하여 시각적 안정감 극대화.
+  - `ai-intake.js`:
+    - `renderThemeThumbnailGrid()` 및 `updateThemeThumbGridActive()`를 구현하여 10종 테마 썸네일을 동적으로 렌더링하고 활성 상태를 동기화.
+    - 썸네일 클릭/키보드 조작 시 즉시 테마 선택, hidden select 연동, 하단 커스텀 3색 픽커 자동 리셋, 우측 16:9 대형 슬라이드 실시간 미리보기 즉각 갱신.
+    - 모달 오픈, 시작 화면 전환, 옵션 동기화(`syncOptionsUI`) 전반에 걸쳐 썸네일 선택 상태를 빈틈없이 양방향 동기화.
+    - 미리보기 렌더러(`renderDesignThumbnailHTML`)에 상단 메타 래퍼(`.thumb-meta-wrap`) 추가.
+- **검증 결과**: `node -c designs/options.js; node -c ai-intake.js; node -c app.js; node -c layouts/options.js; node -c server.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+

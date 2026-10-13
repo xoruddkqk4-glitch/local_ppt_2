@@ -41,11 +41,13 @@
     const desc = designMeta?.description || "프레젠테이션 디자인 테마 미리보기";
 
     return `
-      <div class="thumb-header">
-        <span class="thumb-title" style="color:${c1}; font-weight:900;">${name}</span>
-        <span class="thumb-badge" style="border:1px solid ${c1}; color:${c1}; font-weight:800;">개요식 템플릿</span>
+      <div class="thumb-meta-wrap">
+        <div class="thumb-header">
+          <span class="thumb-title" style="color:${c1}; font-weight:900;">${name}</span>
+          <span class="thumb-badge" style="border:1px solid ${c1}; color:${c1}; font-weight:800;">개요식 템플릿</span>
+        </div>
+        <p class="thumb-desc">${desc}</p>
       </div>
-      <p class="thumb-desc">${desc}</p>
       <div class="thumb-slide-frame design-frame-${design}" data-design="${design}">
         <div class="frame-overlay-top" style="color:${c1}; font-weight:900;">PAGE 02 · 개요식 템플릿</div>
         <div class="frame-bullet-content">
@@ -195,12 +197,89 @@
     }
   });
 
+  function renderThemeThumbnailGrid(containerId, activeDesign, onSelectCallback) {
+    const container = $(`#${containerId}`);
+    if (!container || !window.PptDesigns) return;
+
+    const entries = Object.entries(window.PptDesigns);
+    container.innerHTML = entries.map(([key, meta]) => {
+      const isSelected = key === activeDesign;
+      const name = meta.name || key;
+      const korName = meta.koreanName || "";
+      const c1 = meta.defaultColors?.[0] || "#e11d48";
+      const c2 = meta.defaultColors?.[1] || "#2563eb";
+      const c3 = meta.defaultColors?.[2] || "#f59e0b";
+      const hexSummary = `${c1.toUpperCase()} · ${c2.toUpperCase()} · ${c3.toUpperCase()}`;
+
+      return `
+        <div class="theme-thumb-card ${isSelected ? "is-selected" : ""}" 
+             data-theme-key="${key}" 
+             role="radio" 
+             aria-checked="${isSelected ? "true" : "false"}"
+             tabindex="0"
+             title="${name} (${korName}) — 테마색: ${hexSummary}">
+          <div class="theme-thumb-mini-frame mini-frame-${key}" data-mini-design="${key}">
+            <div class="mini-frame-header" style="background:${c1};"></div>
+            <div class="mini-frame-card">
+              <span class="mini-frame-bar" style="background:${c1};"></span>
+              <span class="mini-frame-bar sub" style="background:${c2};"></span>
+            </div>
+            <div class="theme-thumb-active-check">✓</div>
+          </div>
+          <div class="theme-thumb-details">
+            <div class="theme-thumb-title-line">
+              <strong class="theme-thumb-title">${name}</strong>
+              <span class="theme-thumb-kor">${korName}</span>
+            </div>
+            <div class="theme-thumb-color-chips" title="기본 테마색 (1순위, 2순위, 3순위): ${hexSummary}">
+              <span class="theme-color-chip" style="background:${c1};" title="1순위: ${c1}"></span>
+              <span class="theme-color-chip" style="background:${c2};" title="2순위: ${c2}"></span>
+              <span class="theme-color-chip" style="background:${c3};" title="3순위: ${c3}"></span>
+              <span class="theme-color-hex-tag">${c1.toUpperCase()}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    container.querySelectorAll(".theme-thumb-card").forEach((card) => {
+      const handleSelect = () => {
+        const themeKey = card.dataset.themeKey;
+        if (themeKey && typeof onSelectCallback === "function") {
+          onSelectCallback(themeKey);
+        }
+      };
+      card.addEventListener("click", handleSelect);
+      card.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleSelect();
+        }
+      });
+    });
+  }
+
+  function updateThemeThumbGridActive(containerId, activeDesign) {
+    const container = $(`#${containerId}`);
+    if (!container) return;
+    container.querySelectorAll(".theme-thumb-card").forEach((card) => {
+      const isSelected = card.dataset.themeKey === activeDesign;
+      card.classList.toggle("is-selected", isSelected);
+      card.setAttribute("aria-checked", isSelected ? "true" : "false");
+      if (isSelected) {
+        card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    });
+  }
+
   function syncIntakePaletteFromDesign(design) {
     const designMeta = window.PptDesigns?.[design];
     const defaultColors = designMeta?.defaultColors || ["#e11d48", "#2563eb", "#f59e0b"];
     setIntakePalette(defaultColors);
     const hint = $("#intakeDesignHint");
     if (hint) hint.textContent = designMeta?.description || "";
+    if ($("#intakeDesignSelect")) $("#intakeDesignSelect").value = design;
+    updateThemeThumbGridActive("intakeThemeThumbGrid", design);
     renderDesignThumbnail(design);
   }
 
@@ -267,6 +346,16 @@
     });
   });
 
+  renderThemeThumbnailGrid("intakeThemeThumbGrid", $("#intakeDesignSelect")?.value || "bauhaus", (selectedKey) => {
+    if ($("#intakeDesignSelect")) $("#intakeDesignSelect").value = selectedKey;
+    syncIntakePaletteFromDesign(selectedKey);
+  });
+
+  renderThemeThumbnailGrid("modalThemeThumbGrid", $("#modalDesignSelect")?.value || "bauhaus", (selectedKey) => {
+    if ($("#modalDesignSelect")) $("#modalDesignSelect").value = selectedKey;
+    syncModalPaletteFromDesign(selectedKey);
+  });
+
   syncIntakePaletteFromDesign($("#intakeDesignSelect")?.value || "bauhaus");
 
   /* --- Standalone Style Editing Modal Handlers --- */
@@ -305,6 +394,8 @@
     setModalPalette(defaultColors);
     const hint = $("#modalDesignHint");
     if (hint) hint.textContent = designMeta?.description || "";
+    if ($("#modalDesignSelect")) $("#modalDesignSelect").value = design;
+    updateThemeThumbGridActive("modalThemeThumbGrid", design);
     renderModalDesignThumbnail(design);
   }
 
@@ -359,6 +450,7 @@
     const opts = window.LocalPptApp?.getOptions ? window.LocalPptApp.getOptions() : {};
     const design = opts.design || "bauhaus";
     if ($("#modalDesignSelect")) $("#modalDesignSelect").value = design;
+    updateThemeThumbGridActive("modalThemeThumbGrid", design);
     if (opts.customPalette) setModalPalette(opts.customPalette);
     else syncModalPaletteFromDesign(design);
     if (opts.fixedOverlays) setModalFixedOverlays(opts.fixedOverlays);
@@ -383,6 +475,7 @@
       window.LocalPptApp.updateOptions({ design, customPalette, fixedOverlays });
     }
     if ($("#intakeDesignSelect")) $("#intakeDesignSelect").value = design;
+    updateThemeThumbGridActive("intakeThemeThumbGrid", design);
     setIntakePalette(customPalette);
     setIntakeFixedOverlays(fixedOverlays);
     renderDesignThumbnail(design);
@@ -728,13 +821,15 @@
     setStatus();
     if (window.LocalPptApp?.getOptions) {
       const opts = window.LocalPptApp.getOptions();
-      if ($("#intakeDesignSelect")) $("#intakeDesignSelect").value = opts.design || "bauhaus";
+      const design = opts.design || "bauhaus";
+      if ($("#intakeDesignSelect")) $("#intakeDesignSelect").value = design;
+      updateThemeThumbGridActive("intakeThemeThumbGrid", design);
       if (opts.customPalette) setIntakePalette(opts.customPalette);
       if (opts.fixedOverlays) setIntakeFixedOverlays(opts.fixedOverlays);
-      const designMeta = window.PptDesigns?.[opts.design];
+      const designMeta = window.PptDesigns?.[design];
       const hint = $("#intakeDesignHint");
       if (hint) hint.textContent = designMeta?.description || "";
-      renderDesignThumbnail(opts.design || "bauhaus");
+      renderDesignThumbnail(design);
     }
   }
 
@@ -798,7 +893,11 @@
     syncOptionsUI() {
       if (window.LocalPptApp?.getOptions) {
         const opts = window.LocalPptApp.getOptions();
-        if ($("#intakeDesignSelect")) $("#intakeDesignSelect").value = opts.design || "bauhaus";
+        const design = opts.design || "bauhaus";
+        if ($("#intakeDesignSelect")) $("#intakeDesignSelect").value = design;
+        if ($("#modalDesignSelect")) $("#modalDesignSelect").value = design;
+        updateThemeThumbGridActive("intakeThemeThumbGrid", design);
+        updateThemeThumbGridActive("modalThemeThumbGrid", design);
         if (opts.customPalette) {
           setIntakePalette(opts.customPalette);
           setModalPalette(opts.customPalette);
