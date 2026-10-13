@@ -421,7 +421,7 @@ function layoutCoverItems(page) {
 
 function createDefaultMindmap(page) {
   const images = getCustomUserImages(page);
-  const root = createTextObject("mind-root", "CENTRAL IDEA", 42, 45, 16, 14, {
+  const root = createTextObject("mind-root", "CENTRAL IDEA", 41, 44, 18, 12, {
     item: false, node: true, root: true, mindLevel: 1
   });
   const level2 = ["CONTEXT", "METHOD"].map((text) => createMindNode(text, root.id, 2));
@@ -543,7 +543,20 @@ function resolveNodeOverlaps(page) {
 function layoutMindmapTree(page) {
   const root = page.objects.find((object) => object.root);
   if (!root) return;
-  Object.assign(root, { x: 41, y: 45, w: 18, h: 13, mindLevel: 1, parentId: null, mindAngle: 0 });
+  const rootW = 18;
+  const rootH = 12;
+  const centerX = 50;
+  const centerY = 50;
+  Object.assign(root, {
+    x: centerX - rootW / 2,
+    y: centerY - rootH / 2,
+    w: rootW,
+    h: rootH,
+    mindLevel: 1,
+    parentId: null,
+    mindAngle: 0
+  });
+
   const nodes = page.objects.filter((object) => object.role === "mind-node");
   const childrenByParent = new Map();
   nodes.forEach((node) => {
@@ -552,30 +565,49 @@ function layoutMindmapTree(page) {
     childrenByParent.set(node.parentId, children);
   });
 
+  // 16:9 슬라이드 화면 비율(16/9 ≈ 1.7778) 보정:
+  // 모든 각도에서 화면상 실제 픽셀 거리(Euclidean Distance)가 100% 동일하도록
+  // radiusX * 16 === radiusY * 9 => radiusX = radiusY * (9 / 16) 적용
   const specs = {
-    2: { radiusX: 23, radiusY: 19, w: 14, h: 10 },
-    3: { radiusX: 33, radiusY: 27, w: 12, h: 8.5 },
-    4: { radiusX: 41, radiusY: 34, w: 10, h: 7 },
-    5: { radiusX: 47, radiusY: 39, w: 8.5, h: 6 },
-    6: { radiusX: 52, radiusY: 43, w: 7.5, h: 5.5 }
+    2: { radiusY: 28, radiusX: 28 * (9 / 16), w: 15, h: 9 },
+    3: { radiusY: 39, radiusX: 39 * (9 / 16), w: 13, h: 8 },
+    4: { radiusY: 48, radiusX: 48 * (9 / 16), w: 11, h: 7 },
+    5: { radiusY: 55, radiusX: 55 * (9 / 16), w: 9.5, h: 6 },
+    6: { radiusY: 60, radiusX: 60 * (9 / 16), w: 8.5, h: 5.5 }
   };
-  const centerX = 50;
-  const centerY = 52;
 
   const positionChildren = (parent) => {
     const children = childrenByParent.get(parent.id) || [];
+    const n = children.length;
     children.forEach((node, index) => {
       const level = Math.min(6, Math.max(2, node.mindLevel || (parent.mindLevel + 1)));
       const spec = specs[level] || specs[6];
-      const angle = parent.root
-        ? (children.length === 1 ? 0 : Math.PI * 2 * index / children.length)
-        : parent.mindAngle + (index - (children.length - 1) / 2) * (level >= 4 ? .35 : level === 3 ? .65 : .5);
+
+      let angle;
+      if (parent.root) {
+        if (n === 1) {
+          angle = 0;
+        } else if (n === 2) {
+          // 2개 노드는 좌우 180도 수평 균형 배치
+          angle = index === 0 ? 0 : Math.PI;
+        } else {
+          // n >= 3: 360 / n 도 균등 분할
+          // 수직 양측 대칭(Bilateral Symmetry)을 위해 12시 정점(-90도)부터 시계 방향 배치
+          angle = -Math.PI / 2 + (2 * Math.PI * index) / n;
+        }
+      } else {
+        const fanSpan = level >= 4 ? 0.35 : level === 3 ? 0.5 : 0.6;
+        angle = parent.mindAngle + (index - (n - 1) / 2) * fanSpan;
+      }
+
       node.mindLevel = level;
       node.mindAngle = angle;
-      node.x = centerX + Math.cos(angle) * spec.radiusX - spec.w / 2;
-      node.y = centerY + Math.sin(angle) * spec.radiusY - spec.h / 2;
+      const nodeCenterX = centerX + Math.cos(angle) * spec.radiusX;
+      const nodeCenterY = centerY + Math.sin(angle) * spec.radiusY;
       node.w = spec.w;
       node.h = spec.h;
+      node.x = clamp(2, nodeCenterX - spec.w / 2, 98 - spec.w);
+      node.y = clamp(2, nodeCenterY - spec.h / 2, 98 - spec.h);
       positionChildren(node);
     });
   };
@@ -660,12 +692,19 @@ const RELAYOUT_TEXT_PROPERTIES = [
   "animIn",
   "animOut",
   "bulletLevel",
-  "mindLevel"
+  "mindLevel",
+  "isUserEdited"
 ];
 const LAYOUT_CONTENT_EXCLUDED_ROLES = new Set(["page-title", "mind-root", "media-placeholder", "vs-label", "chart-context"]);
 
 function copyRelayoutTextProperties(target, source) {
   RELAYOUT_TEXT_PROPERTIES.forEach((property) => {
+    if (property === "bgColor" && !source.isCustomBgColor) return;
+    if (property === "textColor" && !source.isCustomTextColor) return;
+    if (property === "borderColor" && !source.isCustomBorderColor) return;
+    if (property === "borderWidth" && !source.isCustomBorderWidth) return;
+    if (property === "borderStyle" && !source.isCustomBorderStyle) return;
+    if (property === "color" && (target.role === "pyramid-level" || target.role === "funnel-level")) return;
     if (Object.hasOwn(source, property)) target[property] = source[property];
   });
 }
@@ -759,14 +798,28 @@ function getLayoutContentSnapshot(page) {
   }
 
   const table = page.objects.find((object) => object.type === "table");
-  if (table) {
-    blocks.push(...table.cells.map((row, index) => ({
-      type: "text",
-      role: "table-row",
-      text: row.join(" | "),
-      x: table.x,
-      y: table.y + index / Math.max(table.cells.length, 1) * table.h
-    })));
+  if (table && Array.isArray(table.cells) && table.cells.length > 0) {
+    const isHeaderRow = (row) => Array.isArray(row) && row.every((cell) => !cell || ["내용", "항목", "구분", "현재", "목표", "상세 내용", "데이터"].includes(String(cell).trim()) || /^열\s*\d+$/.test(String(cell).trim()));
+    const contentRows = (table.cells.length > 1 && isHeaderRow(table.cells[0]))
+      ? table.cells.slice(1)
+      : table.cells;
+    blocks.push(...contentRows.map((row, index) => {
+      let meaningfulText = "";
+      if (Array.isArray(row) && row.length === 2 && /^항목\s*\d+$/.test(String(row[0] || "").trim())) {
+        meaningfulText = String(row[1] || "").trim();
+      } else if (Array.isArray(row)) {
+        meaningfulText = row.filter((c) => String(c || "").trim()).join(" | ");
+      } else {
+        meaningfulText = String(row || "").trim();
+      }
+      return {
+        type: "text",
+        role: "table-row",
+        text: meaningfulText,
+        x: table.x,
+        y: table.y + (index / Math.max(contentRows.length, 1)) * table.h
+      };
+    }).filter((b) => b.text && b.text !== "내용"));
   }
 
   if (!blocks.length && Array.isArray(chart?.sourceBlocks)) {
@@ -812,11 +865,31 @@ function applyBulletTemplatePreservingContent(page) {
   const title = createTextObject("page-title", titleText, 8, 7, 84, 12, { textAlign: "left" });
   if (snapshotContent.title) copyRelayoutTextProperties(title, snapshotContent.title);
 
-  const blocks = snapshotContent.blocks.length
-    ? snapshotContent.blocks
-    : [{ text: "첫 번째 핵심 내용" }, { text: "두 번째 핵심 내용" }];
+  const flattenedBlocks = [];
+  snapshotContent.blocks.forEach((block) => {
+    const rawText = String(block.text || "").trim();
+    if (!rawText) return;
+    const lines = rawText.split("\n").map((line) => line.trim()).filter((line) => line && line !== "내용");
+    if (lines.length > 1) {
+      lines.forEach((line) => {
+        flattenedBlocks.push({
+          ...block,
+          text: line
+        });
+      });
+    } else if (lines.length === 1) {
+      flattenedBlocks.push({
+        ...block,
+        text: lines[0]
+      });
+    }
+  });
 
-  const isFromMindmap = page.template === "mindmap" || page.objects.some((o) => o.role === "mind-node");
+  const blocks = flattenedBlocks.length
+    ? flattenedBlocks
+    : [{ text: "첫 번째 핵심 내용" }, { text: "두 번째 핵심 내용" }, { text: "세 번째 핵심 내용" }];
+
+  const isFromMindmap = page.template === "mindmap" || (Array.isArray(page.objects) && page.objects.some((o) => o.role === "mind-node"));
 
   const bulletItems = blocks.map((block) => {
     let bulletLevel = 1;
@@ -831,18 +904,18 @@ function applyBulletTemplatePreservingContent(page) {
     return createTextObject("bullet-item", String(block.text || "").trim(), 8, 0, 84, 9, {
       item: true,
       bulletLevel,
-      textColor: block.textColor,
-      isCustomTextColor: block.isCustomTextColor,
-      bgColor: block.bgColor,
-      isCustomBgColor: block.isCustomBgColor,
-      borderColor: block.borderColor,
-      borderWidth: block.borderWidth,
-      borderStyle: block.borderStyle,
-      fontSize: block.fontSize,
+      textColor: block.isCustomTextColor ? block.textColor : undefined,
+      isCustomTextColor: Boolean(block.isCustomTextColor),
+      bgColor: block.isCustomBgColor ? block.bgColor : undefined,
+      isCustomBgColor: Boolean(block.isCustomBgColor),
+      borderColor: block.isCustomBorderColor ? block.borderColor : undefined,
+      borderWidth: block.isCustomBorderWidth ? block.borderWidth : undefined,
+      borderStyle: block.isCustomBorderStyle ? block.borderStyle : undefined,
+      fontSize: block.isCustomFontSize ? block.fontSize : undefined,
       fontWeight: block.fontWeight,
       fontStyle: block.fontStyle,
       fontFamily: block.fontFamily,
-      textAlign: block.textAlign,
+      textAlign: block.textAlign || "left",
       animOrder: block.animOrder
     });
   });
@@ -852,6 +925,10 @@ function applyBulletTemplatePreservingContent(page) {
 }
 
 function applyMindmapTemplatePreservingContent(page) {
+  // 개조식 등 비-마인드맵 템플릿에서 전환 시 이전 스냅샷 좌표를 초기화하여 정중앙 방사형 균등 배치가 적용되도록 보장
+  if (page.template !== "mindmap") {
+    delete page.mindmapSnapshot;
+  }
   const snapshotContent = getLayoutContentSnapshot(page);
   const images = getCustomUserImages(page);
   const rootText = snapshotContent.title?.text || snapshotContent.blocks[0]?.text || "CENTRAL IDEA";
@@ -908,16 +985,12 @@ function applyMindmapTemplatePreservingContent(page) {
       });
 
       page.objects = [root, ...restoredNodes, ...images];
-      if (remainingBlocks.length > savedNodes.length) {
-        layoutMindmapTree(page);
-      } else {
-        resolveNodeOverlaps(page);
-      }
+      layoutMindmapTree(page);
       return;
     }
   }
 
-  const root = createTextObject("mind-root", rootText, 41, 45, 18, 13, {
+  const root = createTextObject("mind-root", rootText, 41, 44, 18, 12, {
     item: false, node: true, root: true, mindLevel: 1
   });
   if (snapshotContent.title) copyRelayoutTextProperties(root, snapshotContent.title);
@@ -1016,10 +1089,17 @@ function changeLayoutVariantPreservingContent(page, variant) {
 
   const table = page.objects.find((object) => object.type === "table");
   if (table) {
-    table.cells = snapshotContent.tableCells || [
-      ["내용"],
-      ...snapshotContent.blocks.map((block) => [block.text])
-    ];
+    if (snapshotContent.tableCells) {
+      table.cells = snapshotContent.tableCells;
+    } else {
+      const validBlocks = snapshotContent.blocks.filter((b) => String(b.text || "").trim() && b.text.trim() !== "내용");
+      table.cells = [
+        ["항목", "상세 내용"],
+        ...(validBlocks.length
+          ? validBlocks.map((block, idx) => [`항목 ${idx + 1}`, String(block.text || "").trim()])
+          : Array.from({ length: itemCount }, (_, idx) => [`항목 ${idx + 1}`, "상세 내용을 입력하세요"]))
+      ];
+    }
     targets.forEach((target) => { target.text = ""; });
     return;
   }
@@ -1268,17 +1348,27 @@ function addSummaryRightLayout(page, count) {
 }
 
 function addSummaryTopLayout(page, count) {
-  addLayoutBanner(page, "상단 핵심 요약 배너 문구를 입력하세요", 24, 14);
-  addResponsiveCards(page, count, "metric-card", (index) => `${index + 1}00%\n지표 ${index + 1}\n간단한 설명을 입력하세요`, {
-    x: 8, y: 43, w: 84, h: 46, gapX: 2, gapY: 3
+  page.objects.push(createTextObject(
+    "notice-panel",
+    "요약\n+120%\n상단 핵심 결론 및 요약 메시지\n전체 내용을 압축한 상세 설명을 입력하세요",
+    8, 24, 84, 16,
+    { textAlign: "left" }
+  ));
+  addResponsiveCards(page, count, "concept-card", (index) => `항목 ${index + 1}\n세부 내용 설명을 입력하세요`, {
+    x: 8, y: 44, w: 84, h: 45, gapX: 2, gapY: 3
   });
 }
 
 function addSummaryBottomLayout(page, count) {
-  addResponsiveCards(page, count, "metric-card", (index) => `${index + 1}00%\n지표 ${index + 1}\n간단한 설명을 입력하세요`, {
-    x: 8, y: 24, w: 84, h: 46, gapX: 2, gapY: 3
+  addResponsiveCards(page, count, "concept-card", (index) => `항목 ${index + 1}\n세부 내용 설명을 입력하세요`, {
+    x: 8, y: 24, w: 84, h: 45, gapX: 2, gapY: 3
   });
-  addLayoutBanner(page, "하단 결론 요약 배너 문구를 입력하세요", 75, 14);
+  page.objects.push(createTextObject(
+    "notice-panel",
+    "요약\n+120%\n하단 핵심 결론 및 요약 메시지\n전체 내용을 압축한 상세 설명을 입력하세요",
+    8, 73, 84, 16,
+    { textAlign: "left" }
+  ));
 }
 
 function addCompareSummaryLayout(page) {
@@ -1400,10 +1490,44 @@ function addTimelineDiagram(page, count) {
 }
 
 function addPyramidDiagram(page, count) {
-  const height = Math.min(13, 58 / count);
+  const H_total = 56;
+  const gap = count <= 3 ? 2 : 1.5;
+  const h = (H_total - (count - 1) * gap) / count;
+  const W_apex_top = 26;
+  const W_base_bottom = 76;
+  const Y_top = 25;
+
   for (let i = 0; i < count; i += 1) {
-    const w = 28 + (i * 7);
-    page.objects.push(createTextObject("pyramid-level", `단계 ${i + 1}`, 50 - w / 2, 28 + i * (height + 2), w, height, { item: true, pyramidApex: i === 0 }));
+    const y_start = Y_top + i * (h + gap);
+    const t_top = (y_start - Y_top) / H_total;
+    const t_bottom = (y_start + h - Y_top) / H_total;
+
+    const w_top = W_apex_top + (W_base_bottom - W_apex_top) * t_top;
+    const w_bottom = W_apex_top + (W_base_bottom - W_apex_top) * t_bottom;
+
+    const w = Number(w_bottom.toFixed(2));
+    const x = Number((50 - w / 2).toFixed(2));
+    const y = Number(y_start.toFixed(2));
+    const height = Number(h.toFixed(2));
+
+    const x_inset_pct = ((w_bottom - w_top) / (2 * w_bottom)) * 100;
+    const clipPath = `polygon(${x_inset_pct.toFixed(2)}% 0%, ${(100 - x_inset_pct).toFixed(2)}% 0%, 100% 100%, 0% 100%)`;
+
+    page.objects.push(createTextObject(
+      "pyramid-level",
+      `단계 ${i + 1}`,
+      x,
+      y,
+      w,
+      height,
+      {
+        item: true,
+        sequence: i,
+        tierIndex: i,
+        clipPath,
+        pyramidApex: i === 0
+      }
+    ));
   }
 }
 
@@ -1451,19 +1575,105 @@ function addRibbonArrowDiagram(page, count) {
 }
 
 function addFunnelDiagram(page, count) {
-  const height = Math.min(12, 58 / count);
-  for (let index = 0; index < count; index += 1) {
-    const width = 72 - index * (44 / Math.max(count - 1, 1));
+  const H_total = 56;
+  const gap = count <= 3 ? 2 : 1.5;
+  const Y_top = 25;
+  const W_top = 76;
+  const W_neck = 36;
+  const W_spout = 34;
+
+  if (count <= 2) {
+    const h = Number(((H_total - gap) / 2).toFixed(2));
+    const x_inset = ((W_top - W_neck) / (2 * W_top)) * 100;
     page.objects.push(createTextObject(
       "funnel-level",
-      `단계 ${index + 1}`,
-      50 - width / 2,
-      27 + index * (height + 2),
-      width,
-      height,
-      { item: true, sequence: index }
+      "단계 1",
+      Number((50 - W_top / 2).toFixed(2)),
+      Y_top,
+      W_top,
+      h,
+      {
+        item: true,
+        sequence: 0,
+        tierIndex: 0,
+        clipPath: `polygon(0% 0%, 100% 0%, ${(100 - x_inset).toFixed(2)}% 100%, ${x_inset.toFixed(2)}% 100%)`
+      }
+    ));
+    page.objects.push(createTextObject(
+      "funnel-level",
+      "단계 2",
+      Number((50 - W_spout / 2).toFixed(2)),
+      Number((Y_top + h + gap).toFixed(2)),
+      W_spout,
+      h,
+      {
+        item: true,
+        sequence: 1,
+        tierIndex: 1,
+        isSpout: true,
+        clipPath: "polygon(3% 0%, 97% 0%, 100% 100%, 0% 100%)",
+        borderRadius: "0 0 10px 10px"
+      }
+    ));
+    return;
+  }
+
+  // count >= 3: Top stages form the convergent cone, bottom stage forms the spout nozzle
+  const coneCount = count - 1;
+  const spoutHeight = Number(Math.max(12, Math.min(16, (H_total / count) * 1.05)).toFixed(2));
+  const remainingH = H_total - spoutHeight - (count - 1) * gap;
+  const coneH = Number((remainingH / coneCount).toFixed(2));
+  const totalConeH = remainingH + (coneCount - 1) * gap;
+
+  for (let i = 0; i < coneCount; i += 1) {
+    const y_start = Y_top + i * (coneH + gap);
+    const t_top = (y_start - Y_top) / totalConeH;
+    const t_bottom = (y_start + coneH - Y_top) / totalConeH;
+
+    const w_top = W_top - (W_top - W_neck) * t_top;
+    const w_bottom = W_top - (W_top - W_neck) * t_bottom;
+
+    const w = Number(w_top.toFixed(2));
+    const x = Number((50 - w / 2).toFixed(2));
+    const y = Number(y_start.toFixed(2));
+
+    const x_inset_pct = ((w_top - w_bottom) / (2 * w_top)) * 100;
+    const clipPath = `polygon(0% 0%, 100% 0%, ${(100 - x_inset_pct).toFixed(2)}% 100%, ${x_inset_pct.toFixed(2)}% 100%)`;
+
+    page.objects.push(createTextObject(
+      "funnel-level",
+      `단계 ${i + 1}`,
+      x,
+      y,
+      w,
+      coneH,
+      {
+        item: true,
+        sequence: i,
+        tierIndex: i,
+        clipPath
+      }
     ));
   }
+
+  // Spout Nozzle (Bottom conversion output)
+  const spoutY = Number((Y_top + coneCount * (coneH + gap)).toFixed(2));
+  page.objects.push(createTextObject(
+    "funnel-level",
+    `단계 ${count}`,
+    Number((50 - W_spout / 2).toFixed(2)),
+    spoutY,
+    W_spout,
+    spoutHeight,
+    {
+      item: true,
+      sequence: count - 1,
+      tierIndex: count - 1,
+      isSpout: true,
+      clipPath: "polygon(3% 0%, 97% 0%, 100% 100%, 0% 100%)",
+      borderRadius: "0 0 10px 10px"
+    }
+  ));
 }
 
 function addVennDiagram(page, count) {
@@ -3661,6 +3871,8 @@ function getObjectClass(object) {
   if (object.mindLevel) classes.push(`mind-level-${object.mindLevel}`);
   if (object.pyramidApex) classes.push("pyramid-apex");
   if (object.rootNode) classes.push("root-node");
+  if (object.tierIndex !== undefined) classes.push(`tier-${object.tierIndex}`);
+  if (object.isSpout) classes.push("funnel-spout");
   return classes.join(" ");
 }
 
@@ -3669,8 +3881,19 @@ function applyObjectBox(element, object) {
   element.style.top = `${object.y}%`;
   element.style.width = `${object.w}%`;
   element.style.height = `${object.h}%`;
+  element.style.boxSizing = "border-box";
   const rot = (object.rotation !== undefined && object.rotation !== null) ? Number(object.rotation) : 0;
   element.style.setProperty("--object-rotation", `${rot}deg`);
+  if (object.clipPath) {
+    element.style.clipPath = object.clipPath;
+    element.style.webkitClipPath = object.clipPath;
+  } else {
+    element.style.removeProperty("clip-path");
+    element.style.removeProperty("-webkit-clip-path");
+  }
+  if (object.borderRadius) {
+    element.style.borderRadius = object.borderRadius;
+  }
 }
 
 function setTableColumnWidth(table, colIndex, newWidthPercent) {
@@ -4007,6 +4230,65 @@ function setCaretAtEventOrEnd(event, targetElement) {
   } catch (e) {}
 }
 
+const DEFAULT_PLACEHOLDER_TEXTS = new Set([
+  "핵심 메시지",
+  "핵심 메세지",
+  "개조식 본문",
+  "MAKE IT\nCLEAR",
+  "CENTRAL IDEA",
+  "PRESENTATION\nTITLE",
+  "더블클릭하여 제목을 입력하세요",
+  "더블클릭하여 부제목을 입력하세요",
+  "더블클릭하여 발표자 정보를 입력하세요",
+  "더블클릭하여 내용을 입력하세요",
+  "첫 번째 핵심 내용",
+  "두 번째 핵심 내용",
+  "세 번째 핵심 내용",
+  "새 핵심 내용",
+  "새 핵심 내용 4",
+  "새 핵심 내용 5",
+  "새 핵심 내용 6",
+  "기하학과 기능으로 정리하는 메시지",
+  "핵심 문제를 한 문장으로 정의합니다.",
+  "전달 순서를 간결하게 구성합니다.",
+  "청중이 기억할 행동을 남깁니다.",
+  "풀스크린 비주얼 이미지\n전체 화면 배경 이미지 레이아웃의 메시지를 입력하세요",
+  "상단 핵심 요약 배너 문구를 입력하세요",
+  "하단 결론 요약 배너 문구를 입력하세요",
+  "상단 핵심 결론 및 요약 메시지",
+  "하단 핵심 결론 및 요약 메시지",
+  "요약\n+120%\n핵심 결론 및 요약 메시지\n전체 내용을 압축한 상세 설명을 입력하세요",
+  "요약\n+120%\n상단 핵심 결론 및 요약 메시지\n전체 내용을 압축한 상세 설명을 입력하세요",
+  "요약\n+120%\n하단 핵심 결론 및 요약 메시지\n전체 내용을 압축한 상세 설명을 입력하세요",
+  "비교 결과 또는 결론을 입력하세요",
+  "CONTEXT",
+  "METHOD",
+  "BACKGROUND",
+  "CHALLENGE",
+  "PROCESS",
+  "RESULT",
+  "DETAIL 1",
+  "DETAIL 2",
+  "텍스트",
+  "내용"
+]);
+
+function isDefaultPlaceholderText(text, role) {
+  if (!text || typeof text !== "string") return true;
+  const trimmed = text.trim();
+  if (DEFAULT_PLACEHOLDER_TEXTS.has(trimmed)) return true;
+  if (trimmed.includes("입력하세요") || trimmed.includes("입력하십시오")) return true;
+  if (/^(첫|두|세|네|다섯|여섯|일곱|여덟|아홉|열)\s*번째\s*핵심\s*내용$/.test(trimmed)) return true;
+  if (/^새\s*핵심\s*내용(?:\s*\d+)?$/.test(trimmed)) return true;
+  if (/^STEP\s*\d+\s*\n단계\s*\d+$/i.test(trimmed)) return true;
+  if (/^포인트\s*\d+/i.test(trimmed) && trimmed.includes("설명")) return true;
+  if (/^항목\s*\d+/i.test(trimmed) && (trimmed.includes("설명") || trimmed.includes("내용"))) return true;
+  if (/^주요\s*특징\s*\d+/i.test(trimmed) && trimmed.includes("설명")) return true;
+  if (/^카드\s*\d+/i.test(trimmed) && trimmed.includes("설명")) return true;
+  if (/^노드\s*\d+$/i.test(trimmed)) return true;
+  return false;
+}
+
 function beginTextEdit(event, object, wrapper, text) {
   if (document.fullscreenElement) return;
   if (event) {
@@ -4026,14 +4308,36 @@ function beginTextEdit(event, object, wrapper, text) {
   wrapper.classList.add("is-editing");
 
   activeEditingTextElement = text;
-  if (object.html) {
+
+  // 사용자가 직접 입력한 텍스트가 아닌 기본 플레이스홀더 텍스트인 경우 편집 모드 진입 시 자동 비움
+  const isPlaceholder = !object.isUserEdited && isDefaultPlaceholderText(object.text, object.role);
+  const placeholderOriginal = object.text || "";
+
+  if (isPlaceholder) {
+    text.textContent = "";
+    text.innerHTML = "";
+  } else if (object.html) {
     text.innerHTML = object.html;
   } else {
     text.textContent = object.text || "";
   }
   text.contentEditable = "true";
 
-  setCaretAtEventOrEnd(event, text);
+  if (isPlaceholder) {
+    text.focus();
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(text);
+      range.collapse(true);
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    } catch (e) {}
+  } else {
+    setCaretAtEventOrEnd(event, text);
+  }
 
   const editStartTime = Date.now();
   const finish = (blurEvent) => {
@@ -4053,13 +4357,29 @@ function beginTextEdit(event, object, wrapper, text) {
     hideTextSelectionToolbar();
     activeEditingTextElement = null;
     text.removeEventListener("blur", finish);
-    object.text = text.innerText.trim() || (["free-text", "shape-box"].includes(object.role) ? "" : "텍스트");
-    const rawHtml = text.innerHTML.trim();
-    if (/<[a-z][\s\S]*>/i.test(rawHtml)) {
-      object.html = rawHtml;
+
+    const trimmed = text.innerText.trim();
+    if (trimmed) {
+      object.text = trimmed;
+      object.isUserEdited = true;
+      const rawHtml = text.innerHTML.trim();
+      if (/<[a-z][\s\S]*>/i.test(rawHtml)) {
+        object.html = rawHtml;
+      } else {
+        delete object.html;
+      }
     } else {
-      delete object.html;
+      // 텍스트를 입력하지 않고 블러된 경우 기본 안내 텍스트 보존
+      if (isPlaceholder) {
+        object.text = placeholderOriginal;
+        object.isUserEdited = false;
+        delete object.html;
+      } else {
+        object.text = (["free-text", "shape-box"].includes(object.role) ? "" : "텍스트");
+        delete object.html;
+      }
     }
+
     text.contentEditable = "false";
     wrapper.classList.remove("is-editing");
     renderStage();
@@ -4073,6 +4393,10 @@ function beginTextEdit(event, object, wrapper, text) {
       text.removeEventListener("blur", finish);
       text.contentEditable = "false";
       wrapper.classList.remove("is-editing");
+      if (isPlaceholder && !text.innerText.trim()) {
+        object.text = placeholderOriginal;
+        object.isUserEdited = false;
+      }
       renderStage();
       return;
     }
@@ -5256,8 +5580,8 @@ function getLayoutThumbnailMarkup(variant) {
   // 3. Summary & Highlight Layouts (요약 및 강조 4종)
   if (variant === "summaryLeft") return '<span class="layout-thumbnail summary-thumb-left"><span class="t-dark-panel">요약</span><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span></span></span>';
   if (variant === "summaryRight") return '<span class="layout-thumbnail summary-thumb-right"><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span></span><span class="t-dark-panel">요약</span></span>';
-  if (variant === "summaryTop") return '<span class="layout-thumbnail summary-thumb-top"><span class="t-dark-banner">요약 배너</span><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span></span>';
-  if (variant === "summaryBottom") return '<span class="layout-thumbnail summary-thumb-bottom"><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span><span class="t-dark-banner">요약 배너</span></span>';
+  if (variant === "summaryTop") return '<span class="layout-thumbnail summary-thumb-top"><span class="t-dark-banner">요약</span><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span></span>';
+  if (variant === "summaryBottom") return '<span class="layout-thumbnail summary-thumb-bottom"><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span><span class="t-dark-banner">요약</span></span>';
 
   // 4. Image Layouts (이미지 레이아웃 6종)
   if (variant === "image_full") return '<span class="layout-thumbnail img-thumb-full"><span class="t-overlay"></span></span>';

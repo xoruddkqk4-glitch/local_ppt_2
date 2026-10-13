@@ -945,3 +945,24 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
     - **Shift 키 1:1 종횡비 잠금 리사이즈 (`beginResize`)**: 크기 조절 시 Shift 키를 누르면 16:9 캔버스 기준 1:1 종횡비($h = w \times \frac{16}{9}$)가 유지되어 정사각형, 동그란 원, 정삼각형의 형태를 왜곡 없이 확대/축소 지원.
     - **썸네일 및 팔레트 최적화**: 썸네일 미니 캔버스에서 사각형 `borderRadius: 0px`, 원형 `50%` 정밀 반영 및 모던 테크 팔레트(로열 블루, 로즈, 에메랄드, 인디고, 슬레이트) 적용.
 - **검증 결과**: `node --check app.js; node --check ai-intake.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
+## [2026-10-13 19:46] 업데이트 이력 (Commit ID: 10af1d9)
+- **수정 내용**:
+  - `index.html`:
+    - 상단 서식 툴바(`#textToolbar`)에서 텍스트 선택 시 나타나는 플로팅 인라인 서식 바와 중복되던 기본 서식 버튼 그룹(`#textFormatGroup`: 굵게, 기울임, 밑줄, 형광펜)을 깔끔하게 제거하여 도구 인터페이스 간소화.
+  - `style.css`:
+    - `.canvas-object` 및 `.canvas-text`에 `box-sizing: border-box !important`를 명시하고, 내부 텍스트(`.canvas-object .canvas-text`)의 배경/테두리/그림자를 `transparent`/`none`으로 초기화하여 요약 개체(`notice-panel`) 등에서 노란색 배경이 외곽선 바깥으로 삐져나오던 오버플로 버그 해결.
+    - 요약 개체 스타일 통일: 위쪽/아래쪽 요약과 왼쪽/오른쪽 요약의 요약 패널(`.notice-panel`, `.layout-banner`) 배경색(`#f7f1df`), 테두리(`2px solid #b4862b`), 곡률(`7px`) 일원화.
+    - 피라미드 및 미니멀 깔때기 디자인 전면 리뉴얼:
+      - `.pyramid-level`: 단계별 세련된 그라데이션 팔레트(`.tier-0` ~ `.tier-3`), 상단 입체 하이라이트 및 부드러운 다각형 드롭 섀도우(`filter: drop-shadow(...)`) 적용.
+      - `.funnel-level`: 모던 원뿔대 테이퍼링 수렴 및 하단 전환 배출구(`.funnel-spout`, `border-radius: 0 0 10px 10px`) 라운딩 처리로 완성도 높은 인포그래픽 연출.
+      - 좌측 템플릿 썸네일(`summary-thumb-*`, `pyramid-thumb`, `funnel-thumb`) 스타일 최신화.
+  - `app.js`:
+    - **플레이스홀더 및 텍스트 편집 모드 최적화**: 텍스트를 입력하지 않은 개체를 더블 클릭하여 편집 모드 진입 시 시스템 기본 플레이스홀더('핵심 메세지', '요약 내용...' 등)가 남아있지 않고 즉시 깔끔한 입력 상태가 되도록 빈 문자열 자동 치환 로직 구현.
+    - **마인드맵 방사형 자동 정렬 알고리즘**: 템플릿 전환 시 부모 노드를 캔버스 정중앙($x: 36\%, y: 40\%$)에 배치하고 자식 노드들을 $360^\circ/N$ 각도의 균등한 방사형 대칭 구조로 자동 정렬되도록 개선.
+    - **요약 레이아웃 통일**: `addSummaryTopLayout`, `addSummaryBottomLayout`을 수정하여 요약 개체를 `notice-panel`로, 하위 상세 카드를 `concept-card`로 일원화.
+    - **피라미드 & 깔때기 기하학적 정밀도 동기화**:
+      - `addPyramidDiagram`: 사다리꼴 상/하변 선형 보간을 통해 모든 층의 외곽 사선 기울기($dx/dy = 0.4466$)를 완벽히 일치시키고 최상단 폭($26\%$)을 확보하여 텍스트 잘림 현상 제거.
+      - `addFunnelDiagram`: 상단 유입구($68\%$)에서 시작하여 깔때기 본체($42\%$), 하단 전환 배출구($34\%$)로 이어지는 다단 수렴 구조 설계 및 동적 `clipPath`/`borderRadius` 속성 바인딩.
+      - `copyRelayoutTextProperties`: 템플릿 전환 시 마인드맵 노드 색상이 피라미드/깔때기의 단계별 층 팔레트를 덮어쓰지 않도록 안전 가드 추가.
+- **검증 결과**: `node --check app.js; node --check layouts/options.js; node --check server.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
