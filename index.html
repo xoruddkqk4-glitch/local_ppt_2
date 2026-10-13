@@ -36,11 +36,17 @@
         </div>
       </section>
 
-      <section id="templateSection" class="panel-section">
-        <div class="section-heading"><span>01</span><h2>본문 템플릿</h2></div>
-        <p id="templateCurrentBadge" class="template-current-badge">현재 템플릿: <strong>개조식</strong></p>
+      <section id="templateSection" class="panel-section panel-section-accordion">
+        <button id="templateSectionToggle" class="section-heading-accordion" type="button" aria-expanded="false" aria-controls="unifiedTemplateContainer">
+          <div class="section-heading-inner">
+            <span class="section-number">01</span>
+            <h2>본문 템플릿</h2>
+            <span id="templateCurrentBadge" class="template-current-badge-inline">개조식</span>
+          </div>
+          <span class="accordion-chevron" aria-hidden="true"></span>
+        </button>
 
-        <div id="unifiedTemplateContainer" class="unified-template-container">
+        <div id="unifiedTemplateContainer" class="unified-template-container" hidden>
           <!-- 1. 텍스트 & 구조화 -->
           <div class="template-category-block">
             <div class="layout-variant-header">

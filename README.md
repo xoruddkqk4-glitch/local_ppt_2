@@ -907,5 +907,27 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
     - **테이블 개체 신규 추가**: `addTableObject` 함수 구현으로 [📊 테이블 추가] 클릭 시 기본 3x3 규격의 표 개체를 생성 및 자동 선택하여 셀 텍스트 수정, 크기 조절, 서식 관리 완벽 연동.
 - **검증 결과**: `node -c app.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
 
+## [2026-10-13 14:52] 업데이트 이력 (Commit ID: 14a9b9e)
+- **수정 내용**:
+  - `ai-intake.js`, `app.js`: txt 파일 로드 후 'txt에 저장' 시 기존 로컬 파일 직접 저장(Direct Overwrite) 지원.
+    - 시작 화면(AI Intake 모달)의 '02 txt 불러오기' 클릭 시 `window.showOpenFilePicker`를 우선 실행하여 파일 시스템 핸들(`FileSystemFileHandle`)을 획득하도록 개선.
+    - `verifyHandlePermission(fileHandle, true)` 권한 검증 및 요청 헬퍼 함수를 신규 구현하여 파일 쓰기 권한을 선제적으로 확인하고, 이미 연결된 파일 핸들이 있을 경우 대화상자 없이 기존 로컬 파일에 즉시 직접 덮어쓰기 저장 완료.
+  - `index.html`, `style.css`, `app.js`: 왼쪽 패널 '본문 템플릿' 아코디언 UI 디자인 개편.
+    - '본문 템플릿' 섹션 헤더를 클릭 가능한 아코디언 토글 버튼(`<button id="templateSectionToggle" class="section-heading-accordion">`)으로 전환.
+    - 헤더 내에 현재 선택된 템플릿 인라인 뱃지(`<span id="templateCurrentBadge">`)와 180도 회전 애니메이션 화살표(`<span class="accordion-chevron">`) 배치.
+    - 템플릿 목록 컨테이너(`#unifiedTemplateContainer`)를 기본 접힘(`hidden`) 상태로 설정하여 왼쪽 패널의 개체 관리 및 개체 삽입 영역 작업 공간을 넓게 확보.
+    - 아코디언 클릭 시 부드러운 접기/펼치기 토글 이벤트 및 템플릿 선택 시 뱃지 텍스트 실시간 동기화 연동.
+  - `app.js`, `style.css`: 6대 본문 템플릿 기능 개선 및 10대 디자인 테마 일관성(Design Consistency) 시스템 구축.
+    - 기본 카드 및 측면 강조 카드에 타이틀과 설명의 시각적 위계 2단 구조(`항목 1\n세부 핵심 내용...`) 적용.
+    - 요약 및 강조 레이아웃(4종)에 대형 지표(Big Stat)와 핵심 인사이트가 결합된 2단 구조(`요약\n+120%\n핵심 결론...`) 적용.
+    - 프로세스 다이어그램에 `STEP 1\n단계 1` 넘버링 위계 적용.
+    - 스타일 시스템에 카드 인덱스 뱃지(`.card-index-badge`), 빅 스탯(`.big-stat-number`, `.big-stat-label`) 등 테마 공통 디자인 일관성 스타일 토큰 추가.
+  - `app.js`: 클립보드 캡처 이미지 존재 시 슬라이드 복사/붙여넣기 충돌 버그 해결.
+    - 슬라이드 복사(`copyCurrentPage`) 및 개체 복사(`copySelectedObjects`) 시 내부 복사 상태(`internalCopyType`) 활성화 및 `navigator.clipboard.writeText`로 이전 캡처 이미지 클리어.
+    - `paste` 및 `isPasteKey`(`Ctrl+V`) 처리 시 내부 복사 상태가 유효할 경우 슬라이드/개체 붙여넣기(`executePaste()`)를 최우선으로 즉시 실행하여 캡처 이미지가 덮어쓰여 붙여넣어지는 현상 원천 차단.
+    - 외부 캡처 도구 사용 후 복귀 시(`window.focus`) 내부 복사 플래그를 유연하게 리셋하여 새 캡처 이미지 붙여넣기 정상 지원.
+- **검증 결과**: `node -c app.js; node -c ai-intake.js; node -c layouts/options.js diagrams/options.js charts/options.js designs/options.js templates/schema.js server.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
+
 
 

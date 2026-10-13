@@ -1148,12 +1148,12 @@ function addCardLayoutWithColumns(page, count, cols) {
     const row = Math.floor(i / columns);
     page.objects.push(createTextObject(
       "card",
-      `카드 ${i + 1}`,
+      `항목 ${i + 1}\n세부 핵심 내용을 입력하세요`,
       startX + col * (w + gapX),
       startY + row * (h + gapY),
       w,
       h,
-      { item: true }
+      { item: true, textAlign: "left", sequence: i }
     ));
   }
 }
@@ -1175,12 +1175,12 @@ function addSideAccentLayoutWithColumns(page, count, cols) {
     const row = Math.floor(i / columns);
     page.objects.push(createTextObject(
       "side-accent-card",
-      `항목 ${i + 1}\n세부 내용을 입력하세요`,
+      `항목 ${i + 1}\n핵심 인사이트 및 상세 설명을 입력하세요`,
       startX + col * (w + gapX),
       startY + row * (h + gapY),
       w,
       h,
-      { item: true, textAlign: "left" }
+      { item: true, textAlign: "left", sequence: i }
     ));
   }
 }
@@ -1240,13 +1240,13 @@ function addTableStatsLayout(page, count) {
       ["데이터 4", "내용", "내용"]
     ]
   });
-  addResponsiveCards(page, count, "stat-card", (index) => `${(index + 1) * 100}\n지표 ${index + 1}\n보조 설명`, { x: 69, y: 25, w: 24, h: 66, columns: 1, gapX: 2, gapY: 2 });
+  addResponsiveCards(page, count, "stat-card", (index) => `${(index + 1) * 100}%\n지표 ${index + 1}\n보조 설명`, { x: 69, y: 25, w: 24, h: 66, columns: 1, gapX: 2, gapY: 2 });
 }
 
 function addSummaryLeftLayout(page, count) {
   page.objects.push(createTextObject(
     "notice-panel",
-    "요약\n핵심 결론 및 요약 메시지\n전체 내용을 압축한 설명을 입력하세요",
+    "요약\n+120%\n핵심 결론 및 요약 메시지\n전체 내용을 압축한 상세 설명을 입력하세요",
     6, 25, 28, 64,
     { textAlign: "left" }
   ));
@@ -1261,7 +1261,7 @@ function addSummaryRightLayout(page, count) {
   });
   page.objects.push(createTextObject(
     "notice-panel",
-    "요약\n핵심 결론 및 요약 메시지\n전체 내용을 압축한 설명을 입력하세요",
+    "요약\n+120%\n핵심 결론 및 요약 메시지\n전체 내용을 압축한 상세 설명을 입력하세요",
     66, 25, 28, 64,
     { textAlign: "left" }
   ));
@@ -1373,7 +1373,7 @@ function addPairedCheckWarningsLayout(page, count) {
 function addProcessDiagram(page, count) {
   const w = Math.min(18, 75 / count);
   for (let i = 0; i < count; i += 1) {
-    page.objects.push(createTextObject("diagram-node", `단계 ${i + 1}`, 8 + i * (84 / count), 43, w, 20, { item: true, node: true, sequence: i }));
+    page.objects.push(createTextObject("diagram-node", `STEP ${i + 1}\n단계 ${i + 1}`, 8 + i * (84 / count), 43, w, 20, { item: true, node: true, sequence: i }));
   }
 }
 
@@ -2080,7 +2080,7 @@ function renderControls() {
       else if (page.objectCategory === "diagram") tName = diagrams[page.variant]?.name || "다이어그램";
       else if (page.objectCategory === "chart") tName = charts[page.variant]?.name || "차트";
     }
-    currentBadge.innerHTML = `현재 템플릿: <strong>${tName}</strong>`;
+    currentBadge.textContent = tName;
   }
 
   document.querySelectorAll("[data-template-id]").forEach((button) => {
@@ -5374,8 +5374,36 @@ async function loadProjectFile(file, handle = null) {
   }
 }
 
+async function verifyHandlePermission(fileHandle, readWrite = true) {
+  if (!fileHandle) return false;
+  const options = {};
+  if (readWrite) {
+    options.mode = "readwrite";
+  }
+  try {
+    if (typeof fileHandle.queryPermission === "function") {
+      if ((await fileHandle.queryPermission(options)) === "granted") {
+        return true;
+      }
+      if (typeof fileHandle.requestPermission === "function") {
+        const state = await fileHandle.requestPermission(options);
+        return state === "granted";
+      }
+    }
+  } catch (err) {
+    console.warn("파일 권한 확인/요청 오류:", err);
+  }
+  return true;
+}
+
 async function writeProjectToHandle(handle) {
   try {
+    const hasPerm = await verifyHandlePermission(handle, true);
+    if (!hasPerm) {
+      const permErr = new Error("파일 쓰기 권한이 허용되지 않았습니다.");
+      permErr.name = "NotAllowedError";
+      throw permErr;
+    }
     const writable = await handle.createWritable();
     await writable.write(serializeProject());
     await writable.close();
@@ -5384,7 +5412,9 @@ async function writeProjectToHandle(handle) {
     document.title = `Local PPT 2 — ${currentProjectFileName}`;
     updateFilePathDisplay();
   } catch (error) {
-    currentProjectFileHandle = null;
+    if (error.name !== "AbortError") {
+      currentProjectFileHandle = null;
+    }
     throw error;
   }
 }
@@ -5465,7 +5495,14 @@ async function saveCurrentProject() {
         await writeProjectToHandle(currentProjectFileHandle);
         saved = true;
       } catch (handleError) {
-        console.warn("파일 핸들 저장 실패, 다른 이름으로 저장으로 전환합니다:", handleError);
+        if (handleError.name === "AbortError") {
+          if (btn) {
+            btn.classList.remove("is-saving");
+            btn.textContent = originalText;
+          }
+          return;
+        }
+        console.warn("기존 파일 핸들 저장 실패, 다른 이름으로 저장으로 전환합니다:", handleError);
         currentProjectFileHandle = null;
         saved = await saveProjectAs();
       }
@@ -5719,6 +5756,16 @@ $("#unifiedTemplateContainer")?.addEventListener("click", (event) => {
     render();
     return;
   }
+});
+
+$("#templateSectionToggle")?.addEventListener("click", () => {
+  const toggleBtn = $("#templateSectionToggle");
+  const container = $("#unifiedTemplateContainer");
+  if (!toggleBtn || !container) return;
+  const isExpanded = toggleBtn.getAttribute("aria-expanded") === "true";
+  const nextExpanded = !isExpanded;
+  toggleBtn.setAttribute("aria-expanded", String(nextExpanded));
+  container.hidden = !nextExpanded;
 });
 
 const categoryToggles = [
@@ -7088,7 +7135,21 @@ function insertClipboardImage(blob) {
   reader.readAsDataURL(blob);
 }
 
+let internalCopyType = null; // "page" | "objects" | null
+let lastInternalCopyTime = 0;
+
+window.addEventListener("focus", () => {
+  // 사용자가 외부 창(캡처 도구 등)을 다녀왔을 경우를 위해 3초 이상 경과 시 내부 복사 우선권 리셋
+  if (Date.now() - lastInternalCopyTime > 3000) {
+    internalCopyType = null;
+  }
+});
+
 async function executePasteWithImageFallback() {
+  if (internalCopyType && (copiedPage || (copiedObjects && copiedObjects.length > 0))) {
+    return executePaste();
+  }
+
   if (navigator.clipboard?.read) {
     try {
       const items = await navigator.clipboard.read();
@@ -7117,8 +7178,24 @@ window.addEventListener("paste", (event) => {
     activeEl.tagName === "INPUT" ||
     activeEl.tagName === "TEXTAREA"
   );
+  const isEditingEditable = activeEl?.isContentEditable || activeEl?.closest?.("[contenteditable='true']");
 
-  // 1. 클립보드 아이템에서 이미지 확인
+  if (isEditingInput || isEditingEditable) {
+    return;
+  }
+
+  // 1. 앱 내부에서 슬라이드나 개체를 복사한 경우: 내부 복사본 붙여넣기 최우선!
+  if (internalCopyType && (copiedPage || (copiedObjects && copiedObjects.length > 0))) {
+    const handled = executePaste();
+    if (handled) {
+      event.preventDefault();
+      event.stopPropagation();
+      lastPasteEventHandledTime = Date.now();
+      return;
+    }
+  }
+
+  // 2. 외부 클립보드 아이템에서 이미지 확인
   const items = event.clipboardData?.items;
   if (items && items.length > 0) {
     for (const item of items) {
@@ -7135,15 +7212,12 @@ window.addEventListener("paste", (event) => {
     }
   }
 
-  // 2. 텍스트 입력창이 아닐 때 내부 개체/슬라이드 붙여넣기
-  const isEditingEditable = activeEl?.isContentEditable || activeEl?.closest?.("[contenteditable='true']");
-  if (!isEditingInput && !isEditingEditable) {
-    const handled = executePaste();
-    if (handled) {
-      event.preventDefault();
-      event.stopPropagation();
-      lastPasteEventHandledTime = Date.now();
-    }
+  // 3. 이미지가 없는 경우 내부 개체/슬라이드 붙여넣기
+  const handled = executePaste();
+  if (handled) {
+    event.preventDefault();
+    event.stopPropagation();
+    lastPasteEventHandledTime = Date.now();
   }
 });
 
@@ -7239,11 +7313,17 @@ function copySelectedObjects() {
   copiedFromPageId = page.id;
   pasteOffsetCount = 0;
   copiedPage = null;
+  internalCopyType = "objects";
+  lastInternalCopyTime = Date.now();
 
   saveToSharedClipboard("objects", {
     objects: copiedObjects,
     sourcePageId: page.id
   });
+
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText("LOCAL_PPT_INTERNAL_OBJECTS_COPY").catch(() => {});
+  }
 
   showSaveToast(`📋 개체 ${copiedObjects.length}개 복사 완료`);
   return true;
@@ -7256,10 +7336,16 @@ function copyCurrentPage() {
   copiedObjects = [];
   copiedFromPageId = null;
   pasteOffsetCount = 0;
+  internalCopyType = "page";
+  lastInternalCopyTime = Date.now();
 
   saveToSharedClipboard("page", {
     page: copiedPage
   });
+
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText("LOCAL_PPT_INTERNAL_PAGE_COPY").catch(() => {});
+  }
 
   showSaveToast(`📋 현재 슬라이드 복사 완료 (페이지 ${state.currentPageIndex + 1})`);
   return true;
@@ -7606,6 +7692,13 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   if (isPasteKey && !isEditingText) {
+    if (internalCopyType && (copiedPage || (copiedObjects && copiedObjects.length > 0))) {
+      event.preventDefault();
+      event.stopPropagation();
+      executePaste();
+      lastPasteEventHandledTime = Date.now();
+      return;
+    }
     setTimeout(() => {
       if (Date.now() - lastPasteEventHandledTime > 80) {
         executePaste();

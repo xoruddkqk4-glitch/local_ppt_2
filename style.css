@@ -71,10 +71,118 @@ kbd { border:1px solid currentColor; padding:1px 3px; font-size:10px; }
 .workspace { height:calc(100vh - 68px); display:grid; grid-template-columns:370px minmax(610px,1fr); }
 .editor-panel { overflow:auto; padding:21px 18px; border-right:3px solid var(--ink); background:#fffdfa; }
 .panel-section { padding-bottom:20px; margin-bottom:20px; border-bottom:2px solid var(--ink); }
+.panel-section-accordion { padding-bottom:14px; margin-bottom:14px; }
 .section-heading { display:flex !important; align-items:center !important; gap:8px !important; margin-bottom:10px !important; }
 .section-heading span { display:inline-flex !important; align-items:center !important; justify-content:center !important; padding:3px 6px !important; border:1px solid var(--ink) !important; background:var(--yellow) !important; color:var(--ink) !important; font-size:11px !important; font-weight:900 !important; line-height:1 !important; border-radius:3px !important; }
 .section-heading span.badge-help { background:var(--blue, #2563eb) !important; color:#fff !important; padding:3px 7px !important; }
 .section-heading h1,.section-heading h2 { margin:0 !important; font-size:17px !important; font-weight:900 !important; line-height:1.2 !important; white-space:nowrap !important; }
+
+/* 본문 템플릿 아코디언 헤더 */
+.section-heading-accordion {
+  width: 100%;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 6px 8px !important;
+  margin: -2px -4px 6px -4px !important;
+  border: 1.5px solid transparent !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--ink) !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+  box-sizing: border-box !important;
+}
+.section-heading-accordion:hover {
+  background: #f3efe6 !important;
+  border-color: #d6d0c2 !important;
+}
+.section-heading-accordion:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+.section-heading-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.section-heading-inner .section-number {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 3px 6px !important;
+  border: 1px solid var(--ink) !important;
+  background: var(--yellow) !important;
+  color: var(--ink) !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  border-radius: 3px !important;
+}
+.section-heading-inner h2 {
+  margin: 0 !important;
+  font-size: 16px !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+.template-current-badge-inline {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 850;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.accordion-chevron {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+.section-heading-accordion[aria-expanded="true"] .accordion-chevron {
+  transform: translateY(2px) rotate(225deg);
+}
+
+/* 템플릿 디자인 일관성 확장 (카드 넘버링, 빅 스탯, 다이어그램) */
+.card-index-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+  margin-bottom: 6px;
+  align-self: flex-start;
+  letter-spacing: 0.5px;
+}
+.big-stat-number {
+  font-size: 2.2em;
+  font-weight: 950;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  margin-bottom: 4px;
+}
+.big-stat-label {
+  font-size: 0.9em;
+  font-weight: 700;
+  opacity: 0.9;
+  line-height: 1.4;
+}
 .insert-btn { padding:7px 3px !important; font-size:11.5px !important; font-weight:850 !important; white-space:nowrap !important; text-align:center !important; display:inline-flex !important; align-items:center !important; justify-content:center !important; line-height:1.2 !important; cursor:pointer !important; }
 .shape-select-btn { padding:6px 2px !important; font-size:10.5px !important; font-weight:800 !important; white-space:nowrap !important; text-align:center !important; cursor:pointer !important; }
 .shape-select-btn.symbol-btn { font-size:14px !important; font-weight:900 !important; line-height:1 !important; padding:5px 2px !important; display:inline-flex !important; align-items:center !important; justify-content:center !important; }

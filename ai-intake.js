@@ -748,7 +748,28 @@
       document.querySelectorAll("[data-intake-action]").forEach((b) => b.classList.toggle("is-selected", b.dataset.intakeAction === "empty"));
       scrollToStylePanel();
     } else if (action === "project") {
-      $("#intakeProjectFile").click();
+      if (window.showOpenFilePicker) {
+        (async () => {
+          try {
+            const [handle] = await window.showOpenFilePicker({
+              id: "local-ppt-file",
+              multiple: false,
+              types: [{ description: "Local ppt JSON 텍스트", accept: { "text/plain": [".txt", ".json"] } }]
+            });
+            await window.LocalPptApp.loadProjectFile(await handle.getFile(), handle);
+            intake.hidden = true;
+          } catch (error) {
+            if (error.name === "AbortError") return;
+            if (["SecurityError", "NotSupportedError"].includes(error.name)) {
+              $("#intakeProjectFile").click();
+            } else {
+              window.alert(`파일을 불러올 수 없습니다.\n${error.message}`);
+            }
+          }
+        })();
+      } else {
+        $("#intakeProjectFile").click();
+      }
     } else {
       selectSource(action);
     }
