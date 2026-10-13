@@ -25,7 +25,7 @@ const AI_TEMPLATES = new Set(["bullet", "mindmap", "object"]);
 const AI_OBJECT_VARIANTS = {
   layout: new Set(["cards_1col", "cards_2col", "cards_3col", "cards_4col", "sideAccent_1col", "sideAccent_2col", "sideAccent_3col", "sideAccent_4col", "summaryLeft", "summaryRight", "summaryTop", "summaryBottom", "table", "tableStats", "image_full", "image_center", "image_left", "image_right", "image_top", "image_bottom"]),
   diagram: new Set(["process", "timeline", "pyramid", "cycle", "chain", "ribbonArrow", "funnel", "venn", "target", "connectedCircles", "quadrant", "vs"]),
-  chart: new Set(["column", "line", "pie", "bar", "area"])
+  chart: new Set(["column", "bar", "donut", "pie", "area", "line"])
 };
 const AI_OBJECT_DEFAULT_VARIANTS = { layout: "cards", diagram: "process", chart: "column" };
 
@@ -352,6 +352,7 @@ function applyAspectRatioToImageObject(targetObject, src, callback) {
 }
 
 function buildTemplate(page, template, options = {}) {
+  if (template !== "mindmap") saveMindmapSnapshotIfActive(page);
   page.template = template;
   page.objects = getCustomUserImages(page);
 
@@ -565,20 +566,35 @@ function layoutMindmapTree(page) {
     childrenByParent.set(node.parentId, children);
   });
 
-  // 16:9 슬라이드 화면 비율(16/9 ≈ 1.7778) 보정:
-  // 모든 각도에서 화면상 실제 픽셀 거리(Euclidean Distance)가 100% 동일하도록
-  // radiusX * 16 === radiusY * 9 => radiusX = radiusY * (9 / 16) 적용
+  // 레벨별 노드 크기 및 선의 가시적 길이(gapPx)
+  // 부모와 자식 외곽선 사이의 실제 시각적 연결선 길이(visible line length)를 모든 각도에서 동일하게 유지하기 위해
+  // 사각형 바운딩 박스 교차 거리를 정밀 계산
   const specs = {
-    2: { radiusY: 28, radiusX: 28 * (9 / 16), w: 15, h: 9 },
-    3: { radiusY: 39, radiusX: 39 * (9 / 16), w: 13, h: 8 },
-    4: { radiusY: 48, radiusX: 48 * (9 / 16), w: 11, h: 7 },
-    5: { radiusY: 55, radiusX: 55 * (9 / 16), w: 9.5, h: 6 },
-    6: { radiusY: 60, radiusX: 60 * (9 / 16), w: 8.5, h: 5.5 }
+    2: { w: 15, h: 9, gapPx: 80 },
+    3: { w: 13, h: 8, gapPx: 58 },
+    4: { w: 11, h: 7, gapPx: 46 },
+    5: { w: 9.5, h: 6, gapPx: 38 },
+    6: { w: 8.5, h: 5.5, gapPx: 32 }
+  };
+
+  const getRectRayDistance = (wPx, hPx, cosA, sinA) => {
+    const hw = wPx / 2;
+    const hh = hPx / 2;
+    const absCos = Math.abs(cosA);
+    const absSin = Math.abs(sinA);
+    const tx = absCos > 1e-5 ? hw / absCos : Infinity;
+    const ty = absSin > 1e-5 ? hh / absSin : Infinity;
+    return Math.min(tx, ty);
   };
 
   const positionChildren = (parent) => {
     const children = childrenByParent.get(parent.id) || [];
     const n = children.length;
+    const pCenterX = Number(parent.x) + Number(parent.w) / 2;
+    const pCenterY = Number(parent.y) + Number(parent.h) / 2;
+    const pWidthPx = (Number(parent.w) / 100) * 1600;
+    const pHeightPx = (Number(parent.h) / 100) * 900;
+
     children.forEach((node, index) => {
       const level = Math.min(6, Math.max(2, node.mindLevel || (parent.mindLevel + 1)));
       const spec = specs[level] || specs[6];
@@ -602,10 +618,24 @@ function layoutMindmapTree(page) {
 
       node.mindLevel = level;
       node.mindAngle = angle;
-      const nodeCenterX = centerX + Math.cos(angle) * spec.radiusX;
-      const nodeCenterY = centerY + Math.sin(angle) * spec.radiusY;
       node.w = spec.w;
       node.h = spec.h;
+
+      const cosA = Math.cos(angle);
+      const sinA = Math.sin(angle);
+      const cWidthPx = (spec.w / 100) * 1600;
+      const cHeightPx = (spec.h / 100) * 900;
+
+      const dParentPx = getRectRayDistance(pWidthPx, pHeightPx, cosA, sinA);
+      const dChildPx = getRectRayDistance(cWidthPx, cHeightPx, cosA, sinA);
+      const totalDistancePx = dParentPx + spec.gapPx + dChildPx;
+
+      const dxPct = (totalDistancePx * cosA / 1600) * 100;
+      const dyPct = (totalDistancePx * sinA / 900) * 100;
+
+      const nodeCenterX = pCenterX + dxPct;
+      const nodeCenterY = pCenterY + dyPct;
+
       node.x = clamp(2, nodeCenterX - spec.w / 2, 98 - spec.w);
       node.y = clamp(2, nodeCenterY - spec.h / 2, 98 - spec.h);
       positionChildren(node);
@@ -617,6 +647,21 @@ function layoutMindmapTree(page) {
 
 function buildObjectTemplate(page, itemCount) {
   const userImages = getCustomUserImages(page);
+
+  if (page.variant === "image_full") {
+    page.objects = [createImageObject(0, 0, 100, 100, DEFAULT_PLACEHOLDER_IMAGE, "전체 배경 이미지")];
+    if (page.imageDeleted) {
+      page.objects = [];
+    } else if (userImages.length > 0) {
+      const newImg = page.objects.find((o) => o.type === "image");
+      if (newImg) {
+        newImg.src = userImages[0].src;
+        if (userImages[0].name) newImg.name = userImages[0].name;
+      }
+    }
+    return;
+  }
+
   page.objects = [createTextObject("page-title", getVariantTitle(page), 7, 7, 86, 16, { textAlign: "left" })];
   const count = Math.max(MIN_ITEMS, Math.min(MAX_ITEMS, itemCount));
 
@@ -693,6 +738,8 @@ const RELAYOUT_TEXT_PROPERTIES = [
   "animOut",
   "bulletLevel",
   "mindLevel",
+  "mindNodeId",
+  "mindParentId",
   "isUserEdited"
 ];
 const LAYOUT_CONTENT_EXCLUDED_ROLES = new Set(["page-title", "mind-root", "media-placeholder", "vs-label", "chart-context"]);
@@ -704,9 +751,22 @@ function copyRelayoutTextProperties(target, source) {
     if (property === "borderColor" && !source.isCustomBorderColor) return;
     if (property === "borderWidth" && !source.isCustomBorderWidth) return;
     if (property === "borderStyle" && !source.isCustomBorderStyle) return;
-    if (property === "color" && (target.role === "pyramid-level" || target.role === "funnel-level")) return;
+    if (property === "color" && (target.role === "pyramid-level" || target.role === "funnel-level" || target.role === "connected-circle")) return;
+    if (property === "textAlign" && !source.isCustomTextAlign) return;
+    if ((property === "mindLevel" || property === "mindNodeId" || property === "mindParentId") && target.role !== "mind-node" && target.role !== "mind-root" && target.role !== "bullet-item") return;
     if (Object.hasOwn(source, property)) target[property] = source[property];
   });
+  if (target.role === "connected-circle") {
+    delete target.mindLevel;
+    delete target.clipPath;
+    delete target.isSpout;
+    delete target.tierIndex;
+    target.borderRadius = "50%";
+  }
+  if (target.role === "pyramid-level" || target.role === "funnel-level") {
+    delete target.mindLevel;
+    if (target.role === "pyramid-level") delete target.borderRadius;
+  }
 }
 
 function rebuildObjectTemplatePreservingContent(page, itemCount, removedObject = null) {
@@ -840,6 +900,15 @@ function getLayoutContentSnapshot(page) {
     || page.objects.find((object) => object.root || object.role === "mind-root")
     || null;
 
+  if (!blocks.length && !titleObj && page.imageFullTextSnapshot) {
+    return {
+      title: page.imageFullTextSnapshot.title,
+      blocks: page.imageFullTextSnapshot.blocks,
+      tableCells: page.imageFullTextSnapshot.tableCells,
+      chartData: page.imageFullTextSnapshot.chartData
+    };
+  }
+
   return {
     title: titleObj,
     blocks,
@@ -848,12 +917,43 @@ function getLayoutContentSnapshot(page) {
   };
 }
 
-function applyBulletTemplatePreservingContent(page) {
-  if (page.template === "mindmap" || (Array.isArray(page.objects) && page.objects.some((o) => o.role === "mind-node"))) {
-    page.mindmapSnapshot = page.objects
-      .filter((o) => o.role === "mind-root" || o.role === "mind-node")
-      .map((o) => ({ ...o }));
+function saveMindmapSnapshotIfActive(page) {
+  if (!page) return;
+  const isMindmap = page.template === "mindmap" || (Array.isArray(page.objects) && page.objects.some((o) => o.role === "mind-node" || o.role === "mind-root"));
+  if (isMindmap) {
+    const rootNode = page.objects.find((o) => o.root || o.role === "mind-root");
+    const childMap = new Map();
+    page.objects.forEach((o) => {
+      if (o.role === "mind-node") {
+        const pId = o.parentId || rootNode?.id;
+        const list = childMap.get(pId) || [];
+        list.push(o);
+        childMap.set(pId, list);
+      }
+    });
+
+    const dfsNodes = [];
+    const traverse = (pId) => {
+      const children = childMap.get(pId) || [];
+      children.forEach((child) => {
+        dfsNodes.push({ ...child });
+        traverse(child.id);
+      });
+    };
+    if (rootNode) traverse(rootNode.id);
+
+    page.objects.forEach((o) => {
+      if (o.role === "mind-node" && !dfsNodes.some((b) => b.id === o.id)) {
+        dfsNodes.push({ ...o });
+      }
+    });
+
+    page.mindmapSnapshot = rootNode ? [{ ...rootNode }, ...dfsNodes] : dfsNodes;
   }
+}
+
+function applyBulletTemplatePreservingContent(page) {
+  saveMindmapSnapshotIfActive(page);
   const snapshotContent = getLayoutContentSnapshot(page);
   const images = getCustomUserImages(page);
   const titleText = snapshotContent.title?.text || "개조식 본문";
@@ -904,6 +1004,9 @@ function applyBulletTemplatePreservingContent(page) {
     return createTextObject("bullet-item", String(block.text || "").trim(), 8, 0, 84, 9, {
       item: true,
       bulletLevel,
+      mindNodeId: block.id || block.mindNodeId,
+      mindParentId: block.parentId || block.mindParentId,
+      mindLevel: block.mindLevel,
       textColor: block.isCustomTextColor ? block.textColor : undefined,
       isCustomTextColor: Boolean(block.isCustomTextColor),
       bgColor: block.isCustomBgColor ? block.bgColor : undefined,
@@ -915,7 +1018,9 @@ function applyBulletTemplatePreservingContent(page) {
       fontWeight: block.fontWeight,
       fontStyle: block.fontStyle,
       fontFamily: block.fontFamily,
-      textAlign: block.textAlign || "left",
+      textAlign: block.isCustomTextAlign ? block.textAlign : "left",
+      isCustomTextAlign: Boolean(block.isCustomTextAlign),
+      isUserEdited: Boolean(block.isUserEdited),
       animOrder: block.animOrder
     });
   });
@@ -925,10 +1030,6 @@ function applyBulletTemplatePreservingContent(page) {
 }
 
 function applyMindmapTemplatePreservingContent(page) {
-  // 개조식 등 비-마인드맵 템플릿에서 전환 시 이전 스냅샷 좌표를 초기화하여 정중앙 방사형 균등 배치가 적용되도록 보장
-  if (page.template !== "mindmap") {
-    delete page.mindmapSnapshot;
-  }
   const snapshotContent = getLayoutContentSnapshot(page);
   const images = getCustomUserImages(page);
   const rootText = snapshotContent.title?.text || snapshotContent.blocks[0]?.text || "CENTRAL IDEA";
@@ -942,47 +1043,130 @@ function applyMindmapTemplatePreservingContent(page) {
     const savedNodes = page.mindmapSnapshot.filter((o) => o.role === "mind-node");
 
     if (savedRoot) {
-      const root = { ...savedRoot, text: rootText };
+      const root = { ...savedRoot, text: rootText || savedRoot.text };
       if (snapshotContent.title) copyRelayoutTextProperties(root, snapshotContent.title);
 
       const remainingBlocks = snapshotContent.title
         ? snapshotContent.blocks
         : snapshotContent.blocks.slice(1);
 
-      const restoredNodes = [];
-      const lastNodeAtLevel = { 1: root.id };
-
-      remainingBlocks.forEach((block, index) => {
-        if (index < savedNodes.length) {
-          const node = { ...savedNodes[index], text: String(block.text || "").trim() || savedNodes[index].text };
-          copyRelayoutTextProperties(node, block);
-          lastNodeAtLevel[node.mindLevel || 2] = node.id;
-          restoredNodes.push(node);
-        } else {
-          let level = 2;
-          if (typeof block.bulletLevel === "number") {
-            level = clamp(2, Number(block.bulletLevel) + 1, 6);
-          } else if (typeof block.mindLevel === "number") {
-            level = clamp(2, Number(block.mindLevel), 6);
+      // 1. 항목 개수가 동일한 경우: 기존 좌표(x, y), 각도, 위계, 어미-자식 관계 100% 보존
+      if (remainingBlocks.length === savedNodes.length) {
+        const restoredNodes = savedNodes.map((savedNode, index) => {
+          const block = remainingBlocks[index];
+          const node = { ...savedNode };
+          if (block && String(block.text || "").trim()) {
+            node.text = String(block.text).trim();
+            copyRelayoutTextProperties(node, block);
           }
+          // 스냅샷 원본의 위치 좌표 및 계층 구조 불변 보존
+          node.id = savedNode.id;
+          node.parentId = savedNode.parentId;
+          node.mindLevel = savedNode.mindLevel;
+          node.mindAngle = savedNode.mindAngle;
+          node.x = savedNode.x;
+          node.y = savedNode.y;
+          node.w = savedNode.w;
+          node.h = savedNode.h;
+          return node;
+        });
 
-          let parentId = lastNodeAtLevel[level - 1];
-          if (!parentId) {
-            for (let p = level - 1; p >= 1; p--) {
-              if (lastNodeAtLevel[p]) {
-                parentId = lastNodeAtLevel[p];
-                break;
-              }
+        page.objects = [root, ...restoredNodes, ...images];
+        // layoutMindmapTree를 호출하지 않음으로써 기존 마인드맵 배열/위치를 1픽셀도 흐트러뜨리지 않고 복원
+        return;
+      }
+
+      // 2. 다른 템플릿의 표시 용량 한계(VS 2개, 사분면 4개, 표, 차트 등)로 인해 블록 수가 줄어든 경우
+      const isTemplateDisplayCapacityLimit = remainingBlocks.length < savedNodes.length &&
+        (!remainingBlocks.some((b) => b.isUserEdited) ||
+         remainingBlocks.every((b, idx) => String(b.text || "").trim() === String(savedNodes[idx]?.text || "").trim()));
+
+      if (isTemplateDisplayCapacityLimit || remainingBlocks.length === 0) {
+        const restoredNodes = savedNodes.map((savedNode, index) => {
+          const block = remainingBlocks[index];
+          const node = { ...savedNode };
+          if (block && String(block.text || "").trim()) {
+            node.text = String(block.text).trim();
+            copyRelayoutTextProperties(node, block);
+          }
+          node.id = savedNode.id;
+          node.parentId = savedNode.parentId;
+          node.mindLevel = savedNode.mindLevel;
+          node.mindAngle = savedNode.mindAngle;
+          node.x = savedNode.x;
+          node.y = savedNode.y;
+          node.w = savedNode.w;
+          node.h = savedNode.h;
+          return node;
+        });
+
+        page.objects = [root, ...restoredNodes, ...images];
+        return;
+      }
+
+      // 3. 개조식 등에서 사용자가 항목을 명시적으로 삭제한 경우
+      if (remainingBlocks.length < savedNodes.length) {
+        const restoredNodes = savedNodes.slice(0, remainingBlocks.length).map((savedNode, index) => {
+          const block = remainingBlocks[index];
+          const node = { ...savedNode };
+          if (block && String(block.text || "").trim()) {
+            node.text = String(block.text).trim();
+            copyRelayoutTextProperties(node, block);
+          }
+          return node;
+        });
+        const validIds = new Set([root.id, ...restoredNodes.map((n) => n.id)]);
+        restoredNodes.forEach((node) => {
+          if (!validIds.has(node.parentId)) {
+            node.parentId = root.id;
+            node.mindLevel = 2;
+          }
+        });
+        page.objects = [root, ...restoredNodes, ...images];
+        layoutMindmapTree(page);
+        return;
+      }
+
+      // 4. 개조식 등에서 사용자가 새로운 항목을 추가한 경우
+      const restoredNodes = savedNodes.map((savedNode, index) => {
+        const block = remainingBlocks[index];
+        const node = { ...savedNode };
+        if (block && String(block.text || "").trim()) {
+          node.text = String(block.text).trim();
+          copyRelayoutTextProperties(node, block);
+        }
+        return node;
+      });
+      const lastNodeAtLevel = { 1: root.id };
+      restoredNodes.forEach((n) => {
+        lastNodeAtLevel[n.mindLevel || 2] = n.id;
+      });
+
+      for (let index = savedNodes.length; index < remainingBlocks.length; index++) {
+        const block = remainingBlocks[index];
+        let level = 2;
+        if (typeof block.bulletLevel === "number") {
+          level = clamp(2, Number(block.bulletLevel) + 1, 6);
+        } else if (typeof block.mindLevel === "number") {
+          level = clamp(2, Number(block.mindLevel), 6);
+        }
+
+        let parentId = lastNodeAtLevel[level - 1];
+        if (!parentId) {
+          for (let p = level - 1; p >= 1; p--) {
+            if (lastNodeAtLevel[p]) {
+              parentId = lastNodeAtLevel[p];
+              break;
             }
           }
-          if (!parentId) parentId = root.id;
-
-          const newNode = createMindNode(String(block.text || "").trim() || `노드 ${index + 1}`, parentId, level);
-          lastNodeAtLevel[level] = newNode.id;
-          copyRelayoutTextProperties(newNode, block);
-          restoredNodes.push(newNode);
         }
-      });
+        if (!parentId) parentId = root.id;
+
+        const newNode = createMindNode(String(block.text || "").trim() || `노드 ${index + 1}`, parentId, level);
+        lastNodeAtLevel[level] = newNode.id;
+        copyRelayoutTextProperties(newNode, block);
+        restoredNodes.push(newNode);
+      }
 
       page.objects = [root, ...restoredNodes, ...images];
       layoutMindmapTree(page);
@@ -990,6 +1174,7 @@ function applyMindmapTemplatePreservingContent(page) {
     }
   }
 
+  // 기본 구축 (스냅샷이 없는 최초 마인드맵 전환)
   const root = createTextObject("mind-root", rootText, 41, 44, 18, 12, {
     item: false, node: true, root: true, mindLevel: 1
   });
@@ -1038,6 +1223,7 @@ function applyMindmapTemplatePreservingContent(page) {
 
   page.objects = [root, ...nodes, ...images];
   layoutMindmapTree(page);
+  saveMindmapSnapshotIfActive(page);
 }
 
 function restoreSnapshotTitle(page, snapshotContent) {
@@ -1057,20 +1243,30 @@ function applySnapshotBlocksToTargets(blocks, targets) {
   if (blocks.length > targets.length && targets.length) {
     const overflow = blocks.slice(targets.length).map((block) => block.text).join("\n");
     targets.at(-1).text = `${targets.at(-1).text}\n${overflow}`.trim();
+    const anyUserEdited = blocks.slice(targets.length - 1).some((b) => b.isUserEdited);
+    if (!anyUserEdited) {
+      targets.at(-1).isUserEdited = false;
+    }
   }
 }
 
 function changeLayoutVariantPreservingContent(page, variant) {
-  if (page.template === "mindmap" || (Array.isArray(page.objects) && page.objects.some((o) => o.role === "mind-node"))) {
-    page.mindmapSnapshot = page.objects
-      .filter((o) => o.role === "mind-root" || o.role === "mind-node")
-      .map((o) => ({ ...o }));
-  }
+  saveMindmapSnapshotIfActive(page);
   delete page.imageDeleted;
   const snapshotContent = getLayoutContentSnapshot(page);
   page.template = "object";
   page.objectCategory = "layout";
   page.variant = variant;
+
+  if (variant === "image_full") {
+    if (snapshotContent.blocks.length > 0 || snapshotContent.title) {
+      page.imageFullTextSnapshot = snapshotContent;
+    }
+    buildObjectTemplate(page, 1);
+    page.objects = page.objects.filter((o) => o.type !== "text");
+    return;
+  }
+
   const minimum = getLayoutMinimumCount(variant);
   const maximum = getLayoutMaximumCount(variant);
   let itemCount = clamp(minimum, snapshotContent.blocks.length || getLayoutDefaultCount(variant), maximum);
@@ -1108,11 +1304,7 @@ function changeLayoutVariantPreservingContent(page, variant) {
 }
 
 function changeDiagramVariantPreservingContent(page, variant) {
-  if (page.template === "mindmap" || (Array.isArray(page.objects) && page.objects.some((o) => o.role === "mind-node"))) {
-    page.mindmapSnapshot = page.objects
-      .filter((o) => o.role === "mind-root" || o.role === "mind-node")
-      .map((o) => ({ ...o }));
-  }
+  saveMindmapSnapshotIfActive(page);
   const snapshotContent = getLayoutContentSnapshot(page);
   page.template = "object";
   page.objectCategory = "diagram";
@@ -1175,6 +1367,7 @@ function chartDataFromBlocks(blocks) {
 }
 
 function changeChartVariantPreservingContent(page, variant) {
+  saveMindmapSnapshotIfActive(page);
   const snapshotContent = getLayoutContentSnapshot(page);
   const sourceBlocks = snapshotContent.blocks.map((block) => ({
     type: "text",
@@ -1201,9 +1394,9 @@ function changeChartVariantPreservingContent(page, variant) {
   if (data.length >= CHART_MIN_ITEMS) chart.data = data.slice(0, CHART_MAX_ITEMS);
   chart.sourceBlocks = sourceBlocks;
   chart.x = 5;
-  chart.y = 24;
+  chart.y = 19;
   chart.w = 90;
-  chart.h = 71;
+  chart.h = 75;
 }
 
 function getVariantTitle(page) {
@@ -1396,12 +1589,6 @@ function createImageObject(x, y, w, h, src = DEFAULT_PLACEHOLDER_IMAGE, name = "
 
 function addImageFullLayout(page, count) {
   page.objects.push(createImageObject(0, 0, 100, 100, DEFAULT_PLACEHOLDER_IMAGE, "전체 배경 이미지"));
-  page.objects.push(createTextObject(
-    "notice-panel",
-    "풀스크린 비주얼 이미지\n전체 화면 배경 이미지 레이아웃의 메시지를 입력하세요",
-    10, 62, 80, 26,
-    { textAlign: "center", bgColor: "rgba(15, 23, 42, 0.85)", textColor: "#ffffff" }
-  ));
 }
 
 function addImageCenterLayout(page, count) {
@@ -1493,8 +1680,8 @@ function addPyramidDiagram(page, count) {
   const H_total = 56;
   const gap = count <= 3 ? 2 : 1.5;
   const h = (H_total - (count - 1) * gap) / count;
-  const W_apex_top = 26;
-  const W_base_bottom = 76;
+  const W_apex_top = 0; // 정점 꼭짓점이 명확한 피라미드
+  const W_base_bottom = 78;
   const Y_top = 25;
 
   for (let i = 0; i < count; i += 1) {
@@ -1502,16 +1689,22 @@ function addPyramidDiagram(page, count) {
     const t_top = (y_start - Y_top) / H_total;
     const t_bottom = (y_start + h - Y_top) / H_total;
 
-    const w_top = W_apex_top + (W_base_bottom - W_apex_top) * t_top;
-    const w_bottom = W_apex_top + (W_base_bottom - W_apex_top) * t_bottom;
+    const w_top = W_base_bottom * t_top;
+    const w_bottom = W_base_bottom * t_bottom;
 
     const w = Number(w_bottom.toFixed(2));
     const x = Number((50 - w / 2).toFixed(2));
     const y = Number(y_start.toFixed(2));
     const height = Number(h.toFixed(2));
 
-    const x_inset_pct = ((w_bottom - w_top) / (2 * w_bottom)) * 100;
-    const clipPath = `polygon(${x_inset_pct.toFixed(2)}% 0%, ${(100 - x_inset_pct).toFixed(2)}% 0%, 100% 100%, 0% 100%)`;
+    let clipPath;
+    if (i === 0) {
+      // 최상단 개체: 꼭대기 정점이 완벽히 살아있는 정삼각 피라미드 에이펙스
+      clipPath = "polygon(50% 0%, 100% 100%, 0% 100%)";
+    } else {
+      const x_inset_pct = ((w_bottom - w_top) / (2 * w_bottom)) * 100;
+      clipPath = `polygon(${x_inset_pct.toFixed(2)}% 0%, ${(100 - x_inset_pct).toFixed(2)}% 0%, 100% 100%, 0% 100%)`;
+    }
 
     page.objects.push(createTextObject(
       "pyramid-level",
@@ -1525,7 +1718,8 @@ function addPyramidDiagram(page, count) {
         sequence: i,
         tierIndex: i,
         clipPath,
-        pyramidApex: i === 0
+        pyramidApex: i === 0,
+        textAlign: "center"
       }
     ));
   }
@@ -1713,19 +1907,65 @@ function addTargetDiagram(page, count) {
 }
 
 function addConnectedCirclesDiagram(page, count) {
-  const center = createTextObject("connected-circle", "중심", 45.5, 44, 9, 16, { item: true, node: true, sequence: 0, rootNode: true });
+  const W_c = 12;
+  const H_c = Number((W_c * (16 / 9)).toFixed(2)); // 21.33% -> 192px 정원
+  const W_s = 10.5;
+  const H_s = Number((W_s * (16 / 9)).toFixed(2)); // 18.67% -> 168px 정원
+  const Cx = 50;
+  const Cy = 54;
+
+  const center = createTextObject(
+    "connected-circle",
+    "중심 주제",
+    Number((Cx - W_c / 2).toFixed(2)),
+    Number((Cy - H_c / 2).toFixed(2)),
+    W_c,
+    H_c,
+    { item: true, node: true, sequence: 0, rootNode: true, borderRadius: "50%", textAlign: "center" }
+  );
   page.objects.push(center);
+
   const satelliteCount = Math.max(0, count - 1);
   for (let index = 0; index < satelliteCount; index += 1) {
-    const angle = -Math.PI / 2 + Math.PI * 2 * index / satelliteCount;
+    let angle;
+    let Rx = 24;
+    let Ry = 25;
+
+    if (satelliteCount === 1) {
+      angle = 0;
+      Rx = 23;
+    } else if (satelliteCount === 2) {
+      // 2개 위성은 16:9 와이드 화면에 맞춰 좌우 수평 균형 배치 (180도, 0도)
+      angle = index === 0 ? Math.PI : 0;
+      Rx = 24;
+      Ry = 0;
+    } else if (satelliteCount === 3) {
+      // 3개 위성은 정삼각 대칭 (12시 정점, 4시, 8시)
+      const angles = [-Math.PI / 2, Math.PI / 6, 5 * Math.PI / 6];
+      angle = angles[index];
+      Rx = 24;
+      Ry = 25;
+    } else if (satelliteCount === 4) {
+      // 4개 위성은 4방향 대칭 X 배치
+      const angles = [-3 * Math.PI / 4, -Math.PI / 4, Math.PI / 4, 3 * Math.PI / 4];
+      angle = angles[index];
+      Rx = 23;
+      Ry = 23;
+    } else {
+      angle = -Math.PI / 2 + (Math.PI * 2 * index) / satelliteCount;
+    }
+
+    const satCenterX = Cx + Math.cos(angle) * Rx;
+    const satCenterY = Cy + Math.sin(angle) * Ry;
+
     page.objects.push(createTextObject(
       "connected-circle",
       `항목 ${index + 2}`,
-      50 + Math.cos(angle) * 18 - 4,
-      52 + Math.sin(angle) * 27 - 7,
-      8,
-      14,
-      { item: true, node: true, sequence: index + 1 }
+      Number((satCenterX - W_s / 2).toFixed(2)),
+      Number((satCenterY - H_s / 2).toFixed(2)),
+      W_s,
+      H_s,
+      { item: true, node: true, sequence: index + 1, borderRadius: "50%", textAlign: "center" }
     ));
   }
 }
@@ -1758,6 +1998,7 @@ function addVsDiagram(page) {
 const CHART_DEFAULT_DATA = {
   column: [["1분기", 42], ["2분기", 68], ["3분기", 55], ["4분기", 82], ["5분기", 64]],
   line: [["1월", 28], ["2월", 44], ["3월", 39], ["4월", 72], ["5월", 66], ["6월", 88]],
+  donut: [["제품 A", 38], ["제품 B", 27], ["제품 C", 21], ["기타", 14]],
   pie: [["제품 A", 38], ["제품 B", 27], ["제품 C", 21], ["기타", 14]],
   bar: [["항목 A", 78], ["항목 B", 62], ["항목 C", 49], ["항목 D", 35], ["항목 E", 24]],
   area: [["1월", 22], ["2월", 36], ["3월", 31], ["4월", 58], ["5월", 74], ["6월", 69]]
@@ -1774,9 +2015,9 @@ function addChart(page, variant) {
     chartType: variant,
     data: source.map(([label, value]) => ({ label, value })),
     x: 5,
-    y: 24,
+    y: 19,
     w: 90,
-    h: 71,
+    h: 75,
     item: false
   });
 }
@@ -3744,9 +3985,29 @@ function createObjectElement(object) {
   return element;
 }
 
+const CENTER_ALIGNED_ROLES = new Set([
+  "mind-root",
+  "mind-node",
+  "process-step",
+  "timeline-node",
+  "pyramid-level",
+  "cycle-node",
+  "chain-node",
+  "ribbon-step",
+  "funnel-level",
+  "venn-circle",
+  "target-ring",
+  "connected-circle",
+  "quadrant-item",
+  "vs-node",
+  "shape-box"
+]);
+
 function getTextAlign(object) {
-  if (object.textAlign) return object.textAlign;
+  if (object.isCustomTextAlign && object.textAlign) return object.textAlign;
   if (object.role === "bullet-item") return "left";
+  if (CENTER_ALIGNED_ROLES.has(object.role)) return "center";
+  if (object.textAlign) return object.textAlign;
   return "center";
 }
 
@@ -4028,18 +4289,31 @@ function createChartElement(object) {
 
   const editor = document.createElement("div");
   editor.className = "chart-data-editor";
+
+  const header = document.createElement("div");
+  header.className = "chart-editor-header";
+  header.innerHTML = '<span class="chart-editor-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg> 수치 데이터 편집</span>';
+
+  const fields = document.createElement("div");
+  fields.className = "chart-editor-fields";
+
   object.data.forEach((item, index) => {
     const label = document.createElement("label");
     label.className = "chart-data-field";
     const name = document.createElement("span");
+    name.className = "chart-field-label";
     name.textContent = item.label;
+    name.title = item.label;
+
     const input = document.createElement("input");
+    input.className = "chart-field-input";
     input.type = "number";
     input.min = "0";
     input.max = "1000000";
     input.step = "1";
     input.value = String(item.value);
     input.setAttribute("aria-label", `${item.label} 값`);
+
     let snapshotted = false;
     input.addEventListener("pointerdown", (event) => event.stopPropagation());
     input.addEventListener("click", (event) => event.stopPropagation());
@@ -4056,8 +4330,9 @@ function createChartElement(object) {
       snapshotted = false;
     });
     label.append(name, input);
-    editor.append(label);
+    fields.append(label);
   });
+  editor.append(header, fields);
   chart.append(graphic, editor);
   return chart;
 }
@@ -4066,7 +4341,8 @@ function renderChartGraphic(container, object) {
   container.innerHTML = "";
   const data = getChartData(object);
   if (["line", "area"].includes(object.chartType)) renderLineChart(container, data, object.chartType === "area");
-  else if (object.chartType === "pie") renderPieChart(container, data);
+  else if (object.chartType === "pie") renderPieChart(container, data, false);
+  else if (object.chartType === "donut") renderPieChart(container, data, true);
   else if (object.chartType === "bar") renderHorizontalBarChart(container, data);
   else renderColumnChart(container, data);
 }
@@ -4147,7 +4423,7 @@ function renderLineChart(container, data, filled) {
   container.append(svg);
 }
 
-function renderPieChart(container, data) {
+function renderPieChart(container, data, isDonut = false) {
   const colors = ["#2b74ff", "#ef7f7a", "#f0c843", "#6f9f7b", "#8d72c7", "#56a9a6"];
   const total = Math.max(data.reduce((sum, item) => sum + item.value, 0), 1);
   let cursor = 0;
@@ -4159,11 +4435,13 @@ function renderPieChart(container, data) {
   const layout = document.createElement("div");
   layout.className = "pie-chart-layout";
   const pie = document.createElement("div");
-  pie.className = "pie-chart-disc";
+  pie.className = `pie-chart-disc ${isDonut ? "is-donut" : "is-solid-pie"}`;
   pie.style.background = `conic-gradient(${slices.join(",")})`;
-  const center = document.createElement("strong");
-  center.textContent = total.toLocaleString();
-  pie.append(center);
+  if (isDonut) {
+    const center = document.createElement("strong");
+    center.textContent = total.toLocaleString();
+    pie.append(center);
+  }
   const legend = document.createElement("div");
   legend.className = "pie-chart-legend";
   data.forEach((item, index) => {
@@ -4273,19 +4551,35 @@ const DEFAULT_PLACEHOLDER_TEXTS = new Set([
   "내용"
 ]);
 
-function isDefaultPlaceholderText(text, role) {
-  if (!text || typeof text !== "string") return true;
-  const trimmed = text.trim();
+function isDefaultPlaceholderSingleLine(line, role) {
+  if (!line || typeof line !== "string") return true;
+  const trimmed = line.trim();
+  if (!trimmed) return true;
   if (DEFAULT_PLACEHOLDER_TEXTS.has(trimmed)) return true;
   if (trimmed.includes("입력하세요") || trimmed.includes("입력하십시오")) return true;
   if (/^(첫|두|세|네|다섯|여섯|일곱|여덟|아홉|열)\s*번째\s*핵심\s*내용$/.test(trimmed)) return true;
   if (/^새\s*핵심\s*내용(?:\s*\d+)?$/.test(trimmed)) return true;
-  if (/^STEP\s*\d+\s*\n단계\s*\d+$/i.test(trimmed)) return true;
-  if (/^포인트\s*\d+/i.test(trimmed) && trimmed.includes("설명")) return true;
-  if (/^항목\s*\d+/i.test(trimmed) && (trimmed.includes("설명") || trimmed.includes("내용"))) return true;
-  if (/^주요\s*특징\s*\d+/i.test(trimmed) && trimmed.includes("설명")) return true;
-  if (/^카드\s*\d+/i.test(trimmed) && trimmed.includes("설명")) return true;
+  if (/^STEP\s*\d+(?:\s*단계\s*\d+)?$/i.test(trimmed)) return true;
+  if (/^단계\s*\d+$/i.test(trimmed)) return true;
+  if (/^포인트\s*\d+(?:\s*(?:설명|내용))?$/i.test(trimmed)) return true;
+  if (/^항목\s*\d+(?:\s*(?:설명|내용))?$/i.test(trimmed)) return true;
+  if (/^주요\s*특징\s*\d+(?:\s*(?:설명|내용))?$/i.test(trimmed)) return true;
+  if (/^카드\s*\d+(?:\s*(?:설명|내용))?$/i.test(trimmed)) return true;
   if (/^노드\s*\d+$/i.test(trimmed)) return true;
+  if (role === "vs-node" && (trimmed === "A" || trimmed === "B")) return true;
+  return false;
+}
+
+function isDefaultPlaceholderText(text, role) {
+  if (!text || typeof text !== "string") return true;
+  const trimmed = text.trim();
+  if (!trimmed) return true;
+  if (DEFAULT_PLACEHOLDER_TEXTS.has(trimmed)) return true;
+  if (isDefaultPlaceholderSingleLine(trimmed, role)) return true;
+  const lines = trimmed.split("\n").map((l) => l.trim()).filter(Boolean);
+  if (lines.length > 1 && lines.every((line) => isDefaultPlaceholderSingleLine(line, role))) {
+    return true;
+  }
   return false;
 }
 
@@ -4854,6 +5148,7 @@ function updateActiveTextStyle(property, value) {
       target[property] = value;
       if (property === "textColor") target.isCustomTextColor = true;
       if (property === "bgColor") target.isCustomBgColor = true;
+      if (property === "textAlign") target.isCustomTextAlign = true;
     }
   });
   renderStage();
@@ -5507,7 +5802,32 @@ function populateVariantSelects() {
       <span class="layout-variant-name">개조식</span>
     </button>
     <button class="layout-variant-button" type="button" data-template-id="mindmap" aria-pressed="false" aria-label="마인드맵">
-      <span class="diagram-thumbnail connected-thumb"><span></span><span></span><span></span></span>
+      <span class="diagram-thumbnail mindmap-thumb"><svg viewBox="0 0 100 56" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <line x1="38" y1="25" x2="28" y2="14" stroke="#e11d48" stroke-width="2" stroke-linecap="round"/>
+        <line x1="15" y1="11" x2="9" y2="7" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="15" y1="14" x2="9" y2="17" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="38" y1="31" x2="28" y2="42" stroke="#e11d48" stroke-width="2" stroke-linecap="round"/>
+        <line x1="15" y1="43" x2="9" y2="47" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="50" y1="21" x2="50" y2="11" stroke="#e11d48" stroke-width="2" stroke-linecap="round"/>
+        <line x1="62" y1="25" x2="72" y2="14" stroke="#e11d48" stroke-width="2" stroke-linecap="round"/>
+        <line x1="85" y1="11" x2="91" y2="7" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="62" y1="31" x2="72" y2="42" stroke="#e11d48" stroke-width="2" stroke-linecap="round"/>
+        <line x1="85" y1="40" x2="91" y2="37" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="85" y1="44" x2="91" y2="48" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round"/>
+        <rect x="38" y="21" width="24" height="14" rx="3.5" fill="#e11d48"/>
+        <rect x="43" y="27" width="14" height="2" rx="1" fill="#ffffff" opacity="0.9"/>
+        <rect x="43" y="4" width="14" height="8" rx="2.5" fill="#2563eb"/>
+        <rect x="15" y="8" width="14" height="9" rx="2.5" fill="#2563eb"/>
+        <rect x="15" y="38" width="14" height="9" rx="2.5" fill="#2563eb"/>
+        <rect x="71" y="8" width="14" height="9" rx="2.5" fill="#2563eb"/>
+        <rect x="71" y="38" width="14" height="9" rx="2.5" fill="#2563eb"/>
+        <rect x="2" y="4" width="8" height="5" rx="1.5" fill="#f59e0b"/>
+        <rect x="2" y="15" width="8" height="5" rx="1.5" fill="#f59e0b"/>
+        <rect x="2" y="45" width="8" height="5" rx="1.5" fill="#f59e0b"/>
+        <rect x="90" y="4" width="8" height="5" rx="1.5" fill="#f59e0b"/>
+        <rect x="90" y="34" width="8" height="5" rx="1.5" fill="#f59e0b"/>
+        <rect x="90" y="46" width="8" height="5" rx="1.5" fill="#f59e0b"/>
+      </svg></span>
       <span class="layout-variant-name">마인드맵</span>
     </button>
   `;
@@ -5584,7 +5904,7 @@ function getLayoutThumbnailMarkup(variant) {
   if (variant === "summaryBottom") return '<span class="layout-thumbnail summary-thumb-bottom"><span class="t-card-cols"><span class="t-card"></span><span class="t-card"></span><span class="t-card"></span></span><span class="t-dark-banner">요약</span></span>';
 
   // 4. Image Layouts (이미지 레이아웃 6종)
-  if (variant === "image_full") return '<span class="layout-thumbnail img-thumb-full"><span class="t-overlay"></span></span>';
+  if (variant === "image_full") return '<span class="layout-thumbnail img-thumb-full"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>';
   if (variant === "image_center") return '<span class="layout-thumbnail img-thumb-center"><span class="t-line"></span><span class="t-img-hero"></span><span class="t-line"></span></span>';
   if (variant === "image_left") return '<span class="layout-thumbnail img-thumb-left"><span class="t-img-box"></span><span class="t-text-cols"><span class="t-card"></span><span class="t-card"></span></span></span>';
   if (variant === "image_right") return '<span class="layout-thumbnail img-thumb-right"><span class="t-text-cols"><span class="t-card"></span><span class="t-card"></span></span><span class="t-img-box"></span></span>';
@@ -5609,7 +5929,7 @@ function getDiagramThumbnailMarkup(variant) {
     funnel: `<span class="diagram-thumbnail funnel-thumb">${node.repeat(4)}</span>`,
     venn: `<span class="diagram-thumbnail venn-thumb">${node.repeat(3)}</span>`,
     target: `<span class="diagram-thumbnail target-thumb">${node.repeat(4)}</span>`,
-    connectedCircles: `<span class="diagram-thumbnail connected-thumb">${node.repeat(5)}</span>`,
+    connectedCircles: `<span class="diagram-thumbnail connected-thumb"><svg viewBox="0 0 100 56" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><line x1="50" y1="28" x2="23" y2="15" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/><line x1="50" y1="28" x2="77" y2="15" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/><line x1="50" y1="28" x2="23" y2="41" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/><line x1="50" y1="28" x2="77" y2="41" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/><circle cx="50" cy="28" r="11" fill="#2563eb" stroke="#dbeafe" stroke-width="2"/><circle cx="50" cy="28" r="4.5" fill="#ffffff"/><circle cx="23" cy="15" r="8" fill="#ffffff" stroke="#2563eb" stroke-width="2.5"/><circle cx="77" cy="15" r="8" fill="#ffffff" stroke="#2563eb" stroke-width="2.5"/><circle cx="23" cy="41" r="8" fill="#ffffff" stroke="#2563eb" stroke-width="2.5"/><circle cx="77" cy="41" r="8" fill="#ffffff" stroke="#2563eb" stroke-width="2.5"/></svg></span>`,
     quadrant: `<span class="diagram-thumbnail quadrant-thumb">${node.repeat(4)}</span>`,
     vs: `<span class="diagram-thumbnail vs-thumb">${node}<b>VS</b>${node}</span>`
   };
@@ -5620,10 +5940,11 @@ function getChartThumbnailMarkup(variant) {
   const bars = '<i></i><i></i><i></i><i></i><i></i>';
   const previews = {
     column: `<span class="chart-thumbnail chart-thumb-column">${bars}</span>`,
-    line: '<span class="chart-thumbnail chart-thumb-line"><svg viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true"><polyline points="5,39 27,25 48,30 70,11 95,18"></polyline></svg></span>',
-    pie: '<span class="chart-thumbnail chart-thumb-pie"><i></i></span>',
     bar: `<span class="chart-thumbnail chart-thumb-bar">${bars}</span>`,
-    area: '<span class="chart-thumbnail chart-thumb-area"><svg viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true"><polygon points="5,43 5,35 27,25 48,30 70,11 95,18 95,43"></polygon><polyline points="5,35 27,25 48,30 70,11 95,18"></polyline></svg></span>'
+    donut: '<span class="chart-thumbnail chart-thumb-donut"><i></i></span>',
+    pie: '<span class="chart-thumbnail chart-thumb-pie"><i></i></span>',
+    area: '<span class="chart-thumbnail chart-thumb-area"><svg viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true"><polygon points="5,43 5,35 27,25 48,30 70,11 95,18 95,43"></polygon><polyline points="5,35 27,25 48,30 70,11 95,18"></polyline></svg></span>',
+    line: '<span class="chart-thumbnail chart-thumb-line"><svg viewBox="0 0 100 50" preserveAspectRatio="none" aria-hidden="true"><polyline points="5,39 27,25 48,30 70,11 95,18"></polyline></svg></span>'
   };
   return previews[variant] || previews.column;
 }
@@ -8208,9 +8529,9 @@ function createAiObjectPage(slide) {
     if (chart) {
       chart.data = chartData;
       chart.x = 5;
-      chart.y = 16;
+      chart.y = 19;
       chart.w = 90;
-      chart.h = 79;
+      chart.h = 75;
     }
   }
 

@@ -966,3 +966,25 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
       - `addFunnelDiagram`: 상단 유입구($68\%$)에서 시작하여 깔때기 본체($42\%$), 하단 전환 배출구($34\%$)로 이어지는 다단 수렴 구조 설계 및 동적 `clipPath`/`borderRadius` 속성 바인딩.
       - `copyRelayoutTextProperties`: 템플릿 전환 시 마인드맵 노드 색상이 피라미드/깔때기의 단계별 층 팔레트를 덮어쓰지 않도록 안전 가드 추가.
 - **검증 결과**: `node --check app.js; node --check layouts/options.js; node --check server.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
+## [2026-10-13 20:44] 업데이트 이력 (Commit ID: bd33fce)
+- **수정 내용**:
+  - `charts/options.js`:
+    - **가로 막대 차트(`bar_h`) 화면 이탈 방지**: 가로 막대 차트 컨테이너에 `min-height: 0; flex: 1; max-height: 44px;`를 적용하고, 항목 간 패딩을 `clamp(3px, 1.2vh, 10px)` 유동 단위로 개선하여 슬라이드 하단으로 차트와 수치가 삐져나가거나 잘리지 않도록 100% 안전 영역 내에 수용.
+    - **차트 데이터 입력 패널(`#chartDataList`) 디자인 리뉴얼**: 조잡하던 기존 데이터 입력 칸을 세련된 라벨 뱃지와 둥근 칩 형태의 스크롤 컨테이너로 개편하여 시각적 가독성 및 편집 편의성 대폭 향상.
+    - **차트 템플릿 2열 그리드 배치 최적화**: 세로 막대 옆에 가로 막대(`bar`), 원형 차트(`donut`) 옆에 파이 차트(`pie`), 영역형 차트 옆에 선 차트(`line`)를 2열 짝맞춤 배치.
+    - **원형 차트(도넛)와 파이 차트 분리**: `donut`(중앙 홀 도넛형)과 `pie`(원형 부채꼴 파이)의 썸네일 및 렌더링을 명확히 분기.
+  - `app.js`:
+    - **마인드맵 ↔ 타 템플릿 전환 시 노드 위치 & 계층 100% 보존**:
+      - `applyMindmapTemplatePreservingContent` 실행 시 이전 스냅샷을 파괴하던 `delete page.mindmapSnapshot` 결함을 제거.
+      - 템플릿 전환 함수 전반(`applyBulletTemplatePreservingContent`, `changeLayoutVariantPreservingContent`, `changeDiagramVariantPreservingContent`, `changeChartVariantPreservingContent`, `buildTemplate`)에 DFS 순서 기반 스냅샷 캡처(`saveMindmapSnapshotIfActive`)를 공통 적용.
+      - 마인드맵 복귀 시 저장된 노드의 좌표(`x`, `y`, `w`, `h`), 각도(`mindAngle`), 위계(`mindLevel`), 부모 관계(`parentId`)를 온전히 복원하고, 불필요한 `layoutMindmapTree` 재호출을 차단하여 1픽셀의 틀어짐도 없이 원래 배열 상태를 정확히 유지.
+      - 개조식 항목에 `mindNodeId`, `mindParentId` 메타데이터를 유지하여 복귀 시 매핑 일관성 보장.
+    - **개조식 텍스트 정렬 보존**: 텍스트 미수정 상태에서 개조식으로 복귀 시 기존 커스텀 정렬 플래그(`isCustomTextAlign`)를 보존하여 좌측/가운데 정렬 속성이 리셋되지 않도록 수정.
+    - **VS 템플릿 다중 행 플레이스홀더 자동 삭제**: `isDefaultPlaceholderText`에 여러 줄로 구성된 기본 텍스트(`STEP 1\n단계 1`, `두 번째 핵심 내용\n...`) 패턴 매칭을 추가하여 편집 모드 진입 시 자동 비움 처리.
+    - **전체 화면 배경 이미지 템플릿 (`image_full`) 텍스트 개체 완전 삭제**: 전체 화면 배경 이미지 레이아웃 선택 시 슬라이드 내 모든 텍스트 개체를 제거하고 이미지만 표시되도록 개선.
+    - **마인드맵 썸네일 전면 리뉴얼**: 연결된 원형과 동일했던 원형 SVG 대신, 슬라이드 실제 디자인과 동일한 모서리가 둥근 캡슐/카드(빨간색 루트, 파란색 핵심 노드, 주황색 하위 노드)와 다계층 분기 가지선이 적용된 전용 마인드맵 썸네일(`mindmap-thumb`) 적용.
+    - **연결된 원형 썸네일 분리 및 정돈**: 블루 허브 코어 원형과 화이트/블루 위성 원형 4개 및 방사형 스포크 연결선 SVG로 명확히 분리.
+  - `style.css`:
+    - `.mindmap-thumb`: 전용 마인드맵 썸네일 flex 컨테이너 및 SVG 반응형 렌더링 스타일 추가.
+- **검증 결과**: `node -c app.js; node -c charts/options.js; node -c layouts/options.js; node -c server.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
