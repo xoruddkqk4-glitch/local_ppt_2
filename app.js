@@ -3023,6 +3023,36 @@ function addTimerObject() {
   render();
 }
 
+function addTableObject() {
+  const page = currentPage();
+  if (page.type === "cover") {
+    showSaveToast("⚠️ 표지 슬라이드에는 테이블을 추가할 수 없습니다.");
+    return;
+  }
+  snapshot();
+
+  const newTable = {
+    id: createId("table"),
+    type: "table",
+    role: "table",
+    x: 15,
+    y: 26,
+    w: 70,
+    h: 46,
+    item: false,
+    cells: [
+      ["구분", "항목 1", "항목 2"],
+      ["데이터 A", "내용 A1", "내용 A2"],
+      ["데이터 B", "내용 B1", "내용 B2"]
+    ]
+  };
+  page.objects.push(newTable);
+  state.selectedIds.clear();
+  state.selectedIds.add(newTable.id);
+  render();
+  showSaveToast("📊 새 테이블 개체가 추가되었습니다.");
+}
+
 function openImagePickerForObject(targetObject) {
   const fileInput = document.createElement("input");
   fileInput.type = "file";
@@ -3426,7 +3456,11 @@ function createObjectElement(object) {
         text.append(descriptionElement);
       }
     } else {
-      text.textContent = object.text;
+      if (object.html) {
+        text.innerHTML = object.html;
+      } else {
+        text.textContent = object.text;
+      }
     }
     applyTextObjectStyle(text, object, element);
     element.append(text);
@@ -3978,7 +4012,12 @@ function beginTextEdit(event, object, wrapper, text) {
   showTextToolbar(object, text);
   wrapper.classList.add("is-editing");
 
-  text.textContent = object.text || "";
+  activeEditingTextElement = text;
+  if (object.html) {
+    text.innerHTML = object.html;
+  } else {
+    text.textContent = object.text || "";
+  }
   text.contentEditable = "true";
 
   setCaretAtEventOrEnd(event, text);
@@ -3991,8 +4030,23 @@ function beginTextEdit(event, object, wrapper, text) {
       }, 10);
       return;
     }
+    // 서식 툴바 클릭 시 포커스 풀림 방지
+    if (blurEvent?.relatedTarget && (
+      $("#textSelectionToolbar")?.contains(blurEvent.relatedTarget) ||
+      $("#textToolbar")?.contains(blurEvent.relatedTarget)
+    )) {
+      return;
+    }
+    hideTextSelectionToolbar();
+    activeEditingTextElement = null;
     text.removeEventListener("blur", finish);
     object.text = text.innerText.trim() || (["free-text", "shape-box"].includes(object.role) ? "" : "텍스트");
+    const rawHtml = text.innerHTML.trim();
+    if (/<[a-z][\s\S]*>/i.test(rawHtml)) {
+      object.html = rawHtml;
+    } else {
+      delete object.html;
+    }
     text.contentEditable = "false";
     wrapper.classList.remove("is-editing");
     renderStage();
@@ -4001,6 +4055,8 @@ function beginTextEdit(event, object, wrapper, text) {
   text.addEventListener("blur", finish);
   text.addEventListener("keydown", (keyEvent) => {
     if (keyEvent.key === "Escape") {
+      hideTextSelectionToolbar();
+      activeEditingTextElement = null;
       text.removeEventListener("blur", finish);
       text.contentEditable = "false";
       wrapper.classList.remove("is-editing");
@@ -4034,6 +4090,238 @@ function insertEditableLineBreak(editable) {
   selection.removeAllRanges();
   selection.addRange(range);
 }
+
+let activeEditingTextElement = null;
+let savedSelectionRange = null;
+
+function saveCurrentSelection() {
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0) {
+    savedSelectionRange = sel.getRangeAt(0).cloneRange();
+  }
+}
+
+function restoreCurrentSelection() {
+  if (!savedSelectionRange) return;
+  const sel = window.getSelection();
+  if (sel) {
+    sel.removeAllRanges();
+    sel.addRange(savedSelectionRange);
+  }
+}
+
+function hideTextSelectionToolbar() {
+  const tb = $("#textSelectionToolbar");
+  if (tb) {
+    tb.hidden = true;
+    closeSelectionPopovers();
+  }
+}
+
+function closeSelectionPopovers() {
+  const colorMenu = $("#selColorMenu");
+  const hlMenu = $("#selHlMenu");
+  if (colorMenu) colorMenu.hidden = true;
+  if (hlMenu) hlMenu.hidden = true;
+}
+
+function updateSelectionToolbar() {
+  const tb = $("#textSelectionToolbar");
+  if (!tb) return;
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.rangeCount) {
+    hideTextSelectionToolbar();
+    return;
+  }
+  const textEl = document.activeElement;
+  if (!textEl || !textEl.isContentEditable || !textEl.classList.contains("canvas-text")) {
+    hideTextSelectionToolbar();
+    return;
+  }
+
+  const range = sel.getRangeAt(0);
+  const rangeRect = range.getBoundingClientRect();
+  if (!rangeRect || rangeRect.width === 0 || rangeRect.height === 0) {
+    hideTextSelectionToolbar();
+    return;
+  }
+
+  const wrapper = $(".stage-canvas-wrapper");
+  if (!wrapper) return;
+  const wrapperRect = wrapper.getBoundingClientRect();
+
+  tb.hidden = false;
+  const tbWidth = tb.offsetWidth || 280;
+  const tbHeight = tb.offsetHeight || 38;
+
+  let left = (rangeRect.left + rangeRect.width / 2) - wrapperRect.left - (tbWidth / 2);
+  let top = rangeRect.top - wrapperRect.top - tbHeight - 8;
+
+  left = Math.max(8, Math.min(wrapperRect.width - tbWidth - 8, left));
+  if (top < 4) {
+    top = rangeRect.bottom - wrapperRect.top + 8;
+  }
+
+  tb.style.left = `${left}px`;
+  tb.style.top = `${top}px`;
+}
+
+function applyInlineFormat(command, value = null) {
+  restoreCurrentSelection();
+  document.execCommand(command, false, value);
+  saveCurrentSelection();
+  if (activeEditingTextElement) {
+    activeEditingTextElement.focus();
+  }
+  updateSelectionToolbar();
+}
+
+function applyInlineHighlight(color) {
+  restoreCurrentSelection();
+  if (!color || color === "transparent") {
+    document.execCommand("removeFormat", false, null);
+  } else {
+    if (!document.execCommand("hiliteColor", false, color)) {
+      document.execCommand("backColor", false, color);
+    }
+  }
+  const hlBar = $("#selHlBar");
+  if (hlBar) hlBar.style.background = (color === "transparent" ? "#fef08a" : color);
+  saveCurrentSelection();
+  closeSelectionPopovers();
+  if (activeEditingTextElement) {
+    activeEditingTextElement.focus();
+  }
+  updateSelectionToolbar();
+}
+
+function applyInlineColor(color) {
+  restoreCurrentSelection();
+  document.execCommand("foreColor", false, color);
+  const colorBar = $("#selColorBar");
+  if (colorBar) colorBar.style.background = color;
+  saveCurrentSelection();
+  closeSelectionPopovers();
+  if (activeEditingTextElement) {
+    activeEditingTextElement.focus();
+  }
+  updateSelectionToolbar();
+}
+
+function applyInlineFontSize(delta) {
+  restoreCurrentSelection();
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+
+  let parentEl = range.commonAncestorContainer;
+  if (parentEl.nodeType === Node.TEXT_NODE) parentEl = parentEl.parentElement;
+  const currentSize = parseFloat(window.getComputedStyle(parentEl).fontSize) || 16;
+  const newSize = Math.max(9, Math.min(140, Math.round(currentSize + delta)));
+
+  document.execCommand("fontSize", false, "7");
+  const container = parentEl.closest(".canvas-text") || parentEl;
+  const fontTags = container.querySelectorAll('font[size="7"]');
+  fontTags.forEach((fontTag) => {
+    const span = document.createElement("span");
+    span.style.fontSize = `${newSize}px`;
+    span.innerHTML = fontTag.innerHTML;
+    fontTag.parentNode.replaceChild(span, fontTag);
+  });
+
+  saveCurrentSelection();
+  if (activeEditingTextElement) {
+    activeEditingTextElement.focus();
+  }
+  updateSelectionToolbar();
+}
+
+function initTextSelectionToolbar() {
+  const tb = $("#textSelectionToolbar");
+  if (!tb) return;
+
+  tb.addEventListener("mousedown", (e) => {
+    if (e.target.tagName !== "INPUT") {
+      e.preventDefault();
+    }
+    saveCurrentSelection();
+  });
+
+  $("#selBoldBtn")?.addEventListener("click", () => applyInlineFormat("bold"));
+  $("#selItalicBtn")?.addEventListener("click", () => applyInlineFormat("italic"));
+  $("#selUnderlineBtn")?.addEventListener("click", () => applyInlineFormat("underline"));
+  $("#selClearFormatBtn")?.addEventListener("click", () => applyInlineFormat("removeFormat"));
+
+  $("#selSizeUpBtn")?.addEventListener("click", () => applyInlineFontSize(3));
+  $("#selSizeDownBtn")?.addEventListener("click", () => applyInlineFontSize(-3));
+
+  $("#selColorTriggerBtn")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const menu = $("#selColorMenu");
+    if (!menu) return;
+    const isHidden = menu.hidden;
+    closeSelectionPopovers();
+    menu.hidden = !isHidden;
+  });
+
+  document.querySelectorAll("#selColorSwatches .sel-swatch").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const color = btn.dataset.color || "#151515";
+      applyInlineColor(color);
+    });
+  });
+
+  $("#selColorCustomPicker")?.addEventListener("input", (e) => {
+    applyInlineColor(e.target.value);
+  });
+
+  $("#selHlTriggerBtn")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const menu = $("#selHlMenu");
+    if (!menu) return;
+    const isHidden = menu.hidden;
+    closeSelectionPopovers();
+    menu.hidden = !isHidden;
+  });
+
+  document.querySelectorAll("#selHlSwatches .sel-swatch").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const hl = btn.dataset.hl || "#fef08a";
+      applyInlineHighlight(hl);
+    });
+  });
+
+  const bindToolbarBtn = (id, action) => {
+    const btn = $(id);
+    if (!btn) return;
+    btn.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      saveCurrentSelection();
+    });
+    btn.addEventListener("click", action);
+  };
+
+  bindToolbarBtn("#toolbarBoldBtn", () => applyInlineFormat("bold"));
+  bindToolbarBtn("#toolbarItalicBtn", () => applyInlineFormat("italic"));
+  bindToolbarBtn("#toolbarUnderlineBtn", () => applyInlineFormat("underline"));
+  bindToolbarBtn("#toolbarHighlightBtn", () => applyInlineHighlight("#fef08a"));
+
+  document.addEventListener("selectionchange", () => {
+    if (document.activeElement?.isContentEditable && document.activeElement.classList.contains("canvas-text")) {
+      saveCurrentSelection();
+      updateSelectionToolbar();
+    } else if (!$("#textSelectionToolbar")?.contains(document.activeElement)) {
+      hideTextSelectionToolbar();
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".sel-popover-anchor")) {
+      closeSelectionPopovers();
+    }
+  });
+}
+initTextSelectionToolbar();
 
 function showTextToolbar(object, textElement, selectedObjectsParam = null) {
   if (!object) return;
@@ -6097,6 +6385,7 @@ $("#addTextObjectButton")?.addEventListener("click", () => {
 $("#addImageObjectButton")?.addEventListener("click", () => {
   $("#imageInput")?.click();
 });
+$("#addTableObjectButton")?.addEventListener("click", addTableObject);
 document.querySelectorAll(".shape-select-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     const shapeType = btn.dataset.shapeType || "rectangle";
@@ -6759,7 +7048,104 @@ $("#stageCutBtn")?.addEventListener("click", () => {
     showSaveToast("✂️ 개체 잘라내기 완료");
   }
 });
-$("#stagePasteBtn")?.addEventListener("click", () => executePaste());
+
+function insertClipboardImage(blob) {
+  const targetPage = currentPage();
+  if (!targetPage) return;
+
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    const dataUrl = String(reader.result);
+
+    // 1. 카드가 선택되어 있고 이미지 삽입 가능한 개체인 경우 해당 카드의 imageSrc로 설정
+    const selected = getSelectedActionObject(targetPage);
+    if (selected && selected.type !== "image" && selected.type !== "table" && selected.type !== "chart") {
+      snapshot();
+      selected.imageSrc = dataUrl;
+      render();
+      showSaveToast("🖼️ 선택한 개체에 클립보드 이미지가 삽입되었습니다.");
+      return;
+    }
+
+    // 2. 아니면 슬라이드에 새로운 이미지 개체 추가
+    snapshot();
+    const existingImages = targetPage.objects.filter((obj) => obj.type === "image").length;
+    const placement = getNewImagePlacement(targetPage, existingImages);
+    const newImageObj = {
+      id: createId("image"),
+      type: "image",
+      role: "image",
+      src: dataUrl,
+      name: `clipboard_${Date.now()}.png`,
+      ...placement
+    };
+    targetPage.objects.push(newImageObj);
+    state.selectedIds.clear();
+    state.selectedIds.add(newImageObj.id);
+    render();
+    showSaveToast("🖼️ 클립보드 이미지가 슬라이드에 추가되었습니다.");
+  });
+  reader.readAsDataURL(blob);
+}
+
+async function executePasteWithImageFallback() {
+  if (navigator.clipboard?.read) {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const imageType = item.types.find((t) => t.startsWith("image/"));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          insertClipboardImage(blob);
+          return true;
+        }
+      }
+    } catch (e) {
+      // 권한 미허용 또는 이미지 미존재 시 내부 클립보드로 진행
+    }
+  }
+  return executePaste();
+}
+
+$("#stagePasteBtn")?.addEventListener("click", () => executePasteWithImageFallback());
+
+let lastPasteEventHandledTime = 0;
+
+window.addEventListener("paste", (event) => {
+  const activeEl = document.activeElement;
+  const isEditingInput = activeEl && (
+    activeEl.tagName === "INPUT" ||
+    activeEl.tagName === "TEXTAREA"
+  );
+
+  // 1. 클립보드 아이템에서 이미지 확인
+  const items = event.clipboardData?.items;
+  if (items && items.length > 0) {
+    for (const item of items) {
+      if (item.type && item.type.indexOf("image") !== -1) {
+        const blob = item.getAsFile();
+        if (blob) {
+          event.preventDefault();
+          event.stopPropagation();
+          lastPasteEventHandledTime = Date.now();
+          insertClipboardImage(blob);
+          return;
+        }
+      }
+    }
+  }
+
+  // 2. 텍스트 입력창이 아닐 때 내부 개체/슬라이드 붙여넣기
+  const isEditingEditable = activeEl?.isContentEditable || activeEl?.closest?.("[contenteditable='true']");
+  if (!isEditingInput && !isEditingEditable) {
+    const handled = executePaste();
+    if (handled) {
+      event.preventDefault();
+      event.stopPropagation();
+      lastPasteEventHandledTime = Date.now();
+    }
+  }
+});
 
 const SHARED_CLIPBOARD_STORAGE_KEY = "local_ppt_shared_clipboard";
 
@@ -7220,9 +7606,11 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   if (isPasteKey && !isEditingText) {
-    event.preventDefault();
-    event.stopPropagation();
-    executePaste();
+    setTimeout(() => {
+      if (Date.now() - lastPasteEventHandledTime > 80) {
+        executePaste();
+      }
+    }, 40);
     return;
   }
   if (isCutKey && !isEditingText) {

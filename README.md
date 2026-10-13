@@ -890,4 +890,22 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - `.agents/`: `apply` 스킬 신규 탑재 및 `ask` 스킬, 커스텀 에이전트 실행 규칙 최신화.
 - **검증 결과**: `node -c app.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
 
+## [2026-10-13 14:05] 업데이트 이력 (Commit ID: 88bd017)
+- **수정 내용**:
+  - `index.html`:
+    - 텍스트 드래그 선택 시 노출되는 플로팅 인라인 서식 툴바(`#textSelectionToolbar`) 마크업 탑재 (볼드, 이탤릭, 밑줄, 글자색 선택 팝오버, 형광펜 하이라이트 팝오버, 글자 크기 조절, 서식 지우기).
+    - 상단 개체 서식 툴바(`#textToolbar`)에 텍스트 인라인 서식 버튼 그룹(`#textFormatGroup`: 굵게, 기울임, 밑줄, 형광펜) 추가.
+    - `03 개체 삽입` 패널 버튼 레이아웃을 1행 3열에서 균형 잡힌 2행 2열(2x2) 구조로 재배치하고 '📊 테이블 추가' (`#addTableObjectButton`) 버튼 신규 탑재.
+  - `style.css`:
+    - 플로팅 인라인 서식 바(`.text-selection-toolbar`)의 세련된 다크 글래스모피즘 디자인, 도구 버튼(`.sel-tool-btn`), 구분선, 색상/형광펜 선택 팝오버 메뉴(`.sel-popover-menu`) 및 컬러 스와치 그리드 스타일링.
+    - 캔버스 내 하이라이트/형광펜 표시 인라인 스타일 최적화 (`.canvas-text mark`, `.canvas-text [style*="background-color"]`).
+  - `app.js`:
+    - **선택 텍스트 부분 서식(인라인 서식)**: `selectionchange` 기반 선택 영역 감지 및 툴바 위치 자동 계산(`updateSelectionToolbar`), `document.execCommand` 기반 볼드/이탤릭/밑줄/글자색/형광펜/글자크기 적용 로직 구현.
+    - **서식 보존 및 데이터 호환성**: 개체 렌더링 시 `object.html` 지원, 텍스트 편집 시작/종료 시 HTML 구조 보존 및 `.txt` 프로젝트 저장/불러오기 100% 하위 호환성 확보.
+    - **클립보드 캡처 이미지 붙여넣기**: 전역 `paste` 이벤트 리스너를 구현하여 화면 캡처(`Win+Shift+S`) 및 클립보드 이미지 바이너리 감지 시 슬라이드 새 이미지 개체(`type: "image"`)로 즉시 추가(`insertClipboardImage`). 선택된 카드 개체 존재 시 배경/삽입 이미지로 스마트 적용.
+    - **우측 플로팅 붙여넣기 버튼 연동**: `#stagePasteBtn` 클릭 시 `navigator.clipboard.read()` API를 통해 클립보드 이미지 자동 감지 및 내부 복사 개체 붙여넣기 통합 지원(`executePasteWithImageFallback`).
+    - **테이블 개체 신규 추가**: `addTableObject` 함수 구현으로 [📊 테이블 추가] 클릭 시 기본 3x3 규격의 표 개체를 생성 및 자동 선택하여 셀 텍스트 수정, 크기 조절, 서식 관리 완벽 연동.
+- **검증 결과**: `node -c app.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
+
 

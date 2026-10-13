@@ -160,10 +160,11 @@
 
       <section id="insertSection" class="panel-section">
         <div class="section-heading"><span>03</span><h2>개체 삽입</h2></div>
-        <div class="action-grid" style="grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px; margin-top: 0;">
+        <div class="action-grid" style="grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 6px; margin-top: 0;">
           <button id="addTextObjectButton" class="button insert-btn" type="button" title="텍스트 개체 추가">📝 텍스트 추가</button>
           <button id="addImageObjectButton" class="button insert-btn" type="button" title="이미지 개체 추가">🖼️ 이미지 추가</button>
           <button id="addTimerObjectButton" class="button button-blue insert-btn" type="button" title="타이머 개체 추가">⏱️ 타이머 추가</button>
+          <button id="addTableObjectButton" class="button button-blue insert-btn" type="button" title="테이블 개체 추가">📊 테이블 추가</button>
         </div>
         <div class="shape-selector-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 4px;">
           <button class="button shape-select-btn" type="button" data-shape-type="rectangle" title="사각형">⬛ 사각형</button>
@@ -307,6 +308,13 @@
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/><path d="M5 19h14"/></svg>
               </button>
             </div>
+            <div id="textFormatGroup" style="display:flex; align-items:center; gap:2px;" aria-label="텍스트 서식">
+              <span class="toolbar-divider" style="width:1px; height:16px; background:#cbd5e1; margin:0 1px;"></span>
+              <button id="toolbarBoldBtn" class="text-tool-button" type="button" title="선택 텍스트 굵게 (Ctrl+B)"><b>B</b></button>
+              <button id="toolbarItalicBtn" class="text-tool-button" type="button" title="선택 텍스트 기울임 (Ctrl+I)"><i>I</i></button>
+              <button id="toolbarUnderlineBtn" class="text-tool-button" type="button" title="선택 텍스트 밑줄 (Ctrl+U)"><u>U</u></button>
+              <button id="toolbarHighlightBtn" class="text-tool-button" type="button" title="형광펜 칠하기 (노랑)">🖍️</button>
+            </div>
             <div id="textSizeGroup" style="display:flex; align-items:center; gap:4px;">
               <span class="toolbar-divider" style="width:1px; height:16px; background:#cbd5e1; margin:0 1px;"></span>
               <label id="textSizeLabel">크기 <input id="textSizeInput" type="number" min="8" max="160" step="1" style="width:36px;" aria-label="텍스트 크기"></label>
@@ -327,6 +335,55 @@
               </div>
             </div>
             <button id="closeTextToolbarButton" class="text-tool-button" type="button" aria-label="개체 서식 닫기">×</button>
+          </div>
+          <div id="textSelectionToolbar" class="text-selection-toolbar" hidden aria-label="선택 텍스트 서식 툴바">
+            <button id="selBoldBtn" class="sel-tool-btn" type="button" title="굵게 (Ctrl+B)"><b>B</b></button>
+            <button id="selItalicBtn" class="sel-tool-btn" type="button" title="기울임 (Ctrl+I)"><i>I</i></button>
+            <button id="selUnderlineBtn" class="sel-tool-btn" type="button" title="밑줄 (Ctrl+U)"><u>U</u></button>
+            <span class="sel-divider"></span>
+            <div class="sel-popover-anchor">
+              <button id="selColorTriggerBtn" class="sel-tool-btn" type="button" title="글자색 변경">
+                <span class="sel-color-icon">A</span>
+                <span id="selColorBar" class="sel-color-bar" style="background:#e11d48;"></span>
+              </button>
+              <div id="selColorMenu" class="sel-popover-menu" hidden>
+                <div class="sel-popover-title">글자색</div>
+                <div class="sel-swatches" id="selColorSwatches">
+                  <button class="sel-swatch" data-color="#151515" style="background:#151515;" title="검정"></button>
+                  <button class="sel-swatch" data-color="#ffffff" style="background:#ffffff; border:1px solid #cbd5e1;" title="흰색"></button>
+                  <button class="sel-swatch" data-color="#e11d48" style="background:#e11d48;" title="빨강"></button>
+                  <button class="sel-swatch" data-color="#2563eb" style="background:#2563eb;" title="파랑"></button>
+                  <button class="sel-swatch" data-color="#16a34a" style="background:#16a34a;" title="초록"></button>
+                  <button class="sel-swatch" data-color="#f59e0b" style="background:#f59e0b;" title="주황"></button>
+                  <button class="sel-swatch" data-color="#8b5cf6" style="background:#8b5cf6;" title="보라"></button>
+                </div>
+                <label class="sel-custom-picker-label">직접 선택 <input id="selColorCustomPicker" type="color" value="#e11d48"></label>
+              </div>
+            </div>
+            <div class="sel-popover-anchor">
+              <button id="selHlTriggerBtn" class="sel-tool-btn" type="button" title="형광펜 (하이라이트)">
+                <span class="sel-hl-icon">🖍️</span>
+                <span id="selHlBar" class="sel-color-bar" style="background:#fef08a;"></span>
+              </button>
+              <div id="selHlMenu" class="sel-popover-menu" hidden>
+                <div class="sel-popover-title">형광펜 색상</div>
+                <div class="sel-swatches" id="selHlSwatches">
+                  <button class="sel-swatch hl-swatch" data-hl="#fef08a" style="background:#fef08a;" title="형광 노랑"></button>
+                  <button class="sel-swatch hl-swatch" data-hl="#bbf7d0" style="background:#bbf7d0;" title="형광 연두"></button>
+                  <button class="sel-swatch hl-swatch" data-hl="#bae6fd" style="background:#bae6fd;" title="형광 하늘"></button>
+                  <button class="sel-swatch hl-swatch" data-hl="#fbcfe8" style="background:#fbcfe8;" title="형광 분홍"></button>
+                  <button class="sel-swatch hl-swatch" data-hl="#fed7aa" style="background:#fed7aa;" title="형광 주황"></button>
+                  <button class="sel-swatch hl-swatch hl-clear" data-hl="transparent" style="background:#ffffff; border:1px dashed #94a3b8; font-size:10px; line-height:1;" title="형광펜 지우기">✕</button>
+                </div>
+              </div>
+            </div>
+            <span class="sel-divider"></span>
+            <div class="sel-size-buttons">
+              <button id="selSizeDownBtn" class="sel-tool-btn" type="button" title="글자 작게 (A-)">A-</button>
+              <button id="selSizeUpBtn" class="sel-tool-btn" type="button" title="글자 크게 (A+)">A+</button>
+            </div>
+            <span class="sel-divider"></span>
+            <button id="selClearFormatBtn" class="sel-tool-btn" type="button" title="서식 지우기">Tx</button>
           </div>
           <div id="presentationStage" class="presentation-stage" tabindex="0" aria-label="현재 페이지 캔버스"></div>
         </div>

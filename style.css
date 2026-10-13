@@ -245,6 +245,154 @@ kbd { border:1px solid currentColor; padding:1px 3px; font-size:10px; }
 .text-tool-button + .text-tool-button { margin-left:-1px; }
 .text-tool-button.is-active { position:relative; background:var(--yellow); }
 #autoTextSizeButton { white-space:nowrap !important; flex-shrink:0 !important; min-width:max-content !important; padding:2px 6px !important; font-size:11px !important; }
+
+/* 선택 텍스트 플로팅 인라인 서식 바 */
+.text-selection-toolbar {
+  position: absolute;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 6px;
+  background: #1e293b;
+  color: #f8fafc;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3), 0 8px 10px -6px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.1);
+  font-size: 12px;
+  font-weight: 700;
+  user-select: none;
+  pointer-events: auto;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+.text-selection-toolbar[hidden] {
+  display: none !important;
+}
+.sel-tool-btn {
+  background: transparent;
+  color: #f8fafc;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 7px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 28px;
+  box-sizing: border-box;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.sel-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+.sel-tool-btn:active, .sel-tool-btn.is-active {
+  background: #3b82f6;
+  color: #ffffff;
+}
+.sel-divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+.sel-popover-anchor {
+  position: relative;
+  display: inline-block;
+}
+.sel-color-icon {
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+}
+.sel-color-bar {
+  display: block;
+  width: 14px;
+  height: 3px;
+  border-radius: 1px;
+  margin-top: 2px;
+}
+.sel-popover-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.18);
+  padding: 8px;
+  z-index: 1010;
+  min-width: 150px;
+}
+.sel-popover-menu[hidden] {
+  display: none !important;
+}
+.sel-popover-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+.sel-swatches {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.sel-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.15);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  transition: transform 0.12s ease;
+}
+.sel-swatch:hover {
+  transform: scale(1.18);
+  z-index: 1;
+}
+.sel-custom-picker-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+}
+.sel-custom-picker-label input[type="color"] {
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+.sel-size-buttons {
+  display: flex;
+  gap: 1px;
+}
+.canvas-text mark,
+.canvas-text [style*="background-color"] {
+  border-radius: 2px;
+  padding: 1px 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
 .page-scroll-btn { flex:none; height:80px; width:28px; padding:0; display:inline-flex; align-items:center; justify-content:center; border:2px solid var(--ink); background:var(--paper, #fffdf8); color:var(--ink); font-size:13px; font-weight:900; cursor:pointer; box-shadow:2.5px 2.5px 0 var(--ink); border-radius:6px; user-select:none; transition:transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; z-index:2; }
 .page-scroll-btn svg { display:block; width:14px; height:14px; pointer-events:none; flex-shrink:0; fill:currentColor; }
 .page-scroll-btn:hover { transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--ink); background:var(--yellow, #f7d660); }
