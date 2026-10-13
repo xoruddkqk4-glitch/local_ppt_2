@@ -2267,8 +2267,19 @@ function createPageThumbnailElement(page) {
           miniObj.style.textOverflow = "ellipsis";
           miniObj.textContent = (obj.text || "").slice(0, 16);
         } else if (obj.shapeType) {
-          miniObj.style.backgroundColor = obj.bgColor || "#2563eb";
-          miniObj.style.border = "0.5px solid " + (obj.borderColor || "#0f172a");
+          miniObj.style.backgroundColor = obj.bgColor || "#3b82f6";
+          if (obj.borderWidth && Number(obj.borderWidth) > 0 && obj.borderStyle !== "none") {
+            miniObj.style.border = "0.5px solid " + (obj.borderColor || "#0f172a");
+          } else {
+            miniObj.style.border = "none";
+          }
+          if (obj.shapeType === "circle") {
+            miniObj.style.borderRadius = "50%";
+          } else if (obj.shapeType === "rectangle") {
+            miniObj.style.borderRadius = "0px";
+          } else {
+            miniObj.style.borderRadius = "2px";
+          }
           if (obj.rotation) miniObj.style.transform = `rotate(${obj.rotation}deg)`;
         } else if (obj.role === "mind-node" || obj.role === "mind-root") {
           miniObj.style.backgroundColor = obj.bgColor || "var(--content-accent, #2563eb)";
@@ -3191,28 +3202,29 @@ function createObjectElement(object) {
     const shapeType = object.shapeType || "rectangle";
     const shapeSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     shapeSvg.setAttribute("viewBox", "0 0 100 100");
-    shapeSvg.setAttribute("preserveAspectRatio", "none");
+    const isUniformAspect = ["circle", "triangle", "star", "plus", "multiply", "divide", "gt", "lt"].includes(shapeType);
+    shapeSvg.setAttribute("preserveAspectRatio", isUniformAspect ? "xMidYMid meet" : "none");
     shapeSvg.classList.add("shape-vector-svg");
 
     const color = object.bgColor || (
-      shapeType === "circle" ? "#ef4444" :
+      shapeType === "circle" ? "#f43f5e" :
       shapeType === "triangle" ? "#10b981" :
       shapeType === "star" ? "#f59e0b" :
-      shapeType === "arrow" ? "#8b5cf6" :
+      shapeType === "arrow" ? "#6366f1" :
       shapeType === "plus" ? "#3b82f6" :
       shapeType === "minus" ? "#64748b" :
-      shapeType === "multiply" ? "#ef4444" :
-      shapeType === "divide" ? "#f59e0b" :
-      shapeType === "double-arrow" ? "#8b5cf6" :
-      shapeType === "vertical-arrow" ? "#8b5cf6" :
-      shapeType === "gt" || shapeType === "lt" ? "#10b981" :
-      shapeType === "equal" ? "#6366f1" :
-      shapeType === "not-equal" ? "#ec4899" :
-      "#2563eb"
+      shapeType === "multiply" ? "#64748b" :
+      shapeType === "divide" ? "#64748b" :
+      shapeType === "double-arrow" ? "#6366f1" :
+      shapeType === "vertical-arrow" ? "#6366f1" :
+      shapeType === "gt" || shapeType === "lt" ? "#3b82f6" :
+      shapeType === "equal" ? "#64748b" :
+      shapeType === "not-equal" ? "#64748b" :
+      "#3b82f6"
     );
     const fillColor = (color === "transparent" || color === "none") ? "none" : color;
     let strokeColor = object.borderColor || "#0f172a";
-    let strokeWidth = (object.borderWidth !== undefined && object.borderWidth !== null) ? Number(object.borderWidth) : 2;
+    let strokeWidth = (object.borderWidth !== undefined && object.borderWidth !== null) ? Number(object.borderWidth) : 0;
 
     if (strokeWidth === 0 || object.borderStyle === "none") {
       strokeColor = "none";
@@ -3223,35 +3235,36 @@ function createObjectElement(object) {
     const strokeDash = object.borderStyle && dashMap[object.borderStyle] ? `stroke-dasharray="${dashMap[object.borderStyle]}"` : "";
 
     if (shapeType === "circle") {
-      shapeSvg.innerHTML = `<circle cx="50" cy="50" r="46" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<circle cx="50" cy="50" r="48" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
     } else if (shapeType === "triangle") {
-      shapeSvg.innerHTML = `<polygon points="50,4 96,96 4,96" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<polygon points="50,10 93.9,86 6.1,86" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" ${strokeDash}/>`;
     } else if (shapeType === "star") {
-      shapeSvg.innerHTML = `<polygon points="50,4 63,35 96,35 70,56 80,94 50,71 20,94 30,56 4,35 37,35" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<polygon points="50,6 60.3,35.8 91.8,36.4 66.6,55.4 75.9,85.6 50,67.5 24.1,85.6 33.4,55.4 8.2,36.4 39.7,35.8" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" ${strokeDash}/>`;
     } else if (shapeType === "arrow") {
-      shapeSvg.innerHTML = `<polygon points="4,25 60,25 60,6 96,50 60,94 60,75 4,75" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<polygon points="6,38 58,38 58,16 94,50 58,84 58,62 6,62" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" ${strokeDash}/>`;
     } else if (shapeType === "plus") {
-      shapeSvg.innerHTML = `<polygon points="36,6 64,6 64,36 94,36 94,64 64,64 64,94 36,94 36,64 6,64 6,36 36,36" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<polygon points="41,8 59,8 59,41 92,41 92,59 59,59 59,92 41,92 41,59 8,59 8,41 41,41" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" ${strokeDash}/>`;
     } else if (shapeType === "minus") {
-      shapeSvg.innerHTML = `<rect x="6" y="36" width="88" height="28" rx="6" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<rect x="8" y="42" width="84" height="16" rx="8" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
     } else if (shapeType === "multiply") {
-      shapeSvg.innerHTML = `<g transform="rotate(45 50 50)"><polygon points="36,6 64,6 64,36 94,36 94,64 64,64 64,94 36,94 36,64 6,64 6,36 36,36" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/></g>`;
+      shapeSvg.innerHTML = `<g transform="rotate(45 50 50)"><polygon points="41,8 59,8 59,41 92,41 92,59 59,59 59,92 41,92 41,59 8,59 8,41 41,41" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" ${strokeDash}/></g>`;
     } else if (shapeType === "divide") {
-      shapeSvg.innerHTML = `<circle cx="50" cy="20" r="12" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/><rect x="8" y="41" width="84" height="18" rx="4" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/><circle cx="50" cy="80" r="12" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<circle cx="50" cy="22" r="8" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/><rect x="10" y="44" width="80" height="12" rx="6" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/><circle cx="50" cy="78" r="8" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
     } else if (shapeType === "double-arrow") {
-      shapeSvg.innerHTML = `<polygon points="6,50 30,20 30,36 70,36 70,20 94,50 70,80 70,64 30,64 30,80" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<polygon points="6,50 30,22 30,40 70,40 70,22 94,50 70,78 70,60 30,60 30,78" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" ${strokeDash}/>`;
     } else if (shapeType === "vertical-arrow") {
-      shapeSvg.innerHTML = `<polygon points="50,6 20,30 36,30 36,70 20,70 50,94 80,70 64,70 64,30 80,30" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<polygon points="50,6 22,30 40,30 40,70 22,70 50,94 78,70 60,70 60,30 78,30" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" ${strokeDash}/>`;
     } else if (shapeType === "gt") {
-      shapeSvg.innerHTML = `<polygon points="28,12 52,12 84,50 52,88 28,88 60,50" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<polygon points="32,16 46,16 78,50 46,84 32,84 62,50" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" ${strokeDash}/>`;
     } else if (shapeType === "lt") {
-      shapeSvg.innerHTML = `<polygon points="72,12 48,12 16,50 48,88 72,88 40,50" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<polygon points="68,16 54,16 22,50 54,84 68,84 38,50" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" ${strokeDash}/>`;
     } else if (shapeType === "equal") {
-      shapeSvg.innerHTML = `<rect x="8" y="24" width="84" height="20" rx="4" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/><rect x="8" y="56" width="84" height="20" rx="4" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<rect x="10" y="32" width="80" height="12" rx="6" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/><rect x="10" y="56" width="80" height="12" rx="6" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
     } else if (shapeType === "not-equal") {
-      shapeSvg.innerHTML = `<rect x="8" y="24" width="84" height="20" rx="4" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/><rect x="8" y="56" width="84" height="20" rx="4" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/><polygon points="64,6 78,10 36,94 22,90" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" ${strokeDash}/>`;
+      shapeSvg.innerHTML = `<rect x="10" y="32" width="80" height="12" rx="6" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/><rect x="10" y="56" width="80" height="12" rx="6" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/><polygon points="63,10 75,12 37,90 25,88" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" stroke-linejoin="round" stroke-linecap="round" ${strokeDash}/>`;
     } else {
-      shapeSvg.innerHTML = `<rect x="3" y="3" width="94" height="94" rx="8" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
+      const half = strokeWidth > 0 ? strokeWidth / 2 : 0;
+      shapeSvg.innerHTML = `<rect x="${half}" y="${half}" width="${100 - half * 2}" height="${100 - half * 2}" rx="0" ry="0" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
     }
     element.append(shapeSvg);
   }
@@ -4686,8 +4699,23 @@ function beginResize(event, object) {
 
   const move = (moveEvent) => {
     const point = getStagePoint(moveEvent);
-    const rawRight = object.x + clamp(5, startWidth + point.x - start.x, 100 - object.x);
-    const rawBottom = object.y + clamp(4, startHeight + point.y - start.y, 100 - object.y);
+    let targetW = clamp(5, startWidth + point.x - start.x, 100 - object.x);
+    let targetH = clamp(4, startHeight + point.y - start.y, 100 - object.y);
+    if (moveEvent.shiftKey) {
+      if (object.role === "shape-box" && ["circle", "triangle", "star", "rectangle"].includes(object.shapeType)) {
+        const ratio = 16 / 9;
+        if (targetW * ratio <= 100 - object.y) {
+          targetH = targetW * ratio;
+        } else {
+          targetW = targetH / ratio;
+        }
+      } else {
+        const aspect = startHeight / (startWidth || 1);
+        targetH = targetW * aspect;
+      }
+    }
+    const rawRight = object.x + targetW;
+    const rawBottom = object.y + targetH;
     const horizontalSnap = findSnap([rawRight], targets.x, thresholdX);
     const verticalSnap = findSnap([rawBottom], targets.y, thresholdY);
     const right = clamp(object.x + 5, rawRight + (horizontalSnap?.correction || 0), 100);
@@ -6440,25 +6468,25 @@ document.querySelectorAll(".shape-select-btn").forEach((btn) => {
     if (page.type === "cover") return;
     snapshot();
     const configMap = {
-      rectangle: { bg: "#2563eb", text: "#ffffff", w: 20, h: 18 },
-      circle: { bg: "#ef4444", text: "#ffffff", w: 18, h: 18 },
-      triangle: { bg: "#10b981", text: "#ffffff", w: 20, h: 18 },
-      star: { bg: "#f59e0b", text: "#1e293b", w: 20, h: 20 },
-      arrow: { bg: "#8b5cf6", text: "#ffffff", w: 24, h: 14 },
-      plus: { bg: "#3b82f6", text: "#ffffff", w: 18, h: 18 },
-      minus: { bg: "#64748b", text: "#ffffff", w: 22, h: 12 },
-      multiply: { bg: "#ef4444", text: "#ffffff", w: 18, h: 18 },
-      divide: { bg: "#f59e0b", text: "#1e293b", w: 18, h: 18 },
-      "double-arrow": { bg: "#8b5cf6", text: "#ffffff", w: 26, h: 14 },
-      gt: { bg: "#10b981", text: "#ffffff", w: 18, h: 18 },
-      lt: { bg: "#10b981", text: "#ffffff", w: 18, h: 18 },
-      equal: { bg: "#6366f1", text: "#ffffff", w: 20, h: 16 },
-      "not-equal": { bg: "#ec4899", text: "#ffffff", w: 20, h: 18 },
-      "vertical-arrow": { bg: "#8b5cf6", text: "#ffffff", w: 16, h: 24 }
+      rectangle: { bg: "#3b82f6", text: "#ffffff", w: 18, h: 32 },
+      circle: { bg: "#f43f5e", text: "#ffffff", w: 18, h: 32 },
+      triangle: { bg: "#10b981", text: "#ffffff", w: 18, h: 32 },
+      star: { bg: "#f59e0b", text: "#ffffff", w: 18, h: 32 },
+      arrow: { bg: "#6366f1", text: "#ffffff", w: 24, h: 16 },
+      plus: { bg: "#3b82f6", text: "#ffffff", w: 15, h: 27 },
+      minus: { bg: "#64748b", text: "#ffffff", w: 20, h: 12 },
+      multiply: { bg: "#64748b", text: "#ffffff", w: 15, h: 27 },
+      divide: { bg: "#64748b", text: "#ffffff", w: 15, h: 27 },
+      "double-arrow": { bg: "#6366f1", text: "#ffffff", w: 26, h: 16 },
+      gt: { bg: "#3b82f6", text: "#ffffff", w: 15, h: 27 },
+      lt: { bg: "#3b82f6", text: "#ffffff", w: 15, h: 27 },
+      equal: { bg: "#64748b", text: "#ffffff", w: 18, h: 20 },
+      "not-equal": { bg: "#64748b", text: "#ffffff", w: 18, h: 22 },
+      "vertical-arrow": { bg: "#6366f1", text: "#ffffff", w: 14, h: 32 }
     };
     const config = configMap[shapeType] || configMap.rectangle;
-    const w = config.w || 20;
-    const h = config.h || 18;
+    const w = config.w || 18;
+    const h = config.h || 32;
     const x = Math.round(50 - w / 2);
     const y = Math.round(50 - h / 2);
     page.objects.push(createTextObject("shape-box", "", x, y, w, h, {
@@ -6466,7 +6494,9 @@ document.querySelectorAll(".shape-select-btn").forEach((btn) => {
       textAlign: "center",
       shapeType,
       bgColor: config.bg,
-      textColor: config.text
+      textColor: config.text,
+      borderWidth: 0,
+      borderStyle: "none"
     }));
     render();
   });

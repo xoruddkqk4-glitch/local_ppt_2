@@ -928,6 +928,20 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
     - 외부 캡처 도구 사용 후 복귀 시(`window.focus`) 내부 복사 플래그를 유연하게 리셋하여 새 캡처 이미지 붙여넣기 정상 지원.
 - **검증 결과**: `node -c app.js; node -c ai-intake.js; node -c layouts/options.js diagrams/options.js charts/options.js designs/options.js templates/schema.js server.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
 
-
-
-
+## [2026-10-13 15:58] 업데이트 이력 (Commit ID: 492a4b2)
+- **수정 내용**:
+  - `style.css`:
+    - 도형 개체(`.shape-vector-svg`)의 둔탁한 하드 섀도우(`drop-shadow(2px 3px 0px rgba(15,23,42,0.35))`)를 모던하고 은은한 소프트 섀도우(`drop-shadow(0 2px 6px rgba(15,23,42,0.08))`)로 개선하고 호버/선택 시 부드러운 전환 효과(`transition: filter 0.2s ease`) 부여.
+    - 도형 내부 텍스트(`.shape-box .canvas-text`)의 과도하게 굵고 뭉개지던 글꼴(`font-weight: 900`)을 단정한 `font-weight: 600`, 라인하이트 `1.35`, 중앙 정렬 및 여백(`padding: 6px; box-sizing: border-box;`)으로 정돈.
+    - 좌측 패널 도형 선택 버튼(`.shape-select-btn`)에 라운딩(`border-radius: 6px`) 및 호버 인터랙션 추가.
+  - `app.js`:
+    - **타원형 왜곡 방지 및 정원(Circle) 보장**: `shapeType === "circle"` 등 정비율 기하 도형에 `preserveAspectRatio="xMidYMid meet"`을 적용하여 16:9 슬라이드 화면 비율로 인해 원이 타원으로 찌그러지던 결함을 해결하고 항상 완벽한 동그라미(정원) 유지.
+    - **반듯한 정사각형 및 90도 각진 모서리 & 평행 선분(Square)**:
+      - 사각형의 SVG 렌더링에서 모서리 라운딩 곡률을 완전히 제거(`rx="0" ry="0"`, 90도 직각 코너).
+      - 비뚤어짐 없이 수평/수직 선분이 완벽하게 평행한 직사각형/정사각형 벡터로 구성.
+      - 16:9 슬라이드 화면 비율($18 \times \frac{16}{9} = 32$)에 맞춰 기본 크기를 $w: 18, h: 32$로 설정하여 삽입 즉시 가로/세로 픽셀 길이가 동일한 정사각형으로 생성.
+    - **완벽한 정삼각형(Equilateral Triangle)**: 세 변의 길이가 $87.8\text{px}$로 동일한 정밀 기하학 좌표(`points="50,10 93.9,86 6.1,86"`) 및 `preserveAspectRatio="xMidYMid meet"` 적용, 기본 $w: 18, h: 32$ 설정으로 넙적한 이등변삼각형이 아닌 완벽한 정삼각형 렌더링.
+    - **테두리(Stroke) 미지정 시 0px 플랫 솔리드 처리**: 테두리 두께 미지정 시 강제로 2px 검은 테두리가 노출되던 문제를 수정하여 기본 상태에서 테두리 없는 깔끔한 단색 플랫 면으로 렌더링.
+    - **Shift 키 1:1 종횡비 잠금 리사이즈 (`beginResize`)**: 크기 조절 시 Shift 키를 누르면 16:9 캔버스 기준 1:1 종횡비($h = w \times \frac{16}{9}$)가 유지되어 정사각형, 동그란 원, 정삼각형의 형태를 왜곡 없이 확대/축소 지원.
+    - **썸네일 및 팔레트 최적화**: 썸네일 미니 캔버스에서 사각형 `borderRadius: 0px`, 원형 `50%` 정밀 반영 및 모던 테크 팔레트(로열 블루, 로즈, 에메랄드, 인디고, 슬레이트) 적용.
+- **검증 결과**: `node --check app.js; node --check ai-intake.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
