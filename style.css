@@ -2,6 +2,7 @@
   font-family: Pretendard, system-ui, sans-serif;
   color: #151515;
   background: #fffdf8;
+  --text-placeholder: #94a3b8;
 }
 
 html, body { height: 100%; max-height: 100vh; overflow: hidden; margin: 0; padding: 0; }
@@ -590,9 +591,32 @@ body.is-fullscreen .canvas-object {
 .stage-marquee-box { position:absolute; border:1.5px dashed var(--blue, #2563eb); background:rgba(37,99,235,0.12); pointer-events:none; z-index:99; border-radius:2px; box-sizing:border-box; }
 .canvas-object.is-editing { outline:3px solid #2563eb; outline-offset:4px; cursor:text; z-index:100 !important; user-select:text !important; }
 .canvas-object.is-editing .canvas-text,
-.canvas-object.is-editing .canvas-text * { user-select:text !important; cursor:text !important; outline:none !important; pointer-events:auto !important; }
+.canvas-object.is-editing .canvas-text * { user-select:text !important; cursor:text !important; outline:none !important; pointer-events:auto !important; color:var(--ink, #151515) !important; }
 .canvas-text { width:100%; height:100%; box-sizing:border-box !important; display:flex; align-items:center; justify-content:center; text-align:center; white-space:pre-wrap; word-break:keep-all; overflow-wrap:break-word; overflow:hidden; font-size:calc(var(--object-font-size,28px) * var(--stage-scale, 1) * var(--hierarchy-scale, 1)); font-weight:850; line-height:1.08; }
 .canvas-object .canvas-text { box-sizing:border-box !important; background:transparent !important; border:none !important; box-shadow:none !important; }
+.canvas-text.is-default-placeholder,
+.canvas-text.is-default-placeholder * { color:var(--text-placeholder, #94a3b8) !important; }
+.presentation-stage:fullscreen .canvas-text.is-default-placeholder,
+#stage.is-fullscreen .canvas-text.is-default-placeholder,
+body.is-fullscreen .canvas-text.is-default-placeholder,
+body.is-present-mode .canvas-text.is-default-placeholder {
+  visibility:hidden !important;
+  opacity:0 !important;
+}
+.presentation-stage:fullscreen .canvas-object.is-empty-placeholder,
+#stage.is-fullscreen .canvas-object.is-empty-placeholder,
+body.is-fullscreen .canvas-object.is-empty-placeholder,
+body.is-present-mode .canvas-object.is-empty-placeholder {
+  visibility:hidden !important;
+  opacity:0 !important;
+}
+td.is-default-placeholder { color:var(--text-placeholder, #94a3b8) !important; }
+.presentation-stage:fullscreen td.is-default-placeholder,
+#stage.is-fullscreen td.is-default-placeholder,
+body.is-fullscreen td.is-default-placeholder,
+body.is-present-mode td.is-default-placeholder {
+  visibility:hidden !important;
+}
 .canvas-object[data-manual-font-size="true"] .canvas-text,
 .canvas-object[data-manual-font-size="true"] .canvas-text * { font-size:calc(var(--object-font-size, 28px) * var(--stage-scale, 1)) !important; }
 .canvas-text[contenteditable="true"] { user-select:text !important; cursor:text !important; overflow:auto; outline:none !important; pointer-events:auto !important; }

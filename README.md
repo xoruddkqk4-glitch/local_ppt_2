@@ -1032,3 +1032,17 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
     - 미리보기 렌더러(`renderDesignThumbnailHTML`)에 상단 메타 래퍼(`.thumb-meta-wrap`) 추가.
 - **검증 결과**: `node -c designs/options.js; node -c ai-intake.js; node -c app.js; node -c layouts/options.js; node -c server.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
 
+## [2026-10-14 19:56] 업데이트 이력 (Commit ID: 45094ce)
+- **수정 내용**:
+  - `app.js`:
+    - **기본 플레이스홀더 판별 헬퍼 구현 (`isObjectDefaultPlaceholder`)**: 비어 있는 개체(`"텍스트"`, `"내용"`, 빈 문자열) 및 수정되지 않은 템플릿 기본 텍스트를 정확하게 감지하도록 전용 헬퍼 함수 구현 (슬라이드 고유 제목 개체 제외).
+    - **플레이스홀더 상태 관리 및 복원 로직 개선 (`beginTextEdit`)**: 텍스트 미입력 상태에서 편집 취소(`Escape`) 또는 포커스 아웃(`blur`) 발생 시 `isUserEdited = false` 플래그 및 기본 `"텍스트"` 값을 안정적으로 복원.
+    - **기본 텍스트 색상 분기 렌더링 (`applyTextObjectStyle`)**: 플레이스홀더 개체에 `.is-default-placeholder`, 빈 개체에 `.is-empty-placeholder` 클래스를 토글하고, 사용자가 입력한 본문과 차별화되도록 옅은 회색(`--text-placeholder: #94a3b8`) 일괄 적용.
+    - **슬라이드 썸네일 동기화 (`createPageThumbnailElement`)**: 좌측 슬라이드 목록 썸네일에서도 기본 플레이스홀더 텍스트를 옅은 회색(`is-default-placeholder`)으로 일관성 있게 렌더링.
+    - **표(테이블) 기본 셀 식별 (`createTableElement`)**: 비어 있거나 기본 `"내용"`인 셀에 `.is-default-placeholder` 클래스 부여.
+  - `style.css`:
+    - **기본 설정 default 텍스트 시각적 차별화**: 루트 CSS 변수 `--text-placeholder: #94a3b8;` 정의 및 `.canvas-text.is-default-placeholder`와 내부 인라인 요소의 폰트 색상을 옅은 회색으로 스타일링.
+    - **편집 모드 가독성 보장**: 텍스트 편집 중(`.canvas-object.is-editing .canvas-text`)에는 본문 잉크 색상(`--ink: #151515 !important`)으로 선명하게 표시되도록 오버라이드.
+    - **전체 화면 및 발표(이중창) 화면 숨김 처리**: 전체 화면 모드(`.presentation-stage:fullscreen`, `#stage.is-fullscreen`, `body.is-fullscreen`) 및 발표 이중창 모드(`body.is-present-mode`)에서 `.canvas-text.is-default-placeholder`, `.canvas-object.is-empty-placeholder`, `td.is-default-placeholder`를 `visibility: hidden !important; opacity: 0 !important;` 처리하여 레이아웃 변형 없이 불필요한 기본 안내 문구 및 빈 개체(세로 강조선 등) 완전 은닉.
+- **검증 결과**: `node -c app.js` 정적 구문 및 무결성 검증 100% 통과 (Exit code: 0).
+

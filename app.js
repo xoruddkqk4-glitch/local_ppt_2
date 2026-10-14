@@ -2710,8 +2710,10 @@ function createPageThumbnailElement(page) {
           miniObj.style.textAlign = "center";
           miniObj.textContent = (obj.text || "").slice(0, 12);
         } else if (obj.text) {
+          const isPlaceholder = isObjectDefaultPlaceholder(obj);
           miniObj.style.fontSize = "5px";
-          miniObj.style.color = obj.textColor || "#334155";
+          miniObj.style.color = isPlaceholder ? "#94a3b8" : (obj.textColor || "#334155");
+          if (isPlaceholder) miniObj.classList.add("is-default-placeholder");
           miniObj.style.lineHeight = "1.0";
           miniObj.style.padding = "0.5px";
           miniObj.style.whiteSpace = "nowrap";
@@ -4031,7 +4033,23 @@ function applyTextObjectStyle(text, object, wrapper) {
   text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
     child.style.setProperty("text-align", align, "important");
   });
-  if (object.textColor) {
+
+  const isDefaultPlaceholder = isObjectDefaultPlaceholder(object);
+  text.classList.toggle("is-default-placeholder", isDefaultPlaceholder);
+  if (wrapper) {
+    const trimmed = (object.text || "").trim();
+    const isEmptyObj = !trimmed || trimmed === "텍스트" || trimmed === "내용";
+    wrapper.classList.toggle("is-placeholder-object", isDefaultPlaceholder);
+    wrapper.classList.toggle("is-empty-placeholder", isEmptyObj);
+  }
+
+  if (isDefaultPlaceholder) {
+    const placeholderColor = "var(--text-placeholder, #94a3b8)";
+    text.style.setProperty("color", placeholderColor, "important");
+    text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+      child.style.setProperty("color", placeholderColor, "important");
+    });
+  } else if (object.textColor) {
     text.style.setProperty("color", object.textColor, "important");
     text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
       child.style.setProperty("color", object.textColor, "important");
@@ -4222,6 +4240,9 @@ function createTableElement(object) {
       const cell = document.createElement(isHeader ? "th" : "td");
       cell.textContent = value;
       cell.style.height = `${rowH}px`;
+      if (!isHeader && (value === "내용" || !value)) {
+        cell.classList.add("is-default-placeholder");
+      }
 
       const cellKey = `${rowIndex},${columnIndex}`;
       const styleConfig = object.cellStyles?.[cellKey];
@@ -4586,6 +4607,20 @@ function isDefaultPlaceholderText(text, role) {
   return false;
 }
 
+function isObjectDefaultPlaceholder(object) {
+  if (!object || typeof object.text !== "string") return false;
+  const trimmed = object.text.trim();
+  if (!trimmed) return true;
+  if (trimmed === "텍스트" || trimmed === "내용") return true;
+  if (["page-title", "cover-title", "cover-subtitle"].includes(object.role)) {
+    return false;
+  }
+  if (!object.isUserEdited && isDefaultPlaceholderText(object.text, object.role)) {
+    return true;
+  }
+  return false;
+}
+
 function beginTextEdit(event, object, wrapper, text) {
   if (document.fullscreenElement) return;
   if (event) {
@@ -4607,7 +4642,7 @@ function beginTextEdit(event, object, wrapper, text) {
   activeEditingTextElement = text;
 
   // 사용자가 직접 입력한 텍스트가 아닌 기본 플레이스홀더 텍스트인 경우 편집 모드 진입 시 자동 비움
-  const isPlaceholder = !object.isUserEdited && isDefaultPlaceholderText(object.text, object.role);
+  const isPlaceholder = isObjectDefaultPlaceholder(object);
   const placeholderOriginal = object.text || "";
 
   if (isPlaceholder) {
@@ -4668,13 +4703,12 @@ function beginTextEdit(event, object, wrapper, text) {
     } else {
       // 텍스트를 입력하지 않고 블러된 경우 기본 안내 텍스트 보존
       if (isPlaceholder) {
-        object.text = placeholderOriginal;
-        object.isUserEdited = false;
-        delete object.html;
+        object.text = placeholderOriginal || (["free-text", "shape-box"].includes(object.role) ? "" : "텍스트");
       } else {
         object.text = (["free-text", "shape-box"].includes(object.role) ? "" : "텍스트");
-        delete object.html;
       }
+      object.isUserEdited = false;
+      delete object.html;
     }
 
     text.contentEditable = "false";
@@ -4690,9 +4724,11 @@ function beginTextEdit(event, object, wrapper, text) {
       text.removeEventListener("blur", finish);
       text.contentEditable = "false";
       wrapper.classList.remove("is-editing");
-      if (isPlaceholder && !text.innerText.trim()) {
-        object.text = placeholderOriginal;
+      const currentText = text.innerText.trim();
+      if (!currentText) {
+        object.text = isPlaceholder ? (placeholderOriginal || (["free-text", "shape-box"].includes(object.role) ? "" : "텍스트")) : (["free-text", "shape-box"].includes(object.role) ? "" : "텍스트");
         object.isUserEdited = false;
+        delete object.html;
       }
       renderStage();
       return;
