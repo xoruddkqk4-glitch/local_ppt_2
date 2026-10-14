@@ -4569,6 +4569,19 @@ const DEFAULT_PLACEHOLDER_TEXTS = new Set([
   "RESULT",
   "DETAIL 1",
   "DETAIL 2",
+  "새 텍스트 개체",
+  "새 텍스트개체",
+  "새 텍스트 상자",
+  "새 텍스트상자",
+  "새 텍스트",
+  "새텍스트",
+  "텍스트 개체",
+  "텍스트개체",
+  "텍스트 상자",
+  "텍스트상자",
+  "새 개체",
+  "새개체",
+  "새 내용",
   "텍스트",
   "내용"
 ]);
@@ -4592,7 +4605,7 @@ function isDefaultPlaceholderSingleLine(line, role) {
   if (/^카드\s*[\d\w가-힣]+(?:\s*(?:설명|내용))?$/i.test(trimmed)) return true;
   if (/^노드\s*[\d\w가-힣]+$/i.test(trimmed)) return true;
   if (/^열\s*[\d\w가-힣]+$/i.test(trimmed)) return true;
-  if (trimmed === "텍스트" || trimmed === "내용" || trimmed === "새 텍스트" || trimmed === "새 텍스트 상자" || trimmed === "새 텍스트상자") return true;
+  if (/^(?:새\s*)?(?:텍스트|개체|내용)(?:\s*(?:개체|상자|내용))?(?:\s*[\d\w가-힣]+)?$/i.test(trimmed)) return true;
   if (trimmed === "설명" || trimmed === "상세 설명" || trimmed === "세부 설명") return true;
   if (role === "vs-node" && (trimmed === "A" || trimmed === "B")) return true;
   return false;
@@ -4616,10 +4629,13 @@ function isObjectDefaultPlaceholder(object) {
   if (["page-title", "cover-title", "cover-subtitle"].includes(object.role)) {
     return false;
   }
+  if (object.shapeType || (object.role === "shape-box" && !object.text)) {
+    return false;
+  }
   if (typeof object.text !== "string") return false;
   const trimmed = object.text.trim();
   if (!trimmed) return true;
-  if (trimmed === "텍스트" || trimmed === "내용" || trimmed === "새 텍스트" || trimmed === "새 텍스트 상자" || trimmed === "새 텍스트상자") return true;
+  if (/^(?:새\s*)?(?:텍스트|개체|내용)(?:\s*(?:개체|상자|내용))?(?:\s*[\d\w가-힣]+)?$/i.test(trimmed)) return true;
   return isDefaultPlaceholderText(object.text, object.role);
 }
 
@@ -7060,13 +7076,21 @@ function commitTextSizeInput(input) {
   updateActiveTextStyle("fontSize", size);
 }
 
-$("#textSizeInput").addEventListener("keydown", (event) => {
+$("#textSizeInput")?.addEventListener("input", (event) => {
+  if (!event.inputType) {
+    commitTextSizeInput(event.currentTarget);
+  }
+});
+$("#textSizeInput")?.addEventListener("change", (event) => {
+  commitTextSizeInput(event.currentTarget);
+});
+$("#textSizeInput")?.addEventListener("keydown", (event) => {
   if (event.key !== "Enter") return;
   event.preventDefault();
   commitTextSizeInput(event.currentTarget);
   event.currentTarget.select();
 });
-$("#textSizeInput").addEventListener("blur", (event) => {
+$("#textSizeInput")?.addEventListener("blur", (event) => {
   commitTextSizeInput(event.currentTarget);
 });
 document.querySelectorAll("[data-text-align]").forEach((button) => {
@@ -8216,6 +8240,68 @@ function pasteCopiedObjects(sourceList = copiedObjects, fromPageId = copiedFromP
   return true;
 }
 
+let lastNudgeTime = 0;
+let nudgeFinishTimer = null;
+
+function moveSelectedObjectsByArrow(arrowKey, isShift, isModifier) {
+  const page = currentPage();
+  const selected = (page?.objects || []).filter((item) => state.selectedIds.has(item.id));
+  if (!selected.length) return false;
+
+  const bounds = getObjectBounds(selected);
+  let dx = 0;
+  let dy = 0;
+  const step = isShift ? 5 : (isModifier ? 0.2 : 1);
+
+  if (arrowKey === "ArrowLeft") dx = -step;
+  else if (arrowKey === "ArrowRight") dx = step;
+  else if (arrowKey === "ArrowUp") dy = -step;
+  else if (arrowKey === "ArrowDown") dy = step;
+
+  if (dx < 0) {
+    if (bounds.left <= 0) dx = 0;
+    else dx = Math.max(dx, -bounds.left);
+  } else if (dx > 0) {
+    if (bounds.right >= 100) dx = 0;
+    else dx = Math.min(dx, 100 - bounds.right);
+  }
+
+  if (dy < 0) {
+    if (bounds.top <= 0) dy = 0;
+    else dy = Math.max(dy, -bounds.top);
+  } else if (dy > 0) {
+    if (bounds.bottom >= 100) dy = 0;
+    else dy = Math.min(dy, 100 - bounds.bottom);
+  }
+
+  if (dx === 0 && dy === 0) return false;
+
+  const now = Date.now();
+  if (now - lastNudgeTime > 400) {
+    snapshot();
+  }
+  lastNudgeTime = now;
+
+  selected.forEach((item) => {
+    const curX = typeof item.x === "number" ? item.x : 0;
+    const curY = typeof item.y === "number" ? item.y : 0;
+    item.x = Math.round((curX + dx) * 100) / 100;
+    item.y = Math.round((curY + dy) * 100) / 100;
+  });
+
+  renderStage();
+
+  clearTimeout(nudgeFinishTimer);
+  nudgeFinishTimer = setTimeout(() => {
+    renderPages();
+    if (!isPresentMode) {
+      broadcastState();
+    }
+  }, 250);
+
+  return true;
+}
+
 document.addEventListener("keydown", (event) => {
   const isFullscreen = document.fullscreenElement === stage || document.fullscreenElement === document.documentElement;
   const modifier = event.ctrlKey || event.metaKey;
@@ -8322,6 +8408,13 @@ document.addEventListener("keydown", (event) => {
     }
   }
 
+  const isArrowKey = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key);
+  if (isArrowKey && !isEditingText && state.selectedIds.size > 0 && !isPresentMode && !isFullscreen) {
+    event.preventDefault();
+    event.stopPropagation();
+    moveSelectedObjectsByArrow(event.key, event.shiftKey, modifier);
+    return;
+  }
 
   if ((event.key === "Enter" || event.key === "F2") && !isEditingText && !modifier && state.selectedIds.size === 1) {
     const singleObjId = Array.from(state.selectedIds)[0];

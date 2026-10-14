@@ -599,14 +599,20 @@ body.is-fullscreen .canvas-object {
 .canvas-object.is-placeholder-object .canvas-text,
 .canvas-object.is-placeholder-object .canvas-text * { color:var(--text-placeholder, #94a3b8) !important; }
 .presentation-stage:fullscreen .canvas-text.is-default-placeholder,
+.presentation-stage.is-fullscreen .canvas-text.is-default-placeholder,
+#presentationStage.is-fullscreen .canvas-text.is-default-placeholder,
 #stage.is-fullscreen .canvas-text.is-default-placeholder,
 body.is-fullscreen .canvas-text.is-default-placeholder,
 body.is-present-mode .canvas-text.is-default-placeholder,
 .presentation-stage:fullscreen .canvas-object.is-placeholder-object,
+.presentation-stage.is-fullscreen .canvas-object.is-placeholder-object,
+#presentationStage.is-fullscreen .canvas-object.is-placeholder-object,
 #stage.is-fullscreen .canvas-object.is-placeholder-object,
 body.is-fullscreen .canvas-object.is-placeholder-object,
 body.is-present-mode .canvas-object.is-placeholder-object,
 .presentation-stage:fullscreen .canvas-object.is-empty-placeholder,
+.presentation-stage.is-fullscreen .canvas-object.is-empty-placeholder,
+#presentationStage.is-fullscreen .canvas-object.is-empty-placeholder,
 #stage.is-fullscreen .canvas-object.is-empty-placeholder,
 body.is-fullscreen .canvas-object.is-empty-placeholder,
 body.is-present-mode .canvas-object.is-empty-placeholder {
@@ -616,6 +622,8 @@ body.is-present-mode .canvas-object.is-empty-placeholder {
 }
 td.is-default-placeholder { color:var(--text-placeholder, #94a3b8) !important; }
 .presentation-stage:fullscreen td.is-default-placeholder,
+.presentation-stage.is-fullscreen td.is-default-placeholder,
+#presentationStage.is-fullscreen td.is-default-placeholder,
 #stage.is-fullscreen td.is-default-placeholder,
 body.is-fullscreen td.is-default-placeholder,
 body.is-present-mode td.is-default-placeholder {

@@ -1062,3 +1062,24 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
     - **전체 화면 및 발표(이중창) 화면 개체 완전 은닉**: 전체 화면 및 발표 이중창 모드에서 `.canvas-object.is-placeholder-object`에 `visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;`를 부여하여 개조식 파란색 세로선(`|`), 카드 테두리 등 개체 프레임까지 청중 화면에서 완벽하게 숨김 처리.
 - **검증 결과**: `node -c app.js` 정적 구문 및 무결성 검증 100% 통과 (Exit code: 0).
 
+## [2026-10-14 20:30] 업데이트 이력 (Commit ID: eb04d00)
+- **수정 내용**:
+  - `app.js`:
+    - **글자 크기 스텝퍼 화살표 실시간 조작 개선 (`#textSizeInput`)**:
+      - `#textSizeInput`에 `input` 및 `change` 이벤트 리스너를 추가하여 상/하 스텝퍼 화살표(▲ / ▼) 클릭, 키보드 방향키(`ArrowUp`/`ArrowDown`), 마우스 휠 조작 시 글자 크기가 실시간으로 캔버스 개체 및 표 셀에 즉시 반영되도록 개선.
+      - 키보드로 직접 숫자를 타이핑하는 동안에는 입력을 방해하지 않도록 비-타이핑 입력(`!event.inputType`)에 한해 실시간 커밋 적용.
+    - **편집 페이지 선택 개체 방향키 위치 이동 (Nudge) 기능 구현 (`moveSelectedObjectsByArrow`)**:
+      - 캔버스에서 개체를 선택한 후 키보드 방향키(`ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`)를 눌러 상/하/좌/우 위치를 자유롭게 이동할 수 있는 기능 탑재.
+      - 기본 방향키 `1%`, `Shift + 방향키` `5%` (5% 그리드 1칸 단위 고속 이동), `Ctrl/Cmd + 방향키` `0.2%` (정밀 미세 보정) 이동 스텝 지원.
+      - 캔버스 영역(`0% ~ 100%`) 이탈 방지 경계 제한 및 다중 선택 개체 간격 유지 이동 처리.
+      - 텍스트 직접 입력/수정 중(`isEditingText`)인 경우 커서 이동 우선권 보장.
+      - 연속 키 입력 시 실행 취소(Undo) 히스토리 폭증 방지를 위한 디바운싱 스냅샷 및 썸네일/발표 모드 동기화 적용.
+    - **텍스트 개체("새 텍스트 개체") default 텍스트 플레이스홀더 판별 확장**:
+      - `DEFAULT_PLACEHOLDER_TEXTS`, `isDefaultPlaceholderSingleLine`, `isObjectDefaultPlaceholder`에 `"새 텍스트 개체"`, `"새 텍스트 상자"`, `"새 텍스트"`, `"텍스트 개체"` 및 정규식(`/^(?:새\s*)?(?:텍스트|개체|내용)(?:\s*(?:개체|상자|내용))?(?:\s*[\d\w가-힣]+)?$/i`) 추가.
+      - 신규 삽입된 텍스트 개체의 기본 텍스트가 편집 화면에서 옅은 회색(`--text-placeholder: #94a3b8`)으로 표시되고 더블클릭 시 자동 초기화되도록 조치.
+  - `style.css`:
+    - **전체 화면 및 발표(이중창) 모드 텍스트 개체 default 텍스트 완전 숨김 강화**:
+      - 전체 화면 및 발표 모드에서 default 텍스트가 노출되지 않도록 `.presentation-stage.is-fullscreen`, `#presentationStage.is-fullscreen` 등 포괄적 선택자를 추가하여 `visibility: hidden !important; opacity: 0 !important;` 완벽 적용.
+- **검증 결과**: `node -c app.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
+
