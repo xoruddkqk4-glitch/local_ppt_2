@@ -1046,3 +1046,19 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
     - **전체 화면 및 발표(이중창) 화면 숨김 처리**: 전체 화면 모드(`.presentation-stage:fullscreen`, `#stage.is-fullscreen`, `body.is-fullscreen`) 및 발표 이중창 모드(`body.is-present-mode`)에서 `.canvas-text.is-default-placeholder`, `.canvas-object.is-empty-placeholder`, `td.is-default-placeholder`를 `visibility: hidden !important; opacity: 0 !important;` 처리하여 레이아웃 변형 없이 불필요한 기본 안내 문구 및 빈 개체(세로 강조선 등) 완전 은닉.
 - **검증 결과**: `node -c app.js` 정적 구문 및 무결성 검증 100% 통과 (Exit code: 0).
 
+## [2026-10-14 20:05] 업데이트 이력 (Commit ID: d0dd2db)
+- **수정 내용**:
+  - `app.js`:
+    - **`isUserEdited` 플래그 간섭 제거**: `isObjectDefaultPlaceholder`에서 `!object.isUserEdited` 조건 검사를 제거하여, 개체 조작·복제 등으로 인해 플래그가 설정된 경우에도 `'새 핵심 내용 6'` 등 default 텍스트 패턴에 해당하면 무조건 플레이스홀더로 감지하도록 수정.
+    - **모든 템플릿의 default 텍스트 패턴 대폭 확장 (`isDefaultPlaceholderSingleLine`)**:
+      - `새 핵심 내용 O`, `새 핵심내용 O`, `새 핵심 내용`, `새 핵심내용`
+      - `추가 항목 O`, `추가 항목`, `하위 항목 O`, `하위 항목`
+      - `새 항목 O`, `새 항목`, `항목 O`, `카드 O`, `노드 O`, `포인트 O`, `단계 O`, `STEP O`, `구간 O`, `열 O`
+      - `텍스트`, `새 텍스트 상자`, `새 텍스트`, `내용`, `설명`, `세부 설명`, `상세 설명`, `입력하세요`, `입력하십시오` 등 모든 템플릿의 기본 문구를 띄어쓰기·번호 유무 무관하게 100% 감지.
+    - **개체 래퍼 클래스 동기화 (`applyTextObjectStyle`)**: 플레이스홀더에 해당할 경우 `.is-placeholder-object`와 함께 `.is-empty-placeholder`를 동시 부여하고 폰트 색상을 `#94a3b8`로 설정.
+    - **전체 화면 감지 가드 개선**: `fullscreenchange` 이벤트에서 `document.fullscreenElement` 존재 시 항상 `stage`와 `body`에 `is-fullscreen`을 일관되게 부여하도록 보강.
+  - `style.css`:
+    - **default 텍스트 회색 컬러 규칙 강화**: `.canvas-object.is-placeholder-object .canvas-text` 셀렉터를 추가하여 개체 래퍼 상태에서도 항상 옅은 회색(`#94a3b8`)이 강제 적용되도록 개선.
+    - **전체 화면 및 발표(이중창) 화면 개체 완전 은닉**: 전체 화면 및 발표 이중창 모드에서 `.canvas-object.is-placeholder-object`에 `visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;`를 부여하여 개조식 파란색 세로선(`|`), 카드 테두리 등 개체 프레임까지 청중 화면에서 완벽하게 숨김 처리.
+- **검증 결과**: `node -c app.js` 정적 구문 및 무결성 검증 100% 통과 (Exit code: 0).
+

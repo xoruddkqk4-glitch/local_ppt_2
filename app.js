@@ -4037,14 +4037,12 @@ function applyTextObjectStyle(text, object, wrapper) {
   const isDefaultPlaceholder = isObjectDefaultPlaceholder(object);
   text.classList.toggle("is-default-placeholder", isDefaultPlaceholder);
   if (wrapper) {
-    const trimmed = (object.text || "").trim();
-    const isEmptyObj = !trimmed || trimmed === "텍스트" || trimmed === "내용";
     wrapper.classList.toggle("is-placeholder-object", isDefaultPlaceholder);
-    wrapper.classList.toggle("is-empty-placeholder", isEmptyObj);
+    wrapper.classList.toggle("is-empty-placeholder", isDefaultPlaceholder);
   }
 
   if (isDefaultPlaceholder) {
-    const placeholderColor = "var(--text-placeholder, #94a3b8)";
+    const placeholderColor = "#94a3b8";
     text.style.setProperty("color", placeholderColor, "important");
     text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
       child.style.setProperty("color", placeholderColor, "important");
@@ -4582,14 +4580,20 @@ function isDefaultPlaceholderSingleLine(line, role) {
   if (DEFAULT_PLACEHOLDER_TEXTS.has(trimmed)) return true;
   if (trimmed.includes("입력하세요") || trimmed.includes("입력하십시오")) return true;
   if (/^(첫|두|세|네|다섯|여섯|일곱|여덟|아홉|열)\s*번째\s*핵심\s*내용$/.test(trimmed)) return true;
-  if (/^새\s*핵심\s*내용(?:\s*\d+)?$/.test(trimmed)) return true;
-  if (/^STEP\s*\d+(?:\s*단계\s*\d+)?$/i.test(trimmed)) return true;
-  if (/^단계\s*\d+$/i.test(trimmed)) return true;
-  if (/^포인트\s*\d+(?:\s*(?:설명|내용))?$/i.test(trimmed)) return true;
-  if (/^항목\s*\d+(?:\s*(?:설명|내용))?$/i.test(trimmed)) return true;
-  if (/^주요\s*특징\s*\d+(?:\s*(?:설명|내용))?$/i.test(trimmed)) return true;
-  if (/^카드\s*\d+(?:\s*(?:설명|내용))?$/i.test(trimmed)) return true;
-  if (/^노드\s*\d+$/i.test(trimmed)) return true;
+  if (/^새\s*핵심\s*내용(?:\s*[\d\w가-힣]+)?$/i.test(trimmed)) return true;
+  if (/^새\s*핵심내용(?:\s*[\d\w가-힣]+)?$/i.test(trimmed)) return true;
+  if (/^새\s*항목(?:\s*[\d\w가-힣]+)?$/i.test(trimmed)) return true;
+  if (/^추가\s*항목(?:\s*[\d\w가-힣]+)?$/i.test(trimmed)) return true;
+  if (/^하위\s*항목(?:\s*[\d\w가-힣]+)?$/i.test(trimmed)) return true;
+  if (/^(?:STEP\s*[\d\w가-힣]+|단계\s*[\d\w가-힣]+|구간\s*[\d\w가-힣]+)(?:\s*(?:단계\s*\d+|설명|내용))?$/i.test(trimmed)) return true;
+  if (/^포인트\s*[\d\w가-힣]+(?:\s*(?:설명|내용))?$/i.test(trimmed)) return true;
+  if (/^항목\s*[\d\w가-힣]+(?:\s*(?:설명|내용))?$/i.test(trimmed)) return true;
+  if (/^주요\s*특징\s*[\d\w가-힣]+(?:\s*(?:설명|내용))?$/i.test(trimmed)) return true;
+  if (/^카드\s*[\d\w가-힣]+(?:\s*(?:설명|내용))?$/i.test(trimmed)) return true;
+  if (/^노드\s*[\d\w가-힣]+$/i.test(trimmed)) return true;
+  if (/^열\s*[\d\w가-힣]+$/i.test(trimmed)) return true;
+  if (trimmed === "텍스트" || trimmed === "내용" || trimmed === "새 텍스트" || trimmed === "새 텍스트 상자" || trimmed === "새 텍스트상자") return true;
+  if (trimmed === "설명" || trimmed === "상세 설명" || trimmed === "세부 설명") return true;
   if (role === "vs-node" && (trimmed === "A" || trimmed === "B")) return true;
   return false;
 }
@@ -4608,17 +4612,15 @@ function isDefaultPlaceholderText(text, role) {
 }
 
 function isObjectDefaultPlaceholder(object) {
-  if (!object || typeof object.text !== "string") return false;
-  const trimmed = object.text.trim();
-  if (!trimmed) return true;
-  if (trimmed === "텍스트" || trimmed === "내용") return true;
+  if (!object) return false;
   if (["page-title", "cover-title", "cover-subtitle"].includes(object.role)) {
     return false;
   }
-  if (!object.isUserEdited && isDefaultPlaceholderText(object.text, object.role)) {
-    return true;
-  }
-  return false;
+  if (typeof object.text !== "string") return false;
+  const trimmed = object.text.trim();
+  if (!trimmed) return true;
+  if (trimmed === "텍스트" || trimmed === "내용" || trimmed === "새 텍스트" || trimmed === "새 텍스트 상자" || trimmed === "새 텍스트상자") return true;
+  return isDefaultPlaceholderText(object.text, object.role);
 }
 
 function beginTextEdit(event, object, wrapper, text) {
@@ -7685,7 +7687,7 @@ stage?.addEventListener("input", () => {
 });
 
 document.addEventListener("fullscreenchange", () => {
-  if (document.fullscreenElement === stage) {
+  if (document.fullscreenElement) {
     state.selectedIds.clear();
     stage.classList.add("is-fullscreen");
     document.body.classList.add("is-fullscreen");
