@@ -125,7 +125,8 @@ function updateStageScale() {
   const stageEl = $("#presentationStage") || (typeof stage !== "undefined" ? stage : null);
   if (!stageEl) return 1.0;
   let scale = 1.0;
-  if (isPresentMode || document.fullscreenElement === stageEl || document.fullscreenElement === document.documentElement) {
+  const isFullscreen = isPresentMode || Boolean(document.fullscreenElement) || stageEl.classList.contains("is-fullscreen") || document.body.classList.contains("is-fullscreen");
+  if (isFullscreen) {
     const winW = window.innerWidth;
     const winH = window.innerHeight;
     const scaleW = winW / 1200;
@@ -143,11 +144,67 @@ function updateStageScale() {
   stageEl.style.setProperty("--stage-width", `${stageEl.clientWidth || 1200}px`);
   return scale;
 }
+
+function syncCanvasTextInlineScale(text, stageScale = null) {
+  if (!text) return;
+  const scale = stageScale || updateStageScale() || 1.0;
+  // 1. data-base-font-size가 명시된 인라인 커스텀 폰트 요소는 --stage-scale 연산 적용
+  text.querySelectorAll("[data-base-font-size]").forEach((child) => {
+    const base = parseFloat(child.dataset.baseFontSize) || 28;
+    child.style.setProperty("--inline-font-size", `${base}px`);
+    child.style.setProperty("font-size", `calc(${base}px * var(--stage-scale, 1))`, "important");
+  });
+  // 2. data-base-font-size가 없는 span, font, strong, b, mark, p, div, h1-h6, li 등에 브라우저 execCommand나 복사-붙여넣기 등으로
+  // 임의 부여된 고정 px 폰트 크기를 제거하여 컨테이너(.canvas-text)의 calc(var(--object-font-size) * var(--stage-scale))을
+  // 그대로 상속받도록 처리 (행마다 글자 크기가 달라지거나 편집/전체 화면 불일치 방지)
+  text.querySelectorAll("span:not([data-base-font-size]), font:not([data-base-font-size]), strong:not([data-base-font-size]), b:not([data-base-font-size]), mark:not([data-base-font-size]), p:not([data-base-font-size]), div:not([data-base-font-size]), h1:not([data-base-font-size]), h2:not([data-base-font-size]), h3:not([data-base-font-size]), h4:not([data-base-font-size]), h5:not([data-base-font-size]), h6:not([data-base-font-size]), li:not([data-base-font-size])").forEach((child) => {
+    child.style.removeProperty("font-size");
+  });
+}
 let tableManagementAxis = "row";
 let copiedObjects = [];
 let copiedFromPageId = null;
 let pasteOffsetCount = 0;
 let copiedPage = null;
+let activeEditingTextElement = null;
+
+function selectAllText(editable) {
+  if (!editable) return;
+  editable.focus();
+  try {
+    const range = document.createRange();
+    range.selectNodeContents(editable);
+    const sel = window.getSelection();
+    if (sel) {
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  } catch (e) {}
+}
+
+function commitActiveTextEditing() {
+  if (!activeEditingTextElement) return;
+  const text = activeEditingTextElement;
+  const wrapper = text.closest(".canvas-object");
+  const objectId = wrapper?.dataset.objectId;
+  const page = typeof currentPage === "function" ? currentPage() : null;
+  const object = page?.objects?.find((o) => o.id === objectId);
+  if (object) {
+    const rawText = text.innerText.replace(/\r\n/g, "\n").replace(/\n+$/, "");
+    const trimmed = text.innerText.trim();
+    if (trimmed) {
+      object.text = rawText;
+      object.isUserEdited = true;
+      syncCanvasTextInlineScale(text);
+      const rawHtml = text.innerHTML.trim();
+      if (/<[a-z][\s\S]*>/i.test(rawHtml)) {
+        object.html = rawHtml;
+      } else {
+        delete object.html;
+      }
+    }
+  }
+}
 
 function defaultFixedOverlays() {
   return {
@@ -235,7 +292,8 @@ function renderFixedOverlayLayer() {
       const item = document.createElement("div");
       item.className = `fixed-overlay-item ${className}`;
       item.textContent = rawText;
-      item.style.fontSize = cfg.size || "13px";
+      const baseOverlaySize = cfg.size || "13px";
+      item.style.fontSize = `calc((${baseOverlaySize}) * var(--stage-scale, 1))`;
       item.style.fontWeight = cfg.weight || "700";
       layer.append(item);
     }
@@ -285,6 +343,7 @@ function currentPage() {
 }
 
 function snapshot() {
+  commitActiveTextEditing();
   state.history.push(JSON.stringify({
     design: state.design,
     customPalette: state.customPalette,
@@ -719,6 +778,8 @@ function buildObjectTemplate(page, itemCount) {
 
 const RELAYOUT_TEXT_PROPERTIES = [
   "text",
+  "html",
+  "htmlContent",
   "textColor",
   "isCustomTextColor",
   "bgColor",
@@ -727,10 +788,15 @@ const RELAYOUT_TEXT_PROPERTIES = [
   "borderWidth",
   "borderStyle",
   "fontSize",
+  "isCustomFontSize",
   "fontWeight",
   "fontStyle",
   "fontFamily",
   "textAlign",
+  "lineHeight",
+  "letterSpacing",
+  "whiteSpace",
+  "wordBreak",
   "color",
   "animOrder",
   "animType",
@@ -745,6 +811,7 @@ const RELAYOUT_TEXT_PROPERTIES = [
 const LAYOUT_CONTENT_EXCLUDED_ROLES = new Set(["page-title", "mind-root", "media-placeholder", "vs-label", "chart-context"]);
 
 function copyRelayoutTextProperties(target, source) {
+  if (!target || !source) return;
   RELAYOUT_TEXT_PROPERTIES.forEach((property) => {
     if (property === "bgColor" && !source.isCustomBgColor) return;
     if (property === "textColor" && !source.isCustomTextColor) return;
@@ -756,6 +823,14 @@ function copyRelayoutTextProperties(target, source) {
     if ((property === "mindLevel" || property === "mindNodeId" || property === "mindParentId") && target.role !== "mind-node" && target.role !== "mind-root" && target.role !== "bullet-item") return;
     if (Object.hasOwn(source, property)) target[property] = source[property];
   });
+  if (source.html) {
+    target.html = source.html;
+  } else if ("html" in target && !source.html) {
+    delete target.html;
+  }
+  if (source.htmlContent) {
+    target.htmlContent = source.htmlContent;
+  }
   if (target.role === "connected-circle") {
     delete target.mindLevel;
     delete target.clipPath;
@@ -770,6 +845,10 @@ function copyRelayoutTextProperties(target, source) {
 }
 
 function rebuildObjectTemplatePreservingContent(page, itemCount, removedObject = null) {
+  // 1. 기존 슬라이드 제목 개체(page-title)의 원본 객체(ID, 텍스트, HTML 서식, 배경색, 좌표, 크기 등)를 100% 완전 보존
+  const existingTitle = (page.objects || []).find((o) => o.role === "page-title");
+
+  // 2. 템플릿 카드가 아닌 커스텀 개체(도형, 자유 텍스트, 타이머 등) 보존
   const customObjects = (page.objects || []).filter(
     (o) => o.role === "shape-box" || o.role === "free-text" || o.type === "timer" || (o.item === false && !LAYOUT_CONTENT_EXCLUDED_ROLES.has(o.role))
   );
@@ -777,7 +856,7 @@ function rebuildObjectTemplatePreservingContent(page, itemCount, removedObject =
   const previousItemCount = getItemCount(page);
   const previousByRole = new Map();
   page.objects
-    .filter((object) => object.type === "text")
+    .filter((object) => object.type === "text" && object !== existingTitle && !customObjects.includes(object))
     .forEach((object) => {
       const objects = previousByRole.get(object.role) || [];
       objects.push(object);
@@ -796,6 +875,21 @@ function rebuildObjectTemplatePreservingContent(page, itemCount, removedObject =
 
   buildObjectTemplate(page, itemCount);
 
+  // 3. 제목 개체 원본 유지:
+  // 슬라이드에 기존 제목이 존재했던 경우 새로 생성된 기본 제목을 기존 원본 제목 객체로 교체하여 완벽 보존
+  // 사용자가 사전에 제목을 삭제했던 경우 새로 생성된 기본 제목을 제거
+  if (existingTitle) {
+    const autoTitleIndex = page.objects.findIndex((o) => o.role === "page-title");
+    if (autoTitleIndex >= 0) {
+      page.objects[autoTitleIndex] = existingTitle;
+    } else {
+      page.objects.unshift(existingTitle);
+    }
+  } else {
+    page.objects = page.objects.filter((o) => o.role !== "page-title");
+  }
+
+  // 4. 커스텀 개체 복원
   if (customObjects.length > 0) {
     customObjects.forEach((customObj) => {
       if (!page.objects.some((o) => o.id === customObj.id)) {
@@ -804,9 +898,10 @@ function rebuildObjectTemplatePreservingContent(page, itemCount, removedObject =
     });
   }
 
+  // 5. 새로 빌드된 템플릿 카드/항목 개체에 대해서만 이전 콘텐츠 및 텍스트/서식 속성 복원 (기존 제목 및 커스텀 개체는 불필요한 덮어쓰기 방지)
   const nextRoleIndexes = new Map();
   page.objects
-    .filter((object) => object.type === "text")
+    .filter((object) => object.type === "text" && object !== existingTitle && !customObjects.includes(object))
     .forEach((object) => {
       const index = nextRoleIndexes.get(object.role) || 0;
       const previous = previousByRole.get(object.role)?.[index];
@@ -1228,7 +1323,14 @@ function applyMindmapTemplatePreservingContent(page) {
 
 function restoreSnapshotTitle(page, snapshotContent) {
   const title = page.objects.find((object) => object.role === "page-title");
-  if (title && snapshotContent.title) copyRelayoutTextProperties(title, snapshotContent.title);
+  if (title && snapshotContent.title) {
+    copyRelayoutTextProperties(title, snapshotContent.title);
+    if (snapshotContent.title.html) title.html = snapshotContent.title.html;
+    if (snapshotContent.title.x !== undefined) title.x = snapshotContent.title.x;
+    if (snapshotContent.title.y !== undefined) title.y = snapshotContent.title.y;
+    if (snapshotContent.title.w !== undefined) title.w = snapshotContent.title.w;
+    if (snapshotContent.title.h !== undefined) title.h = snapshotContent.title.h;
+  }
 }
 
 function applySnapshotBlocksToTargets(blocks, targets) {
@@ -2235,7 +2337,7 @@ function deleteSelectedObjects() {
     const newCount = count - removeCount;
 
     page.objects = page.objects.filter((object) => !state.selectedIds.has(object.id));
-    if (page.template === "object" && removeCount > 0 && newCount > 0) {
+    if ((page.template === "object" || page.objectCategory === "layout") && removeCount > 0 && newCount > 0) {
       rebuildObjectTemplatePreservingContent(page, newCount, cardDeletable[0]);
     }
   } else {
@@ -2365,7 +2467,7 @@ function removeItem() {
     const newCount = count - removeCount;
 
     page.objects = page.objects.filter((object) => !targetIds.has(object.id));
-    if (page.template === "object" && newCount > 0) {
+    if ((page.template === "object" || page.objectCategory === "layout") && newCount > 0) {
       rebuildObjectTemplatePreservingContent(page, newCount, selectedObjects[0] || selected);
     }
     state.selectedIds.clear();
@@ -2790,6 +2892,7 @@ function renderPages() {
         hideTextToolbar();
         render();
       } else {
+        commitActiveTextEditing();
         state.currentPageIndex = index;
         state.selectedIds.clear();
         state.guides = [];
@@ -2801,6 +2904,7 @@ function renderPages() {
     itemEl.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
+        commitActiveTextEditing();
         state.currentPageIndex = index;
         state.selectedIds.clear();
         state.guides = [];
@@ -2975,6 +3079,7 @@ $("#pageLastBtn")?.addEventListener("click", () => {
 });
 
 function renderStage() {
+  commitActiveTextEditing();
   setupStageFileDrop();
   updateStageScale();
   updateFilePathDisplay();
@@ -3883,7 +3988,11 @@ function createObjectElement(object) {
 
     const text = document.createElement("div");
     text.className = `canvas-text ${object.role}`;
-    if (STRUCTURED_LAYOUT_ROLES.has(object.role)) {
+    if (object.html) {
+      text.innerHTML = object.html;
+      text.dataset.fitText = object.text || "";
+      syncCanvasTextInlineScale(text);
+    } else if (STRUCTURED_LAYOUT_ROLES.has(object.role)) {
       const [value, heading, ...description] = object.text.split("\n");
       text.dataset.fitText = object.text;
       if (value !== undefined && value !== "") {
@@ -3922,15 +4031,15 @@ function createObjectElement(object) {
         text.append(descriptionElement);
       }
     } else {
-      if (object.html) {
-        text.innerHTML = object.html;
-      } else {
-        text.textContent = object.text;
-      }
+      text.textContent = object.text;
     }
     applyTextObjectStyle(text, object, element);
     element.append(text);
-    element.addEventListener("dblclick", (event) => beginTextEdit(event, object, element, text));
+    element.addEventListener("dblclick", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      beginTextEdit(event, object, element, text, true);
+    });
   }
 
   const handle = document.createElement("span");
@@ -3979,9 +4088,10 @@ function createObjectElement(object) {
       event.preventDefault();
       event.stopPropagation();
       const textEl = element.querySelector(".canvas-text") || element;
-      beginTextEdit(event, object, element, textEl);
+      beginTextEdit(event, object, element, textEl, isDoubleClick);
       return;
     }
+    commitActiveTextEditing();
     beginDrag(event, object);
   });
   return element;
@@ -4016,18 +4126,22 @@ function getTextAlign(object) {
 function applyTextObjectStyle(text, object, wrapper) {
   const align = getTextAlign(object);
   const flexJustify = { left: "flex-start", center: "center", right: "flex-end" }[align] || "center";
-  const isColumn = STRUCTURED_LAYOUT_ROLES.has(object.role) || ["timeline-node", "side-accent-card", "card"].includes(object.role);
+  const isColumn = !object.html && (STRUCTURED_LAYOUT_ROLES.has(object.role) || ["timeline-node", "side-accent-card", "card"].includes(object.role));
 
-  text.style.setProperty("display", "flex", "important");
   text.style.setProperty("text-align", align, "important");
 
   if (isColumn) {
+    text.style.setProperty("display", "flex", "important");
     text.style.setProperty("flex-direction", "column", "important");
     text.style.setProperty("justify-content", "center", "important");
     text.style.setProperty("align-items", flexJustify, "important");
+    text.style.removeProperty("align-content");
   } else {
-    text.style.setProperty("align-items", "center", "important");
-    text.style.setProperty("justify-content", flexJustify, "important");
+    text.style.setProperty("display", "block", "important");
+    text.style.setProperty("align-content", "center", "important");
+    text.style.removeProperty("flex-direction");
+    text.style.removeProperty("justify-content");
+    text.style.removeProperty("align-items");
   }
 
   text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
@@ -4044,19 +4158,25 @@ function applyTextObjectStyle(text, object, wrapper) {
   if (isDefaultPlaceholder) {
     const placeholderColor = "#94a3b8";
     text.style.setProperty("color", placeholderColor, "important");
-    text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
-      child.style.setProperty("color", placeholderColor, "important");
-    });
+    if (!object.html) {
+      text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+        child.style.setProperty("color", placeholderColor, "important");
+      });
+    }
   } else if (object.textColor) {
     text.style.setProperty("color", object.textColor, "important");
-    text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
-      child.style.setProperty("color", object.textColor, "important");
-    });
+    if (!object.html) {
+      text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+        child.style.setProperty("color", object.textColor, "important");
+      });
+    }
   } else {
     text.style.removeProperty("color");
-    text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
-      child.style.removeProperty("color");
-    });
+    if (!object.html) {
+      text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+        child.style.removeProperty("color");
+      });
+    }
   }
 
   if (["bullet-item", "cover-item"].includes(object.role)) {
@@ -4069,16 +4189,29 @@ function applyTextObjectStyle(text, object, wrapper) {
     text.style.setProperty("--object-font-size", `${object.fontSize}px`, "important");
     text.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
     text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
-      child.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
+      if (child.dataset.baseFontSize) {
+        const baseSize = parseFloat(child.dataset.baseFontSize) || object.fontSize;
+        child.style.setProperty("--inline-font-size", `${baseSize}px`);
+        child.style.setProperty("font-size", `calc(${baseSize}px * var(--stage-scale, 1))`, "important");
+      } else {
+        child.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
+      }
     });
     wrapper.dataset.manualFontSize = "true";
   } else {
     text.style.removeProperty("font-size");
     text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
-      child.style.removeProperty("font-size");
+      if (child.dataset.baseFontSize) {
+        const baseSize = parseFloat(child.dataset.baseFontSize) || 28;
+        child.style.setProperty("--inline-font-size", `${baseSize}px`);
+        child.style.setProperty("font-size", `calc(${baseSize}px * var(--stage-scale, 1))`, "important");
+      } else {
+        child.style.removeProperty("font-size");
+      }
     });
     delete wrapper.dataset.manualFontSize;
   }
+  syncCanvasTextInlineScale(text);
 
   if (object.shapeType || object.role === "shape-box") {
     wrapper.style.border = "none";
@@ -4626,6 +4759,7 @@ function isDefaultPlaceholderText(text, role) {
 
 function isObjectDefaultPlaceholder(object) {
   if (!object) return false;
+  if (object.html || object.isUserEdited) return false;
   if (["page-title", "cover-title", "cover-subtitle"].includes(object.role)) {
     return false;
   }
@@ -4639,16 +4773,73 @@ function isObjectDefaultPlaceholder(object) {
   return isDefaultPlaceholderText(object.text, object.role);
 }
 
-function beginTextEdit(event, object, wrapper, text) {
+function expandTextObjectOnLineBreak(object, wrapper, text) {
+  if (!object || !wrapper || !text) return;
+  const stageEl = $("#presentationStage") || (typeof stage !== "undefined" ? stage : null);
+  const stageH = stageEl?.clientHeight || 675;
+  if (!stageH || stageH <= 0) return;
+
+  // 폰트 크기 기반 한 줄 예상 높이 계산
+  const computedStyle = window.getComputedStyle(text);
+  const fontSizePx = parseFloat(computedStyle.fontSize) || (object.fontSize || 28);
+  const rawLineHeight = parseFloat(computedStyle.lineHeight);
+  const oneLinePx = (!isNaN(rawLineHeight) && rawLineHeight > 0) ? rawLineHeight : (fontSizePx * 1.25);
+  const oneLinePercent = (oneLinePx / stageH) * 100;
+
+  // 스크롤 높이 및 클라이언트 높이
+  const scrollH = text.scrollHeight;
+  const clientH = text.clientHeight;
+  const isOverflowing = scrollH > clientH;
+
+  let caretAtBottom = false;
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0) {
+    try {
+      const range = sel.getRangeAt(0);
+      if (text.contains(range.commonAncestorContainer)) {
+        const caretRect = range.getBoundingClientRect();
+        const textRect = text.getBoundingClientRect();
+        if (caretRect.bottom > 0 && textRect.bottom > 0) {
+          // 커서가 텍스트 박스 하단 경계(1줄 이내)에 닿았는지 확인
+          caretAtBottom = caretRect.bottom >= (textRect.bottom - (oneLinePx * 0.4));
+        }
+      }
+    } catch (e) {}
+  }
+
+  // Shift+Enter 줄바꿈으로 인해 텍스트 박스가 넘치거나 커서가 하단에 닿은 경우에만 높이 확장
+  if (isOverflowing || caretAtBottom) {
+    const extraPercent = isOverflowing
+      ? Math.max(oneLinePercent, ((scrollH - clientH + 4) / stageH) * 100)
+      : oneLinePercent;
+    const maxH = Math.max(object.h || 0, 100 - (object.y || 0));
+    const targetH = Math.min(maxH, Math.round(((object.h || 0) + extraPercent) * 10) / 10);
+    if (targetH > (object.h || 0)) {
+      object.h = targetH;
+      wrapper.style.height = `${targetH}%`;
+      object.isUserEdited = true;
+    }
+  }
+}
+
+function beginTextEdit(event, object, wrapper, text, shouldSelectAll = false) {
   if (document.fullscreenElement) return;
   if (event) {
     event.preventDefault();
     event.stopPropagation();
   }
+  const isDbl = Boolean(shouldSelectAll || event?.type === "dblclick" || event?.detail === 2);
+
   if (text.isContentEditable && wrapper.classList.contains("is-editing")) {
-    setCaretAtEventOrEnd(event, text);
+    if (isDbl) {
+      selectAllText(text);
+    } else {
+      setCaretAtEventOrEnd(event, text);
+    }
     return;
   }
+
+  commitActiveTextEditing();
   snapshot();
   state.activeTextObjectId = object.id;
   state.selectedIds.clear();
@@ -4672,6 +4863,9 @@ function beginTextEdit(event, object, wrapper, text) {
     text.textContent = object.text || "";
   }
   text.contentEditable = "true";
+  try {
+    document.execCommand("styleWithCSS", false, true);
+  } catch (e) {}
 
   if (isPlaceholder) {
     text.focus();
@@ -4685,18 +4879,51 @@ function beginTextEdit(event, object, wrapper, text) {
         sel.addRange(range);
       }
     } catch (e) {}
+  } else if (isDbl) {
+    selectAllText(text);
   } else {
     setCaretAtEventOrEnd(event, text);
   }
 
-  const editStartTime = Date.now();
-  const finish = (blurEvent) => {
-    if (Date.now() - editStartTime < 200) {
-      setTimeout(() => {
-        if (wrapper.classList.contains("is-editing")) text.focus();
-      }, 10);
-      return;
+  // 실시간 입력 반영: 타이핑 즉시 object.text와 object.html을 동기화하여 이전 텍스트로 되돌아감 원천 차단
+  const handleInput = () => {
+    const rawText = text.innerText.replace(/\r\n/g, "\n").replace(/\n+$/, "");
+    const trimmed = text.innerText.trim();
+    if (trimmed) {
+      object.text = rawText;
+      object.isUserEdited = true;
+      const rawHtml = text.innerHTML.trim();
+      if (/<[a-z][\s\S]*>/i.test(rawHtml)) {
+        object.html = rawHtml;
+      } else {
+        delete object.html;
+      }
+    } else {
+      object.text = "";
+      delete object.html;
     }
+  };
+  text.addEventListener("input", handleInput);
+
+  // 편집 중 텍스트 더블 클릭 시 전체 선택
+  const handleDblClick = (e) => {
+    e.stopPropagation();
+    selectAllText(text);
+  };
+  text.addEventListener("dblclick", handleDblClick);
+
+  const handlePaste = () => {
+    setTimeout(() => {
+      syncCanvasTextInlineScale(text);
+      handleInput();
+      if (activeEditingTextElement === text) {
+        updateSelectionToolbar();
+      }
+    }, 0);
+  };
+  text.addEventListener("paste", handlePaste);
+
+  const finish = (blurEvent) => {
     // 서식 툴바 클릭 시 포커스 풀림 방지
     if (blurEvent?.relatedTarget && (
       $("#textSelectionToolbar")?.contains(blurEvent.relatedTarget) ||
@@ -4704,14 +4931,19 @@ function beginTextEdit(event, object, wrapper, text) {
     )) {
       return;
     }
+    text.removeEventListener("paste", handlePaste);
+    text.removeEventListener("input", handleInput);
+    text.removeEventListener("dblclick", handleDblClick);
     hideTextSelectionToolbar();
     activeEditingTextElement = null;
     text.removeEventListener("blur", finish);
 
+    const rawText = text.innerText.replace(/\r\n/g, "\n").replace(/\n+$/, "");
     const trimmed = text.innerText.trim();
     if (trimmed) {
-      object.text = trimmed;
+      object.text = rawText;
       object.isUserEdited = true;
+      syncCanvasTextInlineScale(text);
       const rawHtml = text.innerHTML.trim();
       if (/<[a-z][\s\S]*>/i.test(rawHtml)) {
         object.html = rawHtml;
@@ -4737,24 +4969,19 @@ function beginTextEdit(event, object, wrapper, text) {
   text.addEventListener("blur", finish);
   text.addEventListener("keydown", (keyEvent) => {
     if (keyEvent.key === "Escape") {
-      hideTextSelectionToolbar();
-      activeEditingTextElement = null;
-      text.removeEventListener("blur", finish);
-      text.contentEditable = "false";
-      wrapper.classList.remove("is-editing");
-      const currentText = text.innerText.trim();
-      if (!currentText) {
-        object.text = isPlaceholder ? (placeholderOriginal || (["free-text", "shape-box"].includes(object.role) ? "" : "텍스트")) : (["free-text", "shape-box"].includes(object.role) ? "" : "텍스트");
-        object.isUserEdited = false;
-        delete object.html;
-      }
-      renderStage();
+      keyEvent.preventDefault();
+      text.blur();
       return;
     }
     if (keyEvent.key === "Enter" && (keyEvent.altKey || keyEvent.shiftKey)) {
       keyEvent.preventDefault();
       keyEvent.stopPropagation();
       insertEditableLineBreak(text);
+      expandTextObjectOnLineBreak(object, wrapper, text);
+      requestAnimationFrame(() => {
+        expandTextObjectOnLineBreak(object, wrapper, text);
+      });
+      handleInput();
       return;
     }
     if (keyEvent.key === "Enter" && !keyEvent.shiftKey && !keyEvent.altKey) {
@@ -4773,13 +5000,17 @@ function insertEditableLineBreak(editable) {
   range.deleteContents();
   const lineBreak = document.createElement("br");
   range.insertNode(lineBreak);
+  if (!lineBreak.nextSibling) {
+    const trailingBr = document.createElement("br");
+    trailingBr.className = "trailing-br";
+    editable.append(trailingBr);
+  }
   range.setStartAfter(lineBreak);
   range.collapse(true);
   selection.removeAllRanges();
   selection.addRange(range);
 }
 
-let activeEditingTextElement = null;
 let savedSelectionRange = null;
 
 function saveCurrentSelection() {
@@ -4857,6 +5088,9 @@ function updateSelectionToolbar() {
 function applyInlineFormat(command, value = null) {
   restoreCurrentSelection();
   document.execCommand(command, false, value);
+  if (activeEditingTextElement) {
+    syncCanvasTextInlineScale(activeEditingTextElement);
+  }
   saveCurrentSelection();
   if (activeEditingTextElement) {
     activeEditingTextElement.focus();
@@ -4869,12 +5103,18 @@ function applyInlineHighlight(color) {
   if (!color || color === "transparent") {
     document.execCommand("removeFormat", false, null);
   } else {
+    try {
+      document.execCommand("styleWithCSS", false, true);
+    } catch (e) {}
     if (!document.execCommand("hiliteColor", false, color)) {
       document.execCommand("backColor", false, color);
     }
   }
   const hlBar = $("#selHlBar");
   if (hlBar) hlBar.style.background = (color === "transparent" ? "#fef08a" : color);
+  if (activeEditingTextElement) {
+    syncCanvasTextInlineScale(activeEditingTextElement);
+  }
   saveCurrentSelection();
   closeSelectionPopovers();
   if (activeEditingTextElement) {
@@ -4885,9 +5125,15 @@ function applyInlineHighlight(color) {
 
 function applyInlineColor(color) {
   restoreCurrentSelection();
+  try {
+    document.execCommand("styleWithCSS", false, true);
+  } catch (e) {}
   document.execCommand("foreColor", false, color);
   const colorBar = $("#selColorBar");
   if (colorBar) colorBar.style.background = color;
+  if (activeEditingTextElement) {
+    syncCanvasTextInlineScale(activeEditingTextElement);
+  }
   saveCurrentSelection();
   closeSelectionPopovers();
   if (activeEditingTextElement) {
@@ -4904,18 +5150,25 @@ function applyInlineFontSize(delta) {
 
   let parentEl = range.commonAncestorContainer;
   if (parentEl.nodeType === Node.TEXT_NODE) parentEl = parentEl.parentElement;
-  const currentSize = parseFloat(window.getComputedStyle(parentEl).fontSize) || 16;
-  const newSize = Math.max(9, Math.min(140, Math.round(currentSize + delta)));
+  const stageScale = parseFloat(document.getElementById("presentationStage")?.style.getPropertyValue("--stage-scale")) || 1.0;
+  const baseEl = parentEl.closest("[data-base-font-size]");
+  const currentBase = baseEl
+    ? parseFloat(baseEl.dataset.baseFontSize)
+    : (parseFloat(window.getComputedStyle(parentEl).fontSize) || 28) / (stageScale || 1.0);
+  const newBaseSize = Math.max(9, Math.min(140, Math.round(currentBase + delta)));
 
   document.execCommand("fontSize", false, "7");
   const container = parentEl.closest(".canvas-text") || parentEl;
   const fontTags = container.querySelectorAll('font[size="7"]');
   fontTags.forEach((fontTag) => {
     const span = document.createElement("span");
-    span.style.fontSize = `${newSize}px`;
+    span.dataset.baseFontSize = String(newBaseSize);
+    span.style.setProperty("--inline-font-size", `${newBaseSize}px`);
+    span.style.setProperty("font-size", `calc(${newBaseSize}px * var(--stage-scale, 1))`, "important");
     span.innerHTML = fontTag.innerHTML;
     fontTag.parentNode.replaceChild(span, fontTag);
   });
+  syncCanvasTextInlineScale(container, stageScale);
 
   saveCurrentSelection();
   if (activeEditingTextElement) {
@@ -5176,6 +5429,7 @@ function previewCustomColor(target, color) {
 }
 
 function hideTextToolbar() {
+  commitActiveTextEditing();
   state.activeTextObjectId = null;
   const toolbar = $("#textToolbar");
   if (toolbar) toolbar.hidden = true;
@@ -5190,6 +5444,7 @@ function normalizeColor(value) {
 }
 
 function updateActiveTextStyle(property, value) {
+  commitActiveTextEditing();
   const page = currentPage();
   const selectedObjects = page.objects.filter((item) => state.selectedIds.has(item.id));
   if (!selectedObjects.length) return;
@@ -5262,6 +5517,7 @@ function beginCellEdit(event, object, rowIndex, columnIndex, cell) {
 }
 
 function beginDrag(event, object) {
+  commitActiveTextEditing();
   if (event.button !== 0 || event.target.classList.contains("resize-handle") || event.target.classList.contains("rotate-handle") || event.target.closest(".rotate-handle") || isTextInputTarget(event.target) || document.fullscreenElement) return;
   event.preventDefault();
   stage.focus({ preventScroll: true });
@@ -5656,8 +5912,15 @@ function fitAllText() {
       text.style.setProperty("--object-font-size", `${object.fontSize}px`, "important");
       text.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
       text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
-        child.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
+        if (child.dataset.baseFontSize) {
+          const baseSize = parseFloat(child.dataset.baseFontSize) || object.fontSize;
+          child.style.setProperty("--inline-font-size", `${baseSize}px`);
+          child.style.setProperty("font-size", `calc(${baseSize}px * var(--stage-scale, 1))`, "important");
+        } else {
+          child.style.removeProperty("font-size");
+        }
       });
+      syncCanvasTextInlineScale(text);
       return;
     }
     if (mindTexts.has(text) || bulletTexts.has(text)) return;
@@ -5674,6 +5937,9 @@ function fitAllText() {
   fitBulletTextByLevel(bulletTexts);
   fitMindmapTextByLevel(mindTexts);
   fitTablesToCommonSize([...stage.querySelectorAll(".table-object")]);
+  stage.querySelectorAll(".canvas-text").forEach((text) => {
+    syncCanvasTextInlineScale(text);
+  });
 }
 
 function getTextObjectForElement(text) {
@@ -5705,8 +5971,15 @@ function fitBulletTextByLevel(bulletTexts) {
       text.style.setProperty("--object-font-size", `${object.fontSize}px`, "important");
       text.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
       text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
-        child.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
+        if (child.dataset.baseFontSize) {
+          const baseSize = parseFloat(child.dataset.baseFontSize) || object.fontSize;
+          child.style.setProperty("--inline-font-size", `${baseSize}px`);
+          child.style.setProperty("font-size", `calc(${baseSize}px * var(--stage-scale, 1))`, "important");
+        } else {
+          child.style.removeProperty("font-size");
+        }
       });
+      syncCanvasTextInlineScale(text);
       return false;
     }
     return true;
@@ -5772,8 +6045,15 @@ function fitMindmapTextByLevel(mindTexts) {
       text.style.setProperty("--object-font-size", `${object.fontSize}px`, "important");
       text.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
       text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
-        child.style.setProperty("font-size", `calc(${object.fontSize}px * var(--stage-scale, 1))`, "important");
+        if (child.dataset.baseFontSize) {
+          const baseSize = parseFloat(child.dataset.baseFontSize) || object.fontSize;
+          child.style.setProperty("--inline-font-size", `${baseSize}px`);
+          child.style.setProperty("font-size", `calc(${baseSize}px * var(--stage-scale, 1))`, "important");
+        } else {
+          child.style.removeProperty("font-size");
+        }
       });
+      syncCanvasTextInlineScale(text);
       return false;
     }
     return true;
@@ -7753,6 +8033,7 @@ function isStageBackgroundTarget(target) {
 }
 
 stage.addEventListener("pointerdown", (event) => {
+  commitActiveTextEditing();
   if (event.button !== 0 || document.fullscreenElement === stage) return;
   if (!isStageBackgroundTarget(event.target)) return;
 
@@ -8755,3 +9036,22 @@ if (typeof ResizeObserver !== "undefined") {
 }
 updateStageScale();
 updateFilePathDisplay();
+
+// 브라우저 북마크바 표시, 포커스 이동 등으로 인해 윈도우 스크롤이 발생하여 상단 헤더 버튼이 가려지는 현상 원천 방지
+function enforceViewportScrollLock() {
+  if (window.scrollY !== 0 || window.scrollX !== 0) {
+    window.scrollTo(0, 0);
+  }
+  if (document.documentElement && (document.documentElement.scrollTop !== 0 || document.documentElement.scrollLeft !== 0)) {
+    document.documentElement.scrollTop = 0;
+    document.documentElement.scrollLeft = 0;
+  }
+  if (document.body && (document.body.scrollTop !== 0 || document.body.scrollLeft !== 0)) {
+    document.body.scrollTop = 0;
+    document.body.scrollLeft = 0;
+  }
+}
+window.addEventListener("scroll", enforceViewportScrollLock, { passive: true });
+window.addEventListener("resize", enforceViewportScrollLock);
+document.addEventListener("focusin", enforceViewportScrollLock);
+

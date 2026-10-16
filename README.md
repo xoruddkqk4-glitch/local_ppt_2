@@ -1082,4 +1082,35 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
       - 전체 화면 및 발표 모드에서 default 텍스트가 노출되지 않도록 `.presentation-stage.is-fullscreen`, `#presentationStage.is-fullscreen` 등 포괄적 선택자를 추가하여 `visibility: hidden !important; opacity: 0 !important;` 완벽 적용.
 - **검증 결과**: `node -c app.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
 
+## [2026-10-16 23:27] 업데이트 이력 (Commit ID: 8a17937)
+- **수정 내용**:
+  - `app.js`:
+    - **텍스트 개체 인라인 서식 반응형 슬라이드 스케일 동기화 (`syncCanvasTextInlineScale`, `applyInlineFontSize`)**:
+      - 텍스트 개체 내 부분 폰트 크기 변경 시 `[data-base-font-size]` 및 `--inline-font-size`를 부여하고, 슬라이드 스케일(`--stage-scale`)에 비례한 `calc(${newBaseSize}px * var(--stage-scale, 1))` 폰트 크기를 적용하여 창 크기 리사이즈, 전체 화면 모드 전환, 복사-붙여넣기 시 인라인 폰트 크기가 고정 px로 굳거나 왜곡되는 현상 방지.
+      - 인라인 폰트 크기 서식이 없는 일반 자식 태그(`span`, `strong`, `b`, `p`, `div` 등)는 개체 전체 폰트 크기를 자연스럽게 상속받도록 처리.
+    - **텍스트 실시간 커밋 및 편집 내용 유실 방지 (`commitActiveTextEditing`)**:
+      - 텍스트 입력(`input` 이벤트) 즉시 `object.text`와 `object.html`을 실시간 갱신하고, 개체 드래그, 툴바 닫기, 서식 변경, 슬라이드 전환, 스냅샷 저장 등 다양한 이벤트 직전에 `commitActiveTextEditing()`을 선제 호출하여 타이핑 도중 포커스를 잃더라도 이전 텍스트로 되돌아가는 현상 원천 차단.
+    - **개체 텍스트 더블 클릭 시 전체 선택 지원 (`selectAllText`)**:
+      - 편집 중인 텍스트 개체 내부를 더블 클릭(`dblclick`)했을 때 텍스트 전체 영역이 즉시 블록 선택되도록 개선하여 빠른 수정 및 전체 교체 편의성 향상.
+    - **텍스트 줄바꿈 시 상자 높이 자동 확장 (`expandTextObjectOnLineBreak`)**:
+      - 줄바꿈으로 인해 텍스트 내용이 박스 높이를 초과하거나 커서가 텍스트 상자 하단에 닿을 경우, 개체 높이(`object.h`)를 자동으로 늘려 텍스트가 잘려나가는 현상 방지.
+    - **템플릿 전환 시 슬라이드 제목 및 커스텀 개체 보존 (`rebuildObjectTemplatePreservingContent`)**:
+      - 레이아웃 템플릿 변경 또는 개체 수 조정 시 기존 슬라이드 제목(`page-title`)의 원본 객체(ID, 텍스트, 서식, 크기, 위치)를 100% 보존하고, 자유 도형/자유 텍스트/타이머 등 커스텀 개체 유실 방지.
+      - `RELAYOUT_TEXT_PROPERTIES`에 `html`, `htmlContent`, `whiteSpace`, `wordBreak` 속성을 추가하여 서식 텍스트 보존 강화.
+    - **상단 윈도우 스크롤 억제 및 헤더 뷰포트 고정 (`enforceViewportScrollLock`)**:
+      - 브라우저 북마크바 표시나 포커스 이동 시 `window.scrollY`가 발생하여 상단 헤더 메뉴가 위로 밀려 가려지는 현상을 막기 위해 `scroll`, `resize`, `focusin` 이벤트 리스너를 연동하여 `(0, 0)` 위치 고정.
+  - `style.css`:
+    - **워크스페이스 레이아웃 안정화 (`.workspace`)**: `flex: 1 1 auto; min-height: 0; height: calc(100% - 68px); overflow: hidden;`을 적용하여 브라우저 전체 스크롤 발생 억제 및 뷰포트 일관성 유지.
+    - **개체 텍스트 렌더링 및 인라인 폰트 상속 체계 개선 (`.canvas-text`)**:
+      - `display: block; align-content: center; line-height: 1.15;`로 단일/다중 행 텍스트의 수직 정렬 및 행간 최적화.
+      - `b, strong` 태그에 `font-weight: 900 !important;` 및 인라인 `font-weight: normal / 400` 강제 규칙 추가.
+      - 인라인 폰트 크기가 지정되지 않은 자식 태그에 `font-size: inherit !important;`를 적용하고, `[data-base-font-size]`를 가진 인라인 서식에 `calc(var(--inline-font-size) * var(--stage-scale, 1)) !important;` 적용.
+    - **전체 화면 클래스 선택자 보강**:
+      - `.presentation-stage.is-fullscreen`, `#presentationStage.is-fullscreen`, `body.is-fullscreen .presentation-stage` 전체 화면 16:9 비율 유지 및 여백 제거.
+  - `ai-intake.js`:
+    - **AI 시작 화면 진입 시 불필요한 자동 스크롤 방지 (`selectSource`, `showStartScreen`)**:
+      - 시작 화면 초기화 및 소스 탭 전환 시 화면이 아래로 갑작스럽게 스크롤되던 문제를 방지하기 위해 `shouldScroll = false` 파라미터 적용 및 `intake.scrollTop = 0` 최상단 뷰포트 유지.
+- **검증 결과**: `node -c app.js; node -c ai-intake.js; node -c server.js; node -c designs/options.js; node -c layouts/options.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
+
 

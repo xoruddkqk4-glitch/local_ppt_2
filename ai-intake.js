@@ -299,9 +299,9 @@
   }
 
   function scrollToSourceSection() {
-    const sourceGrid = document.querySelector(".intake-source-grid");
-    if (sourceGrid) {
-      sourceGrid.scrollIntoView({ behavior: "smooth", block: "start" });
+    const sourceInput = document.querySelector("#intakeSourceInput");
+    if (sourceInput && !sourceInput.hidden) {
+      sourceInput.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }
 
@@ -562,7 +562,7 @@
       setProgress(progress, "AI가 슬라이드 구성 중");
     }, 800);
   }
-  function selectSource(type) {
+  function selectSource(type, shouldScroll = false) {
     sourceType = type;
     sourceInput.hidden = false;
     selectionHint.textContent = `${sourceLabels[type]}를 선택했습니다. 내용을 입력한 뒤 'AI로 슬라이드 만들기' 또는 하단 '프레젠테이션 시작하기'를 누르세요.`;
@@ -584,7 +584,9 @@
       fileName.textContent = "PDF 파일 선택";
     }
     setStatus();
-    scrollToSourceSection();
+    if (shouldScroll) {
+      scrollToSourceSection();
+    }
   }
   function selectedProvider() { const openai = $("#openaiApiKey").value.trim(), anthropic = $("#anthropicApiKey").value.trim(); return openai && anthropic ? $("input[name=aiProvider]:checked")?.value || "openai" : openai ? "openai" : anthropic ? "anthropic" : null; }
   function updateProviderChoice() {
@@ -817,7 +819,10 @@
   function showStartScreen() {
     pendingAiPresentation = null;
     intake.hidden = false;
-    selectSource("prose");
+    selectSource("prose", false);
+    if (intake) {
+      intake.scrollTop = 0;
+    }
     setStatus();
     if (window.LocalPptApp?.getOptions) {
       const opts = window.LocalPptApp.getOptions();
@@ -866,7 +871,7 @@
         $("#intakeProjectFile").click();
       }
     } else {
-      selectSource(action);
+      selectSource(action, false);
     }
   }));
 
@@ -914,6 +919,9 @@
     getModalFixedOverlays
   };
 
-  // Initialize intake screen with default prose selection visible
-  selectSource("prose");
+  // Initialize intake screen with default prose selection visible at top of viewport
+  selectSource("prose", false);
+  if (intake) {
+    intake.scrollTop = 0;
+  }
 })();
