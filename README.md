@@ -1112,5 +1112,24 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
       - 시작 화면 초기화 및 소스 탭 전환 시 화면이 아래로 갑작스럽게 스크롤되던 문제를 방지하기 위해 `shouldScroll = false` 파라미터 적용 및 `intake.scrollTop = 0` 최상단 뷰포트 유지.
 - **검증 결과**: `node -c app.js; node -c ai-intake.js; node -c server.js; node -c designs/options.js; node -c layouts/options.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
 
-
-
+## [2026-10-18 01:21] 업데이트 이력 (Commit ID: 342e37b)
+- **수정 내용**:
+  - `designs/options.js`:
+    - 슬라이드 갤러리 신규 34종 테마(`8-bit-orbit`, `retro-windows`, `editorial-forest`, `blue-professional`, `pin-and-paper` 등)를 `window.PptDesigns`에 전면 등록하여 기존 10종에서 총 44종 테마로 확장.
+    - 테마별 영문명(`name`), 한글명(`koreanName`), 그룹 분류(`group`: 코어 디자인, 에디토리얼 & 매거진, 비즈니스 & 그리드, 레트로 & 감성, 볼드 & 포스터, 크리에이티브 & 택타일), 설명(`description`), 엄선된 3색 팔레트(`defaultColors`: 1순위, 2순위, 3순위 HEX) 완벽 매핑.
+  - `style.css`:
+    - **카테고리 필터 탭 UI 스타일링 (`.theme-filter-tabs`, `.theme-filter-tab`)**: 상단 카테고리 칩 탭 버튼 레이아웃, 호버 및 활성(`.is-active`) 파란색 테두리/배경 스타일 구현.
+    - **34종 전용 미니 비주얼 프레임 (`.mini-frame-*`) 스타일링**: 각 테마의 미적 정체성을 살린 50×35px 미니어처 프레임 구현 (Windows 95 베벨 입체 창, 8비트 네온 섀도우, 핀 앤 페이퍼 노란 리걸패드 줄무늬, 캡슐 라운드 알약, 코발트 그리드 격자, 포스트잇 메모지 등).
+    - 썸네일 그리드 높이 최적화 (`max-height: 290px`).
+  - `index.html`:
+    - AI 슬라이드 시작 모달(`#intakeStyleSettings`) 및 에디터 디자인 변경 모달(`#styleConfigModal`)의 테마 타이틀을 `(44종)`으로 업데이트.
+    - 테마 썸네일 상단 카테고리 탭 컨테이너(`#intakeThemeFilterTabs`, `#modalThemeFilterTabs`) 추가.
+    - `<select>` 요소를 비우고 `ai-intake.js`에서 44종을 그룹별로 동적 주입하도록 개편.
+  - `ai-intake.js`:
+    - `populateDesignSelectOptions()`: `window.PptDesigns`의 44종 테마를 그룹별 `<optgroup>`으로 자동 구성하여 hidden `<select>`에 동적 주입.
+    - `renderThemeThumbnailGrid()`:
+      - 상단에 **`전체 (44)` · `코어 디자인 (10)` · `에디토리얼 & 매거진 (10)` · `비즈니스 & 그리드 (6)` · `레트로 & 감성 (5)` · `볼드 & 포스터 (4)` · `크리에이티브 & 택타일 (9)`** 카테고리 필터 탭을 동적 렌더링.
+      - 탭 클릭 시 해당 그룹의 테마 카드만 즉시 필터링하여 대규모 테마 라이브러리를 직관적이고 쾌적하게 탐색하도록 구현.
+      - 테마 선택 시 3색 팔레트 픽커 및 16:9 대형 슬라이드 미리보기 실시간 동기화.
+    - `updateThemeThumbGridActive()`: 활성화된 테마 카드가 필터링 상태와 무관하게 표시되고 스크롤 뷰에 위치하도록 동기화 보강.
+- **검증 결과**: `node -c designs/options.js; node -c ai-intake.js; node -c app.js; node -c layouts/options.js; node -c server.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0). 44종 메타데이터, 3색 HEX 팔레트 유효성 및 CSS 미니 프레임 클래스 1:1 매칭 검증 완료.

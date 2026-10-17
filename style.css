@@ -1886,11 +1886,42 @@ body[data-design="tactile-minimal"] .resize-handle { width:13px; height:13px; ri
   border-left: 3px solid #2563eb;
 }
 
+.theme-filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0 8px 0;
+}
+.theme-filter-tab {
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.3;
+  user-select: none;
+}
+.theme-filter-tab:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+.theme-filter-tab.is-active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+}
+
 .theme-thumbnail-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 7px;
-  max-height: 270px;
+  max-height: 290px;
   overflow-y: auto;
   padding: 3px;
   margin: 4px 0 2px 0;
@@ -2054,6 +2085,205 @@ body[data-design="tactile-minimal"] .resize-handle { width:13px; height:13px; ri
   border: 1px solid #676c67;
   box-shadow: inset 0 1px #ffffff, 0 2px 5px rgba(52, 57, 52, 0.2);
   border-radius: 4px;
+}
+
+/* 34 Slide Gallery Themes Mini Frames */
+/* 1. 에디토리얼 & 매거진 (10종) */
+.mini-frame-biennale-yellow {
+  background: #E9E5DB;
+  border: 1px solid #DCD6C4;
+  background-image: radial-gradient(circle at 80% 20%, #F1EE2E66 0, transparent 18px);
+  border-radius: 0;
+}
+.mini-frame-broadside {
+  background: #111111;
+  border: 1.5px solid #1A1A18;
+  border-radius: 0;
+}
+.mini-frame-editorial-forest {
+  background: #2E4A2A;
+  border: 1px solid #1F2E1E;
+  border-radius: 3px;
+}
+.mini-frame-editorial-tri-tone {
+  background: #F2B6C6;
+  border: 1.5px solid #7A1F35;
+  border-radius: 0;
+}
+.mini-frame-emerald-editorial {
+  background: #3CD896;
+  border: 1px solid #0D2B1D;
+  border-radius: 2px;
+}
+.mini-frame-grove {
+  background: #192B1B;
+  border: 1px solid #C5A88066;
+  border-radius: 0;
+}
+.mini-frame-monochrome {
+  background: #FAFADF;
+  border: 1px solid #1C1C1A;
+  border-radius: 0;
+}
+.mini-frame-signal {
+  background: #1C2644;
+  border: 1px solid #232F55;
+  border-radius: 2px;
+}
+.mini-frame-soft-editorial {
+  background: #F2EEDF;
+  border: 1px solid #D4CEBC;
+  border-radius: 4px;
+}
+.mini-frame-vellum {
+  background: #2A3870;
+  border: 1px solid #1F2858;
+  border-radius: 0;
+}
+
+/* 2. 비즈니스 & 그리드 (6종) */
+.mini-frame-blue-professional {
+  background: #FDFAE7;
+  border: 1.5px solid #1E2BFA33;
+  border-radius: 4px;
+}
+.mini-frame-cartesian {
+  background: #EDE8E0;
+  border: 1px dashed #5A5A5A66;
+  border-radius: 0;
+}
+.mini-frame-cobalt-grid {
+  background: #F0EBDE;
+  background-image: linear-gradient(#1F2BE015 1px, transparent 1px), linear-gradient(90deg, #1F2BE015 1px, transparent 1px);
+  background-size: 5px 5px;
+  border: 1px solid #1F2BE0;
+  border-radius: 0;
+}
+.mini-frame-neo-grid-bold {
+  background: #F5F4EF;
+  border: 1.5px solid #0A0A0A;
+  box-shadow: 2px 2px 0 #E6FF3D;
+  border-radius: 0;
+}
+.mini-frame-raw-grid {
+  background: #0A0A0A;
+  border: 2px solid #FF3333;
+  border-radius: 0;
+}
+.mini-frame-studio {
+  background: #1C1C1C;
+  border: 1.5px solid #F5D200;
+  border-radius: 0;
+}
+
+/* 3. 레트로 & 감성 (5종) */
+.mini-frame-8-bit-orbit {
+  background: #0A0E27;
+  border: 1.5px solid #5EDCF4;
+  box-shadow: 2px 2px 0 #F0A6CA;
+  border-radius: 0;
+}
+.mini-frame-retro-windows {
+  background: #C0C0C0;
+  border: 1.5px solid #FFFFFF;
+  box-shadow: inset 1px 1px 0 #FFFFFF, inset -1px -1px 0 #808080, 1.5px 1.5px 0 #404040;
+  border-radius: 0;
+}
+.mini-frame-retro-zine {
+  background: #C8B99A;
+  border: 1.5px solid #1A1A1A;
+  box-shadow: 2px 2px 0 #008F4D;
+  border-radius: 0;
+}
+.mini-frame-sakura-chroma {
+  background: #F1E6CB;
+  border: 1.5px solid #3A2516;
+  border-radius: 3px;
+}
+.mini-frame-long-table {
+  background: #FAF1E2;
+  border: 1px solid #B53D2A66;
+  border-radius: 0;
+}
+
+/* 4. 볼드 & 포스터 (4종) */
+.mini-frame-block-frame {
+  background: #FFFDF5;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0 #FE90E8;
+  border-radius: 0;
+}
+.mini-frame-bold-poster {
+  background: #FFFFFF;
+  border: 2px solid #1C1410;
+  box-shadow: 2px 2px 0 #D8000F;
+  border-radius: 0;
+}
+.mini-frame-peoples-platform {
+  background: #FAF8F5;
+  border: 1.5px solid #2C2CDC;
+  box-shadow: 2px 2px 0 #DF3B2B;
+  border-radius: 0;
+}
+.mini-frame-stencil-tablet {
+  background: #E2DCC9;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 2px;
+}
+
+/* 5. 크리에이티브 & 택타일 (9종) */
+.mini-frame-capsule {
+  background: #F5F5F0;
+  border: 1.5px solid #1A1A1A;
+  border-radius: 12px;
+}
+.mini-frame-coral {
+  background: #F5F0E8;
+  border: 1px solid #E85D5D55;
+  box-shadow: 0 2px 5px rgba(232, 93, 93, 0.15);
+  border-radius: 5px;
+}
+.mini-frame-creative-mode {
+  background: #111215;
+  border: 1.5px solid #6C5CE7;
+  box-shadow: 0 0 6px rgba(108, 92, 231, 0.35);
+  border-radius: 4px;
+}
+.mini-frame-daisy-days {
+  background: #F5F0E6;
+  border: 1px solid #EAA844;
+  border-radius: 5px;
+}
+.mini-frame-mat {
+  background: #232E26;
+  border: 1px solid #C89666;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+.mini-frame-pin-and-paper {
+  background: #EFE56A;
+  background-image: repeating-linear-gradient(#EFE56A 0px, #EFE56A 5px, #1E2B7A22 6px);
+  border: 1px solid #B8AC30;
+  border-left: 3px solid #E55039;
+  border-radius: 1px;
+}
+.mini-frame-pink-script {
+  background: #060507;
+  border: 1.5px solid #ED3D8C;
+  box-shadow: 0 0 5px rgba(237, 61, 140, 0.4);
+  border-radius: 0;
+}
+.mini-frame-playful {
+  background: #F0C8A0;
+  border: 1px solid #E8B88E;
+  box-shadow: 1.5px 1.5px 4px rgba(43, 35, 32, 0.15);
+  border-radius: 6px;
+}
+.mini-frame-scatterbrain {
+  background: #FFE066;
+  border: 1px solid #F0C020;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.15);
+  border-radius: 2px;
 }
 
 /* Card Details & Colors Info */

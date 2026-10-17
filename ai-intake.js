@@ -197,15 +197,34 @@
     }
   });
 
+  function populateDesignSelectOptions(selectEl) {
+    if (!selectEl || !window.PptDesigns) return;
+    const groups = {};
+    for (const [key, meta] of Object.entries(window.PptDesigns)) {
+      const grp = meta.group || "기타";
+      if (!groups[grp]) groups[grp] = [];
+      groups[grp].push({ key, name: meta.name || key, kor: meta.koreanName || "" });
+    }
+    selectEl.innerHTML = Object.entries(groups).map(([grpName, items]) => {
+      return `<optgroup label="${grpName}">` +
+        items.map(it => `<option value="${it.key}">${it.name} (${it.kor})</option>`).join("") +
+        `</optgroup>`;
+    }).join("");
+  }
+
   function renderThemeThumbnailGrid(containerId, activeDesign, onSelectCallback) {
     const container = $(`#${containerId}`);
     if (!container || !window.PptDesigns) return;
+
+    const tabsContainerId = containerId === "intakeThemeThumbGrid" ? "intakeThemeFilterTabs" : "modalThemeFilterTabs";
+    const tabsContainer = $(`#${tabsContainerId}`);
 
     const entries = Object.entries(window.PptDesigns);
     container.innerHTML = entries.map(([key, meta]) => {
       const isSelected = key === activeDesign;
       const name = meta.name || key;
       const korName = meta.koreanName || "";
+      const grp = meta.group || "";
       const c1 = meta.defaultColors?.[0] || "#e11d48";
       const c2 = meta.defaultColors?.[1] || "#2563eb";
       const c3 = meta.defaultColors?.[2] || "#f59e0b";
@@ -214,10 +233,11 @@
       return `
         <div class="theme-thumb-card ${isSelected ? "is-selected" : ""}" 
              data-theme-key="${key}" 
+             data-theme-group="${grp}"
              role="radio" 
              aria-checked="${isSelected ? "true" : "false"}"
              tabindex="0"
-             title="${name} (${korName}) — 테마색: ${hexSummary}">
+             title="${name} (${korName}) [${grp}] — 테마색: ${hexSummary}">
           <div class="theme-thumb-mini-frame mini-frame-${key}" data-mini-design="${key}">
             <div class="mini-frame-header" style="background:${c1};"></div>
             <div class="mini-frame-card">
@@ -241,6 +261,44 @@
         </div>
       `;
     }).join("");
+
+    if (tabsContainer) {
+      const groupCounts = { "all": entries.length };
+      entries.forEach(([_, meta]) => {
+        const g = meta.group || "기타";
+        groupCounts[g] = (groupCounts[g] || 0) + 1;
+      });
+
+      const tabDefs = [
+        { key: "all", label: `전체 (${groupCounts["all"]})` },
+        ...Object.keys(groupCounts).filter(k => k !== "all").map(g => ({
+          key: g,
+          label: `${g} (${groupCounts[g]})`
+        }))
+      ];
+
+      tabsContainer.innerHTML = tabDefs.map((t, idx) => `
+        <button type="button" class="theme-filter-tab ${idx === 0 ? "is-active" : ""}" data-group="${t.key}">
+          ${t.label}
+        </button>
+      `).join("");
+
+      tabsContainer.querySelectorAll(".theme-filter-tab").forEach((tabBtn) => {
+        tabBtn.addEventListener("click", () => {
+          tabsContainer.querySelectorAll(".theme-filter-tab").forEach(b => b.classList.remove("is-active"));
+          tabBtn.classList.add("is-active");
+          const targetGroup = tabBtn.dataset.group;
+          container.querySelectorAll(".theme-thumb-card").forEach(card => {
+            const cardGroup = card.dataset.themeGroup;
+            if (targetGroup === "all" || cardGroup === targetGroup) {
+              card.style.display = "";
+            } else {
+              card.style.display = "none";
+            }
+          });
+        });
+      });
+    }
 
     container.querySelectorAll(".theme-thumb-card").forEach((card) => {
       const handleSelect = () => {
@@ -267,6 +325,7 @@
       card.classList.toggle("is-selected", isSelected);
       card.setAttribute("aria-checked", isSelected ? "true" : "false");
       if (isSelected) {
+        card.style.display = "";
         card.scrollIntoView({ block: "nearest", behavior: "smooth" });
       }
     });
@@ -345,6 +404,9 @@
       renderDesignThumbnail($("#intakeDesignSelect")?.value || "bauhaus");
     });
   });
+
+  populateDesignSelectOptions($("#intakeDesignSelect"));
+  populateDesignSelectOptions($("#modalDesignSelect"));
 
   renderThemeThumbnailGrid("intakeThemeThumbGrid", $("#intakeDesignSelect")?.value || "bauhaus", (selectedKey) => {
     if ($("#intakeDesignSelect")) $("#intakeDesignSelect").value = selectedKey;
