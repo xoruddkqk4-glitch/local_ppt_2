@@ -4144,6 +4144,1138 @@ body.is-present-mode #presentationStage {
 }
 
 /* =========================================================
+   DEDICATED THEME SIGNATURE COMPONENTS STYLES
+   테마별 고유 정체성(색상, 폰트, 무드, 카드/태그/버튼/지표) 전용 스타일링
+   ========================================================= */
+
+/* --- 9. 매트 택타일 그린 (Mat) --- */
+.sig-comp.mat-cream-card {
+  background: #EDE6D0;
+  color: #232E26;
+  border: 1px solid rgba(35, 46, 38, 0.2);
+  border-radius: 4px;
+  padding: 16px 20px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.mat-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: #C89666;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.mat-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #232E26;
+  margin-bottom: 4px;
+}
+.mat-desc {
+  font-size: 11.5px;
+  color: #405044;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sig-comp.mat-dark-box {
+  background: #232E26;
+  border: 1px solid rgba(237, 230, 208, 0.3);
+  color: #EDE6D0;
+  border-radius: 4px;
+  padding: 16px 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.mat-box-tag {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: #C89666;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.mat-box-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #EDE6D0;
+  margin-bottom: 4px;
+}
+.mat-box-desc {
+  font-size: 11.5px;
+  color: #A3B0A5;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sig-comp.mat-amber-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #C89666;
+  letter-spacing: 0.08em;
+}
+.mat-glow-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #C89666;
+  box-shadow: 0 0 10px #C89666;
+  flex: none;
+}
+.mat-amber-text {
+  white-space: nowrap;
+}
+
+.sig-comp.mat-leather-tag {
+  background: rgba(200, 150, 102, 0.18);
+  border: 1px solid #C89666;
+  color: #C89666;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.mat-kicker-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #EDE6D0;
+  letter-spacing: 0.08em;
+}
+.mat-kicker-rule {
+  width: 24px;
+  height: 2px;
+  background: #C89666;
+  flex: none;
+}
+
+/* --- 10. 스큐어모피즘 (Skeuo) --- */
+.sig-comp.skeuo-wood-panel {
+  background: linear-gradient(180deg, #fffdf7 0%, #ebd7b7 100%);
+  border: 2px solid #7c4c2a;
+  box-shadow: 0 8px 20px rgba(81, 45, 27, 0.3);
+  border-radius: 8px;
+  padding: 16px 20px;
+  color: #4a270f;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.skeuo-gold-bar {
+  width: 36px;
+  height: 3px;
+  background: #d97706;
+  margin-bottom: 8px;
+  border-radius: 2px;
+}
+.skeuo-title {
+  font-size: 14px;
+  font-weight: 900;
+  color: #5d351b;
+  margin-bottom: 4px;
+}
+.skeuo-desc {
+  font-size: 11.5px;
+  color: #784522;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sig-comp.skeuo-bevel-btn {
+  background: linear-gradient(180deg, #fff5e3 0%, #e8cb9e 100%);
+  border: 2px solid #5d351b;
+  box-shadow: 0 4px 6px rgba(81, 45, 27, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 11.5px;
+  font-weight: 900;
+  color: #5d351b;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.skeuo-leather-tag {
+  background: #5d351b;
+  color: #fff5e3;
+  border: 1px solid #7c4c2a;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.skeuo-parchment-note {
+  background: #fdf6e7;
+  border: 1px solid #cbb28b;
+  box-shadow: 2px 4px 12px rgba(80, 50, 20, 0.15);
+  padding: 14px 18px;
+  border-radius: 4px;
+  color: #5d351b;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.skeuo-parch-title {
+  font-size: 13.5px;
+  font-weight: 900;
+  margin-bottom: 4px;
+  color: #7c4c2a;
+}
+.skeuo-parch-desc {
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 0;
+  color: #6b3e25;
+}
+
+/* --- 11. 데이지 데이즈 (Daisy Days) --- */
+.sig-comp.daisy-card {
+  background: #ffffff;
+  border: 3px solid #2d2d2d;
+  border-radius: 20px;
+  box-shadow: 4px 4px 0 #2d2d2d;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.daisy-card-head {
+  background: #EAA844;
+  border-bottom: 3px solid #2d2d2d;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.daisy-flower {
+  font-size: 14px;
+}
+.daisy-head-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #2d2d2d;
+}
+.daisy-card-body {
+  padding: 12px 16px;
+  flex: 1;
+}
+.daisy-body-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #2d2d2d;
+  margin-bottom: 4px;
+  display: block;
+}
+.daisy-body-desc {
+  font-size: 11px;
+  color: #555;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sig-comp.daisy-pill-badge {
+  background: #ffffff;
+  border: 3px solid #2d2d2d;
+  border-radius: 50px;
+  padding: 5px 16px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #2d2d2d;
+  box-shadow: 3px 3px 0 #2d2d2d;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.daisy-pop-sticker {
+  background: #7ECDC0;
+  border: 3px solid #2d2d2d;
+  border-radius: 50px;
+  padding: 5px 16px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 1px 1px 0 #2d2d2d;
+  box-shadow: 3px 3px 0 #2d2d2d;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.daisy-quote-bubble {
+  background: #fff0f5;
+  border: 3px solid #2d2d2d;
+  border-radius: 18px;
+  padding: 12px 18px;
+  box-shadow: 4px 4px 0 #2d2d2d;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.daisy-qm {
+  font-size: 24px;
+  font-weight: 900;
+  color: #EAA844;
+  line-height: 1;
+  margin-bottom: -4px;
+}
+.daisy-qt-text {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #2d2d2d;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* --- 12. 핑크 스크립트 (Pink Script) --- */
+.sig-comp.pink-callout-rail {
+  border-left: 3px solid #ED3D8C;
+  background: rgba(237, 61, 140, 0.08);
+  padding: 12px 18px;
+  color: #F5EDF1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.pink-rail-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ED3D8C;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+.pink-rail-desc {
+  font-size: 11.5px;
+  color: rgba(245, 237, 241, 0.85);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sig-comp.pink-dark-card {
+  background: #140d12;
+  border: 1px solid rgba(237, 61, 140, 0.35);
+  box-shadow: 0 0 20px rgba(237, 61, 140, 0.15);
+  padding: 16px 20px;
+  border-radius: 6px;
+  color: #F5EDF1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.pink-card-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #ED3D8C;
+  margin-bottom: 4px;
+  letter-spacing: 0.04em;
+}
+.pink-card-desc {
+  font-size: 11.5px;
+  color: rgba(245, 237, 241, 0.8);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sig-comp.pink-neon-pill {
+  border: 1px solid #ED3D8C;
+  color: #ED3D8C;
+  background: transparent;
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.pink-line-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ED3D8C;
+}
+.pink-ln {
+  width: 28px;
+  height: 2px;
+  background: #ED3D8C;
+  box-shadow: 0 0 6px #ED3D8C;
+  flex: none;
+}
+
+/* --- 13. 캡슐 멤피스 (Capsule) --- */
+.sig-comp.capsule-pop-card {
+  background: #ffffff;
+  border: 2px solid #1e1e1e;
+  border-radius: 24px;
+  box-shadow: 6px 6px 0 rgba(26, 26, 26, 0.14);
+  padding: 16px 20px;
+  color: #1A1A1A;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.capsule-icon-dot {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+.capsule-card-title {
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.capsule-card-desc {
+  font-size: 11.5px;
+  color: #555;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sig-comp.capsule-candy-pill {
+  background: #ffffff;
+  border: 2px solid #1e1e1e;
+  border-radius: 9999px;
+  box-shadow: 4px 4px 0 rgba(26, 26, 26, 0.14);
+  padding: 6px 18px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #1A1A1A;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.capsule-stat-wrap {
+  background: #ffffff;
+  border: 2px solid #1e1e1e;
+  border-radius: 20px;
+  box-shadow: 4px 4px 0 rgba(26, 26, 26, 0.14);
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.capsule-stat-lbl {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 800;
+  color: #1e1e1e;
+}
+.capsule-track {
+  height: 12px;
+  border-radius: 9999px;
+  border: 1.5px solid #1e1e1e;
+  background: #F5F5F0;
+  overflow: hidden;
+}
+.capsule-fill {
+  height: 100%;
+  background: #FF6B6B;
+  border-radius: 9999px;
+}
+
+.sig-comp.capsule-mini-tag {
+  border: 2px solid #1e1e1e;
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #1e1e1e;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- 14. 블루 프로페셔널 (Blue Professional) --- */
+.sig-comp.blueprof-hl-card {
+  background: rgba(30, 43, 250, 0.05);
+  border: 1px solid rgba(30, 43, 250, 0.15);
+  border-left: 4px solid #1E2BFA;
+  border-radius: 0 10px 10px 0;
+  padding: 14px 18px;
+  color: #111111;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.blueprof-hl-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #1E2BFA;
+  margin-bottom: 4px;
+}
+.blueprof-hl-desc {
+  font-size: 11.5px;
+  color: #444;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sig-comp.blueprof-kpi-card {
+  background: #ffffff;
+  border: 1.5px solid rgba(30, 43, 250, 0.25);
+  border-radius: 12px;
+  padding: 12px 18px;
+  box-shadow: 0 4px 14px rgba(30, 43, 250, 0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.blueprof-kpi-val {
+  font-size: 22px;
+  font-weight: 900;
+  color: #1E2BFA;
+  display: block;
+}
+.blueprof-kpi-lbl {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #6b6b6b;
+}
+
+.sig-comp.blueprof-pill {
+  background: rgba(30, 43, 250, 0.08);
+  color: #1E2BFA;
+  border-radius: 9999px;
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 800;
+  border: 1px solid rgba(30, 43, 250, 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.blueprof-dot-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #1E2BFA;
+}
+.bp-dots {
+  letter-spacing: 2px;
+  opacity: 0.6;
+}
+
+/* --- 15. 사쿠라 크로마 (Sakura Chroma) --- */
+.sig-comp.sakura-seal-box {
+  width: 68px;
+  height: 68px;
+  background: #3A2516;
+  color: #F1E6CB;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 900;
+  border-radius: 6px;
+  letter-spacing: 0.06em;
+  box-shadow: 0 4px 12px rgba(58, 37, 22, 0.2);
+}
+
+.sig-comp.sakura-tilted-stamp {
+  background: #E5392A;
+  color: #F1E6CB;
+  padding: 6px 16px;
+  font-size: 11.5px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  transform: rotate(-3deg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.sakura-strip-card {
+  background: #F1E6CB;
+  border: 2px solid #3A2516;
+  padding: 0;
+  overflow: hidden;
+  color: #3A2516;
+  display: flex;
+  flex-direction: column;
+}
+.sakura-ribbon-bar {
+  height: 8px;
+  background: linear-gradient(90deg, #E5392A 0%, #E54489 50%, #F09131 100%);
+}
+.sakura-card-title {
+  font-size: 13px;
+  font-weight: 900;
+  padding: 10px 14px 2px;
+  margin: 0;
+}
+.sakura-card-desc {
+  font-size: 11px;
+  padding: 0 14px 12px;
+  color: #5c4033;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.sig-comp.sakura-mono-chip {
+  background: #3A2516;
+  color: #F1E6CB;
+  padding: 4px 12px;
+  font-size: 10.5px;
+  font-family: monospace;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- 16. 레트로 리소 진 (Retro Zine) --- */
+.sig-comp.zine-offset-card {
+  background: #F4EFE6;
+  border: 2px solid #1A1A1A;
+  box-shadow: 8px 8px 0 -2px #008F4D, 8px 8px 0 0 #1A1A1A;
+  padding: 14px 18px;
+  color: #1A1A1A;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.zine-card-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.zine-card-desc {
+  font-size: 11px;
+  line-height: 1.45;
+  color: #333;
+  margin: 0;
+}
+
+.sig-comp.zine-tape-label {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px dashed rgba(26, 26, 26, 0.4);
+  padding: 5px 14px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #1A1A1A;
+  transform: rotate(-2deg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.zine-ink-stamp {
+  background: #1A1A1A;
+  color: #008F4D;
+  border: 2px solid #008F4D;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 900;
+  transform: rotate(-6deg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.zine-state-chip {
+  background: #008F4D;
+  color: #F4EFE6;
+  padding: 4px 12px;
+  font-size: 10.5px;
+  font-weight: 800;
+  font-family: monospace;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- 17. 모노크롬 아이보리 (Monochrome) --- */
+.sig-comp.mono-hairline-card {
+  background: #FAFADF;
+  border: 1px solid #1C1C1A;
+  padding: 16px 20px;
+  color: #1C1C1A;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.mono-card-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  margin-bottom: 4px;
+  letter-spacing: 0.04em;
+}
+.mono-card-desc {
+  font-size: 11px;
+  color: #444;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sig-comp.mono-border-tag {
+  border: 1px solid #1C1C1A;
+  padding: 4px 14px;
+  font-size: 10.5px;
+  font-family: monospace;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #1C1C1A;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.mono-rule-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #1C1C1A;
+  letter-spacing: 0.1em;
+}
+.mono-line {
+  width: 28px;
+  height: 1px;
+  background: #1C1C1A;
+  flex: none;
+}
+
+.sig-comp.mono-chrome-bar {
+  border-top: 1px solid #1C1C1A;
+  border-bottom: 1px solid #1C1C1A;
+  padding: 5px 12px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-family: monospace;
+  color: #5E5E54;
+}
+
+/* --- 18. 스텐실 앤 태블릿 (Stencil Tablet) --- */
+.sig-comp.stencil-card {
+  background: #E2DCC9;
+  border: 3px solid #0A0A0A;
+  box-shadow: 6px 6px 0 #D94E34;
+  padding: 14px 18px;
+  color: #0A0A0A;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.stencil-clip-head {
+  font-size: 10px;
+  font-weight: 900;
+  color: #D94E34;
+  letter-spacing: 0.1em;
+  margin-bottom: 2px;
+}
+.stencil-card-title {
+  font-size: 14px;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+.stencil-card-desc {
+  font-size: 11px;
+  line-height: 1.45;
+  color: #333;
+  margin: 0;
+}
+
+.sig-comp.stencil-punch-tag {
+  background: #D94E34;
+  color: #E2DCC9;
+  border: 2px solid #0A0A0A;
+  padding: 5px 14px;
+  font-size: 11px;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.stencil-sign-bar {
+  background: #0A0A0A;
+  color: #D94E34;
+  border: 2px solid #D94E34;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- 19. 스위스 미니멀 & 스위스 그리드 (Swiss) --- */
+.sig-comp.swiss-grid-card {
+  background: #ffffff;
+  border-top: 4px solid #1e40af;
+  border-bottom: 1px solid #0f172a;
+  border-left: 1px solid #cbd5e1;
+  border-right: 1px solid #cbd5e1;
+  padding: 16px 20px;
+  color: #0f172a;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.swiss-grid-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+.swiss-grid-desc {
+  font-size: 11px;
+  color: #475569;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sig-comp.swiss-intl-badge {
+  background: #0f172a;
+  color: #ffffff;
+  padding: 4px 12px;
+  font-size: 10.5px;
+  font-weight: 800;
+  font-family: 'Inter', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.swiss-stat-box {
+  border-left: 3px solid #1e40af;
+  padding: 8px 14px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+}
+.swiss-stat-num {
+  font-size: 20px;
+  font-weight: 900;
+  color: #1e40af;
+  display: block;
+}
+.swiss-stat-caption {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.sig-comp.swiss-clean-tag {
+  border: 1px solid #cbd5e1;
+  padding: 4px 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #334155;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- 20. 코랄 매거진 (Coral) --- */
+.sig-comp.coral-column-card {
+  background: #F5F0E8;
+  border-top: 3px solid #E85D5D;
+  border-bottom: 1px solid #1F1D1B;
+  padding: 16px 20px;
+  color: #1F1D1B;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.coral-card-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.coral-card-desc {
+  font-size: 11px;
+  color: #4a4540;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sig-comp.coral-sand-pill {
+  background: #E85D5D;
+  color: #ffffff;
+  border-radius: 9999px;
+  padding: 5px 16px;
+  font-size: 11px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.coral-quote-box {
+  border-left: 3px solid #E85D5D;
+  background: rgba(232, 93, 93, 0.06);
+  padding: 10px 16px;
+  color: #1F1D1B;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.coral-qm {
+  font-size: 22px;
+  color: #E85D5D;
+  line-height: 1;
+  margin-bottom: -4px;
+}
+.coral-qt-desc {
+  font-size: 11px;
+  font-style: italic;
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* --- 21. 에디토리얼 포레스트 (Forest) --- */
+.sig-comp.forest-serif-card {
+  background: #2E4A2A;
+  color: #D9DFD2;
+  border-left: 4px solid #E89CB1;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.forest-card-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #E89CB1;
+  margin-bottom: 4px;
+}
+.forest-card-desc {
+  font-size: 11px;
+  color: #D9DFD2;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sig-comp.forest-pink-chip {
+  background: #E89CB1;
+  color: #2E4A2A;
+  padding: 4px 12px;
+  font-size: 10.5px;
+  font-weight: 800;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.forest-leaf-tag {
+  border: 1px solid #2E4A2A;
+  color: #2E4A2A;
+  padding: 4px 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- 22. 데카르트 그리드 (Cartesian) --- */
+.sig-comp.cart-blueprint-box {
+  background: #EDE8E0;
+  border: 2px solid #1A1A1A;
+  padding: 16px 20px;
+  color: #1A1A1A;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.c-ch {
+  position: absolute;
+  font-size: 11px;
+  font-weight: 900;
+  color: #1A1A1A;
+}
+.c-ch.tl { top: 2px; left: 4px; }
+.c-ch.tr { top: 2px; right: 4px; }
+.c-ch.bl { bottom: 2px; left: 4px; }
+.c-ch.br { bottom: 2px; right: 4px; }
+.cart-box-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.cart-box-desc {
+  font-size: 11px;
+  color: #444;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sig-comp.cart-coord-tag {
+  border: 1px solid #1A1A1A;
+  background: #ffffff;
+  padding: 4px 12px;
+  font-size: 10.5px;
+  font-family: monospace;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.cart-spec-badge {
+  background: #1A1A1A;
+  color: #EDE8E0;
+  padding: 4px 12px;
+  font-size: 10.5px;
+  font-family: monospace;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- 23. 스캐터브레인 포스트잇 (Scatterbrain) --- */
+.sig-comp.scatter-sticky {
+  width: 100%;
+  height: 100%;
+  padding: 14px 16px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.scatter-pin {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+}
+.scatter-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+  text-align: center;
+}
+.scatter-body {
+  font-size: 10.5px;
+  color: #334155;
+  line-height: 1.4;
+  text-align: center;
+}
+.sig-comp.scatter-sticky.yellow {
+  background: #FFE066;
+  border: 1px solid #e0c540;
+  box-shadow: 3px 4px 10px rgba(0, 0, 0, 0.12);
+  transform: rotate(-2deg);
+}
+.sig-comp.scatter-sticky.blue {
+  background: #A5D8FF;
+  border: 1px solid #74c0fc;
+  box-shadow: 3px 4px 10px rgba(0, 0, 0, 0.12);
+  transform: rotate(2.5deg);
+}
+.sig-comp.scatter-doodle-box {
+  border: 2px dashed #495057;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 8px 14px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 11px;
+  color: #212529;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- 24. 플레이풀 피치 (Playful) --- */
+.sig-comp.playful-peach-card {
+  background: #FCE8D5;
+  border: 2px solid #1A1A1A;
+  border-radius: 20px;
+  box-shadow: 6px 6px 0 #FF5252;
+  padding: 16px 20px;
+  color: #1A1A1A;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.playful-card-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1A1A1A;
+  margin-bottom: 4px;
+}
+.playful-card-desc {
+  font-size: 11.5px;
+  color: #555;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sig-comp.playful-jelly-btn {
+  background: #FF5252;
+  color: #ffffff;
+  border: 2px solid #1A1A1A;
+  border-radius: 9999px;
+  box-shadow: 4px 4px 0 #1A1A1A;
+  padding: 7px 18px;
+  font-size: 11.5px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.playful-stat-box {
+  background: #ffffff;
+  border: 2px solid #1A1A1A;
+  border-radius: 16px;
+  box-shadow: 4px 4px 0 #1A1A1A;
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+}
+.playful-stat-val {
+  font-size: 20px;
+  font-weight: 900;
+  color: #FF5252;
+  display: block;
+}
+.playful-stat-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  color: #555;
+}
+
+/* =========================================================
    BODY SLIDE THEME INHERITANCE (8-Archetype Integration)
    본문 템플릿(카드, 박스, 요약)이 표지의 테두리/그림자를 자동 계승
    ========================================================= */

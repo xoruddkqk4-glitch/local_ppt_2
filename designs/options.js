@@ -1295,9 +1295,9 @@ window.PptDesigns = {
 window.PptThemeArchetypes = {
   // 1. Pixel & 8-Bit Retro Gaming
   '8-bit-orbit': 'pixel',
-  'retro-zine': 'pixel',
-  'sakura-chroma': 'pixel',
-  'long-table': 'pixel',
+  'retro-zine': 'retro-zine',
+  'sakura-chroma': 'sakura-chroma',
+  'long-table': 'retro-zine',
 
   // 2. Windows 95/98 Classic OS
   'retro-windows': 'windows',
@@ -1308,50 +1308,50 @@ window.PptThemeArchetypes = {
   'controlled-brutal': 'brutal',
   'bold-poster': 'brutal',
   'peoples-platform': 'brutal',
-  'stencil-tablet': 'brutal',
+  'stencil-tablet': 'stencil-tablet',
 
   // 4. Claymorphism & Soft 3D
   'clay': 'clay',
   'tactile-minimal': 'clay',
-  'playful': 'clay',
+  'playful': 'playful',
 
   // 5. Craft, Pin, Paper, Clip, Note
   'pin-and-paper': 'paper',
-  'scatterbrain': 'paper',
-  'mat': 'paper',
+  'scatterbrain': 'scatterbrain',
+  'mat': 'mat',
 
   // 6. Bauhaus, Swiss & Constructivist Grid
   'bauhaus': 'bauhaus',
   'functional-bauhaus': 'bauhaus',
-  'swiss': 'bauhaus',
-  'swiss-grid': 'bauhaus',
-  'soft-minimal': 'bauhaus',
+  'swiss': 'swiss',
+  'swiss-grid': 'swiss',
+  'soft-minimal': 'swiss',
 
   // 7. Tech, Blueprint, HUD & Grid
   'cobalt-grid': 'tech',
-  'cartesian': 'tech',
-  'raw-grid': 'tech',
+  'cartesian': 'cartesian',
+  'raw-grid': 'cartesian',
   'neo-grid-bold': 'tech',
-  'blue-professional': 'tech',
+  'blue-professional': 'blue-professional',
   'studio': 'tech',
   'creative-mode': 'tech',
 
   // 8. Editorial, Magazine, Warm Serif & Gallery
   'biennale-yellow': 'editorial',
   'broadside': 'editorial',
-  'editorial-forest': 'editorial',
+  'editorial-forest': 'editorial-forest',
   'editorial-tri-tone': 'editorial',
-  'emerald-editorial': 'editorial',
-  'grove': 'editorial',
-  'monochrome': 'editorial',
-  'signal': 'editorial',
+  'emerald-editorial': 'editorial-forest',
+  'grove': 'editorial-forest',
+  'monochrome': 'monochrome',
+  'signal': 'blue-professional',
   'soft-editorial': 'editorial',
   'vellum': 'editorial',
-  'coral': 'editorial',
-  'daisy-days': 'editorial',
-  'pink-script': 'editorial',
-  'capsule': 'editorial',
-  'skeuo': 'editorial'
+  'coral': 'coral',
+  'daisy-days': 'daisy-days',
+  'pink-script': 'pink-script',
+  'capsule': 'capsule',
+  'skeuo': 'skeuo'
 };
 
 window.PptThemeComponents = {
@@ -1392,7 +1392,7 @@ window.PptThemeComponents = {
     { id: 'sig-clay-stat', name: '클레이 통계 캡슐', icon: '💡', w: 28, h: 12, html: '<div class="sig-comp clay-stat"><span class="clay-stat-val">+85%</span><span class="clay-stat-lbl">성장률 지표</span></div>' }
   ],
 
-  // 5. Pin & Paper & Craft
+  // 5. Pin & Paper & Craft (순수 필드노트 & 리갈패드)
   'pin-and-paper': [
     { id: 'sig-paper-yellow', name: '옐로우 포스트잇', icon: '📝', w: 28, h: 25, html: '<div class="sig-comp sticky-note yellow"><div class="pin-deco">📌</div><div class="sticky-title">아이디어 메모</div><div class="sticky-body">자유로운 아이디어와 핵심 키워드를 기록하는 접착 메모지입니다.</div></div>' },
     { id: 'sig-paper-mint', name: '민트 포스트잇', icon: '📝', w: 28, h: 25, html: '<div class="sig-comp sticky-note mint"><div class="tape-deco"></div><div class="sticky-title">액션 플랜</div><div class="sticky-body">1. 기획안 작성<br>2. 디자인 시안 검토<br>3. 최종 런칭</div></div>' },
@@ -1422,6 +1422,129 @@ window.PptThemeComponents = {
     { id: 'sig-edit-quote', name: '세리프 인용구 카드', icon: '📜', w: 40, h: 24, html: '<div class="sig-comp serif-quote-box"><span class="quote-mark">“</span><p class="quote-body">디자인은 단순한 장식이 아니라 사유의 시각적 번역이다.</p><span class="quote-author">— BIENNALE CURATOR NOTE</span></div>' },
     { id: 'sig-edit-glow', name: '래디얼 블룸 카드', icon: '🟡', w: 36, h: 24, html: '<div class="sig-comp bloom-glow-card"><strong class="bloom-title">CURATION ESSAY</strong><p class="bloom-desc">은은한 웜 옐로우 백라이트가 강조된 우아한 에디토리얼 카드입니다.</p></div>' },
     { id: 'sig-edit-strip', name: '카탈로그 인덱스 스트립', icon: '🏷️', w: 30, h: 6, html: '<div class="sig-comp index-strip"><span class="idx-dot">●</span><span class="idx-text">COLLECTION 2026 // VOL. 04</span></div>' }
+  ],
+
+  // 9. 매트 택타일 그린 (Mat) - 다크 포레스트 그린 & 펠트/가죽/크림
+  'mat': [
+    { id: 'sig-mat-cream', name: '크림 정보 카드', icon: '📄', w: 38, h: 26, html: '<div class="sig-comp mat-cream-card"><span class="mat-label">PRODUCT NOTE</span><strong class="mat-title">택타일 크림 카드</strong><p class="mat-desc">하이엔드 제품 랜딩페이지 촉감의 매트 크림 정보 카드입니다.</p></div>' },
+    { id: 'sig-mat-box', name: '포레스트 헤어라인 박스', icon: '🌲', w: 38, h: 24, html: '<div class="sig-comp mat-dark-box"><div class="mat-box-tag">ARCHIVE 2026</div><strong class="mat-box-title">다크 매트 프레임</strong><p class="mat-box-desc">깊은 숲의 질감과 크림 타이포그래피의 절제된 조화입니다.</p></div>' },
+    { id: 'sig-mat-glow', name: '앰버 우드톤 글로우', icon: '💡', w: 32, h: 10, html: '<div class="sig-comp mat-amber-bar"><span class="mat-glow-dot"></span><span class="mat-amber-text">TACTILE AMBER LIGHT · 2026</span></div>' },
+    { id: 'sig-mat-tag', name: '펠트 레더 라벨', icon: '🏷️', w: 26, h: 8, html: '<div class="sig-comp mat-leather-tag">FEAT // LEATHER & FELT</div>' },
+    { id: 'sig-mat-kicker', name: '오렌지 언더라인 킥커', icon: '➖', w: 30, h: 6, html: '<div class="sig-comp mat-kicker-bar"><span class="mat-kicker-rule"></span><span class="mat-kicker-txt">CURATED SELECTION</span></div>' }
+  ],
+
+  // 10. 스큐어모피즘 (Skeuomorphism) - 우드/가죽 질감, 입체 베벨
+  'skeuo': [
+    { id: 'sig-skeuo-panel', name: '클래식 우드 패널', icon: '🪵', w: 38, h: 26, html: '<div class="sig-comp skeuo-wood-panel"><div class="skeuo-gold-bar"></div><strong class="skeuo-title">클래식 우드 패널</strong><p class="skeuo-desc">손에 닿을 듯한 나무와 가죽 질감의 아날로그 감성 카드입니다.</p></div>' },
+    { id: 'sig-skeuo-btn', name: '골드 볼록 베벨 버튼', icon: '🔘', w: 24, h: 9, html: '<button class="sig-comp skeuo-bevel-btn">TACTILE CLASSIC ✦</button>' },
+    { id: 'sig-skeuo-leather', name: '딥 레더 스티치 라벨', icon: '🏷️', w: 28, h: 8, html: '<div class="sig-comp skeuo-leather-tag">GENUINE CRAFT № 01</div>' },
+    { id: 'sig-skeuo-parchment', name: '앤틱 양피지 메모', icon: '📜', w: 34, h: 24, html: '<div class="sig-comp skeuo-parchment-note"><strong class="skeuo-parch-title">ANALOG NOTE</strong><p class="skeuo-parch-desc">디지털 캔버스 위에 구현된 클래식 양피지의 깊은 울림입니다.</p></div>' }
+  ],
+
+  // 11. 데이지 데이즈 (Daisy Days) - 버터 옐로우, 데이지 플라워, 3px 볼드 라인
+  'daisy-days': [
+    { id: 'sig-daisy-card', name: '버터 밴드 파스텔 카드', icon: '🧈', w: 38, h: 26, html: '<div class="sig-comp daisy-card"><div class="daisy-card-head"><span class="daisy-flower">🌼</span><span class="daisy-head-title">DAISY NOTE</span></div><div class="daisy-card-body"><strong class="daisy-body-title">따뜻한 이야기</strong><p class="daisy-body-desc">3px 볼드 라인과 버터 옐로우가 어우러진 경쾌한 카드입니다.</p></div></div>' },
+    { id: 'sig-daisy-badge', name: '데이지 플라워 배지', icon: '🌼', w: 24, h: 8, html: '<div class="sig-comp daisy-pill-badge">🌼 HAPPY DAY ★</div>' },
+    { id: 'sig-daisy-tag', name: '터콰이즈 팝 스티커', icon: '🏷️', w: 22, h: 8, html: '<div class="sig-comp daisy-pop-sticker">#SPRING_2026</div>' },
+    { id: 'sig-daisy-quote', name: '핑크 말풍선 인용 카드', icon: '💬', w: 36, h: 22, html: '<div class="sig-comp daisy-quote-bubble"><span class="daisy-qm">“</span><p class="daisy-qt-text">작은 데이지 꽃잎처럼 매일 반짝이는 아이디어!</p></div>' }
+  ],
+
+  // 12. 핑크 스크립트 (Pink Script) - 핫 푸시아 핑크 네온, 오트쿠튀르 세리프
+  'pink-script': [
+    { id: 'sig-pink-rail', name: '핫핑크 콜아웃 레일', icon: '💖', w: 36, h: 22, html: '<div class="sig-comp pink-callout-rail"><strong class="pink-rail-title">HAUTE COUTURE</strong><p class="pink-rail-desc">핫 푸시아 핑크 네온 잉크와 세리프의 우아한 콜아웃입니다.</p></div>' },
+    { id: 'sig-pink-card', name: '다크 블러시 세리프 카드', icon: '🎀', w: 38, h: 26, html: '<div class="sig-comp pink-dark-card"><div class="pink-card-glow"></div><strong class="pink-card-title">EDITORIAL NO. 01</strong><p class="pink-card-desc">심야의 런웨이 패션쇼를 연상시키는 고혹적인 블랙 핑크 카드입니다.</p></div>' },
+    { id: 'sig-pink-tag', name: '네온 핑크 알약 태그', icon: '🏷️', w: 24, h: 8, html: '<div class="sig-comp pink-neon-pill">RUNWAY 2026 ✦</div>' },
+    { id: 'sig-pink-bar', name: '핑크 라이너 인덱스', icon: '➖', w: 30, h: 6, html: '<div class="sig-comp pink-line-bar"><span class="pink-ln"></span><span class="pink-ln-txt">CHAPTER 03 // ILLUMINATION</span></div>' }
+  ],
+
+  // 13. 캡슐 멤피스 (Capsule) - 둥근 알약 칩, 팝 컬러
+  'capsule': [
+    { id: 'sig-capsule-card', name: '멤피스 라운드 카드', icon: '🎈', w: 38, h: 26, html: '<div class="sig-comp capsule-pop-card"><div class="capsule-icon-dot">💊</div><strong class="capsule-card-title">캔디 캡슐 인사이트</strong><p class="capsule-card-desc">70년대 아이스크림 팔러의 위트를 담은 둥근 팝 카드입니다.</p></div>' },
+    { id: 'sig-capsule-pill', name: '컬러 캔디 알약 칩', icon: '💊', w: 24, h: 8, html: '<div class="sig-comp capsule-candy-pill">SWEET POP ✦</div>' },
+    { id: 'sig-capsule-stat', name: '캡슐 통계 트랙', icon: '📊', w: 32, h: 10, html: '<div class="sig-comp capsule-stat-wrap"><div class="capsule-stat-lbl"><span>SATISFACTION</span><span>94%</span></div><div class="capsule-track"><div class="capsule-fill" style="width: 94%;"></div></div></div>' },
+    { id: 'sig-capsule-tag', name: '미니 라운드 태그', icon: '🏷️', w: 20, h: 7, html: '<div class="sig-comp capsule-mini-tag">№ 01 CAPSULE</div>' }
+  ],
+
+  // 14. 블루 프로페셔널 (Blue Professional) - 맥킨지 컨설팅 코발트 & 크림
+  'blue-professional': [
+    { id: 'sig-blueprof-hl', name: '코발트 하이라이트 블록', icon: '🟦', w: 38, h: 24, html: '<div class="sig-comp blueprof-hl-card"><strong class="blueprof-hl-title">EXECUTIVE SUMMARY</strong><p class="blueprof-hl-desc">솔리드 코발트 블루와 웜 크림 캔버스의 최고급 컨설팅 리포트 블록입니다.</p></div>' },
+    { id: 'sig-blueprof-kpi', name: '컨설팅 KPI 지표 카드', icon: '📊', w: 32, h: 16, html: '<div class="sig-comp blueprof-kpi-card"><span class="blueprof-kpi-val">+142%</span><span class="blueprof-kpi-lbl">글로벌 비즈니스 성장 지표</span></div>' },
+    { id: 'sig-blueprof-chip', name: '프로페셔널 코발트 칩', icon: '🏷️', w: 26, h: 8, html: '<div class="sig-comp blueprof-pill">KEY STRATEGY 2026</div>' },
+    { id: 'sig-blueprof-dots', name: '3×3 도트 그리드 라벨', icon: '💠', w: 30, h: 7, html: '<div class="sig-comp blueprof-dot-bar"><span class="bp-dots">● ● ●</span><span class="bp-text">BUSINESS CONSULTING REPORT</span></div>' }
+  ],
+
+  // 15. 사쿠라 크로마 (Sakura Chroma) - 32각 인장, 사쿠라 틸트 스탬프
+  'sakura-chroma': [
+    { id: 'sig-sakura-seal', name: '사쿠라 32각 인장', icon: '🌸', w: 22, h: 22, html: '<div class="sig-comp sakura-seal-box"><span>SAKURA</span></div>' },
+    { id: 'sig-sakura-stamp', name: '틸트 크로마틱 스탬프', icon: '🎀', w: 28, h: 8, html: '<div class="sig-comp sakura-tilted-stamp">CHROMA EDITION ★</div>' },
+    { id: 'sig-sakura-card', name: '크로마 스트립 카드', icon: '🍱', w: 38, h: 26, html: '<div class="sig-comp sakura-strip-card"><div class="sakura-ribbon-bar"></div><strong class="sakura-card-title">카세트 패키지 에디토리얼</strong><p class="sakura-card-desc">사쿠라 레드와 웜 브라운 잉크가 빚어내는 아날로그 감성입니다.</p></div>' },
+    { id: 'sig-sakura-chip', name: '모노 사양 체크 칩', icon: '🏷️', w: 24, h: 8, html: '<div class="sig-comp sakura-mono-chip">[ SPEC: VERIFIED ]</div>' }
+  ],
+
+  // 16. 레트로 리소 진 (Retro Zine) & 롱 테이블
+  'retro-zine': [
+    { id: 'sig-zine-card', name: '리소 오프셋 섀도우 카드', icon: '📰', w: 38, h: 26, html: '<div class="sig-comp zine-offset-card"><strong class="zine-card-title">ZINE ISSUE № 04</strong><p class="zine-card-desc">딥 포레스트 그린과 잉크 블랙의 오프셋 섀도우 인디 소책자 카드입니다.</p></div>' },
+    { id: 'sig-zine-tape', name: '반투명 마스킹 테이프', icon: '🩹', w: 26, h: 7, html: '<div class="sig-comp zine-tape-label">LIMITED EDITION // RISO</div>' },
+    { id: 'sig-zine-stamp', name: '카키 그린 승인 도장', icon: '🖨️', w: 24, h: 9, html: '<div class="sig-comp zine-ink-stamp">APPROVED ★</div>' },
+    { id: 'sig-zine-chip', name: '원장 모노 상태 칩', icon: '🏷️', w: 22, h: 8, html: '<div class="sig-comp zine-state-chip">NOW ▶</div>' }
+  ],
+
+  // 17. 모노크롬 아이보리 (Monochrome) - 미니멀 1px 헤어라인, 모노 태그
+  'monochrome': [
+    { id: 'sig-mono-card', name: '미니멀 1px 헤어라인 카드', icon: '📰', w: 38, h: 26, html: '<div class="sig-comp mono-hairline-card"><strong class="mono-card-title">ESSAY // VOL. 01</strong><p class="mono-card-desc">극도로 절제된 1px 블랙 잉크와 크림 아이보리 지면의 미니멀 카드입니다.</p></div>' },
+    { id: 'sig-mono-tag', name: '하이패션 모노크롬 태그', icon: '◼️', w: 24, h: 8, html: '<div class="sig-comp mono-border-tag">COLLECTION № 2026</div>' },
+    { id: 'sig-mono-rule', name: '미니멀 룰 킥커', icon: '➖', w: 30, h: 6, html: '<div class="sig-comp mono-rule-bar"><span class="mono-line"></span><span class="mono-txt">SECTION 01</span></div>' },
+    { id: 'sig-mono-chrome', name: '크롬 인덱스 바', icon: '🏷️', w: 36, h: 7, html: '<div class="sig-comp mono-chrome-bar"><span>ARCHIVE</span><span>PAGE 01</span></div>' }
+  ],
+
+  // 18. 스텐실 앤 태블릿 (Stencil Tablet) - 스트리트 사이니지, 타공 펀치
+  'stencil-tablet': [
+    { id: 'sig-stencil-card', name: '태블릿 클립보드 카드', icon: '📋', w: 38, h: 26, html: '<div class="sig-comp stencil-card"><div class="stencil-clip-head">TABLET DRAFT</div><strong class="stencil-card-title">인더스트리얼 사이니지</strong><p class="stencil-card-desc">도로 스텐실과 스트리트 포스터 감성의 볼드한 카드입니다.</p></div>' },
+    { id: 'sig-stencil-tag', name: '스텐실 펀치 라벨', icon: '🏷️', w: 24, h: 8, html: '<div class="sig-comp stencil-punch-tag">STENCIL // PUNCH</div>' },
+    { id: 'sig-stencil-sign', name: '볼드 사이니지 바', icon: '🟧', w: 32, h: 7, html: '<div class="sig-comp stencil-sign-bar">ROAD SIGNS // CAUTION</div>' }
+  ],
+
+  // 19. 스위스 미니멀 & 스위스 그리드 (Swiss Minimal)
+  'swiss': [
+    { id: 'sig-swiss-card', name: '12열 인터내셔널 그리드 카드', icon: '🇨🇭', w: 38, h: 26, html: '<div class="sig-comp swiss-grid-card"><div class="swiss-card-topbar"></div><strong class="swiss-grid-title">SWISS DESIGN ORDER</strong><p class="swiss-grid-desc">엄격한 12열 그리드와 고대비 흑백, 단일 블루 악센트의 명확한 구성입니다.</p></div>' },
+    { id: 'sig-swiss-idx', name: '헬베티카 인덱스 뱃지', icon: '📐', w: 22, h: 8, html: '<div class="sig-comp swiss-intl-badge">INDEX № 01</div>' },
+    { id: 'sig-swiss-metric', name: '블루 코발트 수치 카드', icon: '📊', w: 30, h: 14, html: '<div class="sig-comp swiss-stat-box"><span class="swiss-stat-num">98.5%</span><span class="swiss-stat-caption">ACCURACY RATIO</span></div>' },
+    { id: 'sig-swiss-tag', name: '미니멀 데이터 태그', icon: '🏷️', w: 20, h: 7, html: '<div class="sig-comp swiss-clean-tag">DATA // 2026</div>' }
+  ],
+
+  // 20. 코랄 매거진 (Coral Magazine)
+  'coral': [
+    { id: 'sig-coral-card', name: '코랄 에디토리얼 칼럼 카드', icon: '🪸', w: 38, h: 26, html: '<div class="sig-comp coral-column-card"><div class="coral-top-bar"></div><strong class="coral-card-title">CORAL ESSAY</strong><p class="coral-card-desc">생동감 넘치는 웜 코랄 핑크와 현대적 세리프가 빚어내는 온기입니다.</p></div>' },
+    { id: 'sig-coral-pill', name: '샌드 코랄 알약 배지', icon: '🏷️', w: 24, h: 8, html: '<div class="sig-comp coral-sand-pill">CORAL WARMTH ✦</div>' },
+    { id: 'sig-coral-quote', name: '코랄 세리프 인용 카드', icon: '📜', w: 36, h: 22, html: '<div class="sig-comp coral-quote-box"><span class="coral-qm">“</span><p class="coral-qt-desc">디자인의 온기는 색채와 여백의 조화에서 피어난다.</p></div>' }
+  ],
+
+  // 21. 에디토리얼 포레스트 & 에메랄드 에디토리얼
+  'editorial-forest': [
+    { id: 'sig-forest-card', name: '딥 포레스트 세리프 카드', icon: '🌲', w: 38, h: 26, html: '<div class="sig-comp forest-serif-card"><div class="forest-pink-accent"></div><strong class="forest-card-title">BOTANICAL ESSAY</strong><p class="forest-card-desc">차분하고 묵직한 포레스트 그린과 소프트 핑크 악센트의 명조 매거진입니다.</p></div>' },
+    { id: 'sig-forest-chip', name: '소프트 핑크 인덱스 칩', icon: '🌸', w: 24, h: 8, html: '<div class="sig-comp forest-pink-chip">FOREST // NO. 01</div>' },
+    { id: 'sig-forest-tag', name: '보태니컬 챕터 태그', icon: '🍃', w: 22, h: 7, html: '<div class="sig-comp forest-leaf-tag">CHAPTER 02</div>' }
+  ],
+
+  // 22. 데카르트 그리드 & 로우 그리드 (Cartesian)
+  'cartesian': [
+    { id: 'sig-cart-frame', name: '건축 도면 블루프린트 프레임', icon: '📐', w: 38, h: 26, html: '<div class="sig-comp cart-blueprint-box"><span class="c-ch tl">+</span><span class="c-ch tr">+</span><span class="c-ch bl">+</span><span class="c-ch br">+</span><strong class="cart-box-title">ARCHITECTURAL GRID</strong><p class="cart-box-desc">건축 제도 도면 감성의 엄격한 좌표계와 기하 기호 레이아웃입니다.</p></div>' },
+    { id: 'sig-cart-coord', name: '데카르트 좌표 태그', icon: '📏', w: 26, h: 8, html: '<div class="sig-comp cart-coord-tag">[ COORD: 104.2 / 89.1 ]</div>' },
+    { id: 'sig-cart-spec', name: '엔지니어링 스펙 라벨', icon: '⬛', w: 22, h: 7, html: '<div class="sig-comp cart-spec-badge">SPEC № 01</div>' }
+  ],
+
+  // 23. 스캐터브레인 포스트잇 (Scatterbrain)
+  'scatterbrain': [
+    { id: 'sig-scatter-yellow', name: '옐로우 브레인스톰 메모', icon: '💡', w: 28, h: 25, html: '<div class="sig-comp scatter-sticky yellow"><div class="scatter-pin">📌</div><div class="scatter-title">브레인스토밍</div><div class="scatter-body">자유롭게 떠오르는 아이디어를 즉시 기록하는 포스트잇입니다.</div></div>' },
+    { id: 'sig-scatter-blue', name: '스카이 블루 액션 메모', icon: '🌊', w: 28, h: 25, html: '<div class="sig-comp scatter-sticky blue"><div class="scatter-pin">📌</div><div class="scatter-title">액션 플랜</div><div class="scatter-body">1. 문제 정의<br>2. 가설 검증<br>3. 스프린트 실행</div></div>' },
+    { id: 'sig-scatter-doodle', name: '낙서 코멘트 스티커', icon: '✏️', w: 30, h: 12, html: '<div class="sig-comp scatter-doodle-box"><span class="scatter-doodle-text">★ KEY INSIGHT ★</span></div>' }
+  ],
+
+  // 24. 플레이풀 피치 (Playful Peach)
+  'playful': [
+    { id: 'sig-playful-card', name: '피치 소프트 3D 카드', icon: '🍑', w: 38, h: 26, html: '<div class="sig-comp playful-peach-card"><strong class="playful-card-title">복숭아빛 아이디어</strong><p class="playful-card-desc">포근한 피치 클레이 캔버스 위 생기 넘치는 악센트 카드입니다.</p></div>' },
+    { id: 'sig-playful-btn', name: '젤리 팝 버튼', icon: '🎈', w: 24, h: 9, html: '<div class="sig-comp playful-jelly-btn">✨ 바로 탐색하기</div>' },
+    { id: 'sig-playful-stat', name: '복숭아 톡톡 통계 캡슐', icon: '💡', w: 28, h: 14, html: '<div class="sig-comp playful-stat-box"><span class="playful-stat-val">+95%</span><span class="playful-stat-lbl">성장률 지표</span></div>' }
   ]
 };
 
