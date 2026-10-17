@@ -190,20 +190,32 @@ function commitActiveTextEditing() {
   const page = typeof currentPage === "function" ? currentPage() : null;
   const object = page?.objects?.find((o) => o.id === objectId);
   if (object) {
-    const rawText = text.innerText.replace(/\r\n/g, "\n").replace(/\n+$/, "");
-    const trimmed = text.innerText.trim();
-    if (trimmed) {
-      object.text = rawText;
-      object.isUserEdited = true;
-      syncCanvasTextInlineScale(text);
-      const rawHtml = text.innerHTML.trim();
-      if (/<[a-z][\s\S]*>/i.test(rawHtml)) {
-        object.html = rawHtml;
-      } else {
-        delete object.html;
+    if (object.isSignature || object.signatureId) {
+      const htmlWrapper = wrapper?.querySelector(".html-content-wrapper");
+      if (htmlWrapper) {
+        object.htmlContent = htmlWrapper.innerHTML;
+      }
+    } else {
+      const rawText = text.innerText.replace(/\r\n/g, "\n").replace(/\n+$/, "");
+      const trimmed = text.innerText.trim();
+      if (trimmed) {
+        object.text = rawText;
+        object.isUserEdited = true;
+        syncCanvasTextInlineScale(text);
+        const rawHtml = text.innerHTML.trim();
+        if (/<[a-z][\s\S]*>/i.test(rawHtml)) {
+          object.html = rawHtml;
+        } else {
+          delete object.html;
+        }
       }
     }
   }
+  if (text.isContentEditable) {
+    text.contentEditable = "false";
+  }
+  wrapper?.classList?.remove("is-editing");
+  activeEditingTextElement = null;
 }
 
 function defaultFixedOverlays() {
@@ -246,6 +258,68 @@ function applyThemePalette() {
   document.body.style.setProperty("--content-accent", c1);
   document.body.style.setProperty("--content-accent-2", c2);
   document.body.style.setProperty("--content-accent-3", c3);
+
+  const designMeta = designs[state.design] || window.PptDesigns?.[state.design];
+  if (designMeta) {
+    let googleLink = document.getElementById("themeGoogleFontsLink");
+    if (designMeta.googleFontUrl) {
+      if (!googleLink) {
+        googleLink = document.createElement("link");
+        googleLink.id = "themeGoogleFontsLink";
+        googleLink.rel = "stylesheet";
+        document.head.appendChild(googleLink);
+      }
+      if (googleLink.href !== designMeta.googleFontUrl) {
+        googleLink.href = designMeta.googleFontUrl;
+      }
+    } else if (googleLink) {
+      googleLink.remove();
+    }
+
+    let fontStyle = document.getElementById("themeFontFacesStyle");
+    if (Array.isArray(designMeta.fontFaces) && designMeta.fontFaces.length) {
+      if (!fontStyle) {
+        fontStyle = document.createElement("style");
+        fontStyle.id = "themeFontFacesStyle";
+        document.head.appendChild(fontStyle);
+      }
+      fontStyle.textContent = designMeta.fontFaces.join("\n");
+    } else if (fontStyle) {
+      fontStyle.textContent = "";
+    }
+
+    const titleFont = designMeta.kt ? `'${designMeta.kt}', sans-serif` : "inherit";
+    const bodyFont = designMeta.kb ? `'${designMeta.kb}', sans-serif` : "inherit";
+    const titleWeight = designMeta.wt || "700";
+    const bodyWeight = designMeta.wb || "400";
+    const stageBg = designMeta.stageBg || "#ffffff";
+    const slideBg = designMeta.slideBg || "#ffffff";
+
+    const root = document.documentElement;
+    root.style.setProperty("--theme-title-font", titleFont);
+    root.style.setProperty("--theme-body-font", bodyFont);
+    root.style.setProperty("--theme-title-weight", titleWeight);
+    root.style.setProperty("--theme-body-weight", bodyWeight);
+    root.style.setProperty("--stage-bg", stageBg);
+    root.style.setProperty("--slide-bg", slideBg);
+
+    const hex = (slideBg || "").replace("#", "");
+    const r = parseInt(hex.slice(0, 2), 16) || 0;
+    const g = parseInt(hex.slice(2, 4), 16) || 0;
+    const b = parseInt(hex.slice(4, 6), 16) || 0;
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+    const isDark = lum < 130;
+
+    if (typeof stage !== "undefined" && stage) {
+      stage.dataset.design = state.design;
+      stage.classList.toggle("is-dark-theme", isDark);
+      stage.style.setProperty("--stage-bg", stageBg);
+      stage.style.setProperty("--slide-bg", slideBg);
+      stage.style.setProperty("--ink", isDark ? "#f8fafc" : "#151515");
+      stage.style.setProperty("--paper", slideBg);
+      stage.style.background = slideBg;
+    }
+  }
 }
 
 function renderFixedOverlayLayer() {
@@ -2623,6 +2697,7 @@ function renderControls() {
 
   $("#templateSection").hidden = isCover;
   $("#itemSection").hidden = false;
+  renderThemeSignaturePalette();
   const currentBadge = $("#templateCurrentBadge");
   if (currentBadge) {
     let tName = "개조식";
@@ -3750,10 +3825,139 @@ function getObjectAnim(object) {
   return { animIn, animOut };
 }
 
+function applySignatureCustomStyles(wrapper, object, element) {
+  if (!object || (!object.isSignature && !object.signatureId)) return;
+  const sigComp = wrapper.querySelector(".sig-comp") || wrapper.firstElementChild || wrapper;
+  if (!sigComp) return;
+
+  // 1. Text color
+  if (object.textColor) {
+    sigComp.style.setProperty("color", object.textColor, "important");
+    sigComp.querySelectorAll("strong, span, p, h1, h2, h3, div, button, a").forEach((child) => {
+      if (!child.closest("svg") && child.tagName !== "svg") {
+        child.style.setProperty("color", object.textColor, "important");
+      }
+    });
+  }
+
+  // 2. Background color
+  if (object.bgColor) {
+    const isTransparent = object.bgColor === "transparent" || object.bgColor === "none";
+    const bgVal = isTransparent ? "transparent" : object.bgColor;
+    sigComp.style.setProperty("background", bgVal, "important");
+    sigComp.style.setProperty("background-color", bgVal, "important");
+    wrapper.style.setProperty("background", "transparent", "important");
+    wrapper.style.setProperty("background-color", "transparent", "important");
+  }
+
+  // 3. Border (width, style, color)
+  const hasCustomBorder = object.borderWidth !== undefined || object.borderColor || object.borderStyle;
+  if (hasCustomBorder) {
+    const bw = object.borderWidth !== undefined ? Number(object.borderWidth) : (object.borderColor ? 2 : 0);
+    const bs = object.borderStyle || (bw > 0 ? "solid" : "none");
+    const bc = object.borderColor || "#0f172a";
+    if (bw > 0 && bs !== "none") {
+      sigComp.style.setProperty("border", `${bw}px ${bs} ${bc}`, "important");
+      sigComp.style.setProperty("box-sizing", "border-box", "important");
+    } else if (bw === 0 || bs === "none") {
+      sigComp.style.setProperty("border", "none", "important");
+    }
+  }
+
+  // 4. Font size
+  if (object.fontSize) {
+    const fsPx = `${object.fontSize}px`;
+    sigComp.style.setProperty("--object-font-size", fsPx, "important");
+    sigComp.style.setProperty("font-size", `calc(${fsPx} * var(--stage-scale, 1))`, "important");
+    sigComp.querySelectorAll("strong, span, p, h1, h2, h3, div, button").forEach((child) => {
+      child.style.setProperty("font-size", `calc(${fsPx} * var(--stage-scale, 1))`, "important");
+    });
+  }
+
+  // 5. Text alignment
+  if (object.textAlign) {
+    sigComp.style.setProperty("text-align", object.textAlign, "important");
+    sigComp.querySelectorAll("strong, span, p, h1, h2, h3, div, button").forEach((child) => {
+      child.style.setProperty("text-align", object.textAlign, "important");
+    });
+  }
+}
+
+function beginSignatureTextEdit(event, object, element) {
+  if (document.fullscreenElement) return;
+  if (event?.target?.classList?.contains("resize-handle") || event?.target?.classList?.contains("rotate-handle") || event?.target?.closest?.(".rotate-handle")) {
+    return;
+  }
+  const htmlWrapper = element.querySelector(".html-content-wrapper");
+  if (!htmlWrapper) return;
+
+  let target = event?.target;
+  if (!target || target === element || target === htmlWrapper || target.classList?.contains("html-content-wrapper")) {
+    target = htmlWrapper.querySelector(".sig-comp strong, .sig-comp p, .sig-comp span, .sig-comp div") || htmlWrapper.querySelector(".sig-comp") || htmlWrapper;
+  } else {
+    if (target.tagName === "svg" || target.closest("svg") || target.tagName === "IMG" || target.tagName === "I") {
+      target = htmlWrapper.querySelector(".sig-comp strong, .sig-comp p, .sig-comp span, .sig-comp div") || htmlWrapper;
+    } else {
+      target = target.closest("strong, span, p, h1, h2, h3, div, button, a") || target;
+    }
+  }
+
+  commitActiveTextEditing();
+  snapshot();
+  state.activeTextObjectId = object.id;
+  state.selectedIds.clear();
+  state.selectedIds.add(object.id);
+  renderControls();
+  showTextToolbar(object, target);
+  element.classList.add("is-editing");
+  activeEditingTextElement = target;
+
+  target.contentEditable = "true";
+  target.focus();
+  try {
+    document.execCommand("styleWithCSS", false, true);
+  } catch (e) {}
+
+  selectAllText(target);
+
+  const handleInput = () => {
+    object.htmlContent = htmlWrapper.innerHTML;
+  };
+  target.addEventListener("input", handleInput);
+
+  const handleKeyDown = (keyEvent) => {
+    if (keyEvent.key === "Escape") {
+      keyEvent.preventDefault();
+      target.blur();
+    }
+  };
+  target.addEventListener("keydown", handleKeyDown);
+
+  const finish = (blurEvent) => {
+    if (blurEvent?.relatedTarget && (
+      $("#textSelectionToolbar")?.contains(blurEvent.relatedTarget) ||
+      $("#textToolbar")?.contains(blurEvent.relatedTarget)
+    )) {
+      return;
+    }
+    target.removeEventListener("input", handleInput);
+    target.removeEventListener("keydown", handleKeyDown);
+    target.removeEventListener("blur", finish);
+    target.contentEditable = "false";
+    element.classList.remove("is-editing");
+    if (activeEditingTextElement === target) {
+      activeEditingTextElement = null;
+    }
+    object.htmlContent = htmlWrapper.innerHTML;
+  };
+  target.addEventListener("blur", finish);
+}
+
 function createObjectElement(object) {
   const element = document.createElement("div");
   element.className = `canvas-object ${getObjectClass(object)} ${state.selectedIds.has(object.id) ? "is-selected" : ""}`;
   element.dataset.objectId = object.id;
+  element.dataset.role = object.role;
   applyObjectBox(element, object);
 
   if (object.shapeType || object.role === "shape-box") {
@@ -3864,6 +4068,9 @@ function createObjectElement(object) {
     });
   } else if (object.type === "html-card" || object.role === "html-container") {
     element.classList.add("html-card-object");
+    if (object.isSignature || object.signatureId) {
+      element.classList.add("signature-object");
+    }
     const wrapper = document.createElement("div");
     wrapper.className = "html-content-wrapper";
     wrapper.innerHTML = object.htmlContent || "";
@@ -3873,22 +4080,26 @@ function createObjectElement(object) {
       // Do not stop propagation to document so delegating event listeners work natively
     });
 
-    // Double-click to edit text inside HTML container (ignore if clicking interactive elements)
-    wrapper.addEventListener("dblclick", (e) => {
-      const isInteractive = e.target.closest("button, a, input, select, textarea, label, [role='button'], .btn, summary, tab, .tab, .interactive, [onclick]");
-      if (isInteractive) return;
-      e.stopPropagation();
-      wrapper.contentEditable = "true";
-      wrapper.focus();
-    });
+    if (object.isSignature || object.signatureId) {
+      applySignatureCustomStyles(wrapper, object, element);
+    } else {
+      // Double-click to edit text inside HTML container (ignore if clicking interactive elements unless it's a signature component)
+      wrapper.addEventListener("dblclick", (e) => {
+        const isInteractive = e.target.closest("button, a, input, select, textarea, label, [role='button'], summary, .interactive, [onclick]");
+        if (isInteractive) return;
+        e.stopPropagation();
+        wrapper.contentEditable = "true";
+        wrapper.focus();
+      });
 
-    wrapper.addEventListener("blur", () => {
-      wrapper.contentEditable = "false";
-      if (object.htmlContent !== wrapper.innerHTML) {
-        snapshot();
-        object.htmlContent = wrapper.innerHTML;
-      }
-    });
+      wrapper.addEventListener("blur", () => {
+        wrapper.contentEditable = "false";
+        if (object.htmlContent !== wrapper.innerHTML) {
+          snapshot();
+          object.htmlContent = wrapper.innerHTML;
+        }
+      });
+    }
 
     element.append(wrapper);
 
@@ -4047,7 +4258,7 @@ function createObjectElement(object) {
   handle.addEventListener("pointerdown", (event) => beginResize(event, object));
   element.append(handle);
 
-  if (["shape-box", "free-text"].includes(object.role) || Boolean(object.shapeType)) {
+  if (["shape-box", "free-text"].includes(object.role) || Boolean(object.shapeType) || object.isSignature || object.signatureId) {
     const rotateHandle = document.createElement("span");
     rotateHandle.className = "rotate-handle";
     rotateHandle.title = "드래그하여 360도 회전 (Shift: 15도 단위)";
@@ -4068,7 +4279,7 @@ function createObjectElement(object) {
       return;
     }
 
-    if (object.type === "html-card" || object.role === "html-container") {
+    if ((object.type === "html-card" || object.role === "html-container") && !object.isSignature && !object.signatureId) {
       const isContentArea = event.target.closest(".html-content-wrapper");
       const isResizeHandle = event.target.closest(".resize-handle");
       if (isContentArea && !isResizeHandle) {
@@ -4079,6 +4290,18 @@ function createObjectElement(object) {
     const now = Date.now();
     const isDoubleClick = (now - lastClickTime < 350);
     lastClickTime = now;
+
+    if (object.isSignature || object.signatureId) {
+      if (isDoubleClick) {
+        event.preventDefault();
+        event.stopPropagation();
+        beginSignatureTextEdit(event, object, element);
+        return;
+      }
+      commitActiveTextEditing();
+      beginDrag(event, object);
+      return;
+    }
 
     const isNonTextObject = ["image", "table", "chart", "scale"].includes(object.type);
     const isTextChild = Boolean(event.target.classList?.contains("canvas-text") || event.target.closest?.(".canvas-text"));
@@ -5053,7 +5276,7 @@ function updateSelectionToolbar() {
     return;
   }
   const textEl = document.activeElement;
-  if (!textEl || !textEl.isContentEditable || !textEl.classList.contains("canvas-text")) {
+  if (!textEl || !textEl.isContentEditable || (!textEl.classList.contains("canvas-text") && !textEl.closest(".html-content-wrapper"))) {
     hideTextSelectionToolbar();
     return;
   }
@@ -5085,11 +5308,22 @@ function updateSelectionToolbar() {
   tb.style.top = `${top}px`;
 }
 
+function syncActiveInlineEdit() {
+  if (!activeEditingTextElement) return;
+  const wrapper = activeEditingTextElement.closest(".canvas-object");
+  const obj = currentPage()?.objects?.find((o) => o.id === wrapper?.dataset?.objectId);
+  if (obj && (obj.isSignature || obj.signatureId)) {
+    const hw = wrapper?.querySelector(".html-content-wrapper");
+    if (hw) obj.htmlContent = hw.innerHTML;
+  }
+}
+
 function applyInlineFormat(command, value = null) {
   restoreCurrentSelection();
   document.execCommand(command, false, value);
   if (activeEditingTextElement) {
     syncCanvasTextInlineScale(activeEditingTextElement);
+    syncActiveInlineEdit();
   }
   saveCurrentSelection();
   if (activeEditingTextElement) {
@@ -5114,6 +5348,7 @@ function applyInlineHighlight(color) {
   if (hlBar) hlBar.style.background = (color === "transparent" ? "#fef08a" : color);
   if (activeEditingTextElement) {
     syncCanvasTextInlineScale(activeEditingTextElement);
+    syncActiveInlineEdit();
   }
   saveCurrentSelection();
   closeSelectionPopovers();
@@ -5133,6 +5368,7 @@ function applyInlineColor(color) {
   if (colorBar) colorBar.style.background = color;
   if (activeEditingTextElement) {
     syncCanvasTextInlineScale(activeEditingTextElement);
+    syncActiveInlineEdit();
   }
   saveCurrentSelection();
   closeSelectionPopovers();
@@ -5158,7 +5394,7 @@ function applyInlineFontSize(delta) {
   const newBaseSize = Math.max(9, Math.min(140, Math.round(currentBase + delta)));
 
   document.execCommand("fontSize", false, "7");
-  const container = parentEl.closest(".canvas-text") || parentEl;
+  const container = parentEl.closest(".canvas-text") || parentEl.closest(".sig-comp") || parentEl;
   const fontTags = container.querySelectorAll('font[size="7"]');
   fontTags.forEach((fontTag) => {
     const span = document.createElement("span");
@@ -5169,6 +5405,7 @@ function applyInlineFontSize(delta) {
     fontTag.parentNode.replaceChild(span, fontTag);
   });
   syncCanvasTextInlineScale(container, stageScale);
+  syncActiveInlineEdit();
 
   saveCurrentSelection();
   if (activeEditingTextElement) {
@@ -5311,15 +5548,32 @@ function showTextToolbar(object, textElement, selectedObjectsParam = null) {
       }
     } else {
       if ($("#textColorInput")) {
-        const textColor = object.type === "timer" && (!object.isCustomTextColor || !object.textColor)
-          ? themeDefaults.textColor
-          : (object.textColor || (textElement ? getComputedStyle(textElement).color : "#ffffff") || "#ffffff");
+        let textColor = object.textColor;
+        if (!textColor && (object.isSignature || object.signatureId) && textElement) {
+          const sigEl = textElement.querySelector(".sig-comp strong, .sig-comp p, .sig-comp span, .sig-comp div, .sig-comp") || textElement;
+          textColor = getComputedStyle(sigEl).color;
+        }
+        if (!textColor) {
+          textColor = object.type === "timer" && (!object.isCustomTextColor || !object.textColor)
+            ? themeDefaults.textColor
+            : (object.textColor || (textElement ? getComputedStyle(textElement).color : "#ffffff") || "#ffffff");
+        }
         $("#textColorInput").value = normalizeColor(textColor);
       }
       if ($("#bgColorInput")) {
-        const bgColor = object.type === "timer" && (!object.isCustomBgColor || !object.bgColor)
-          ? themeDefaults.bgColor
-          : (object.bgColor || (textElement ? getComputedStyle(textElement.parentElement || textElement).backgroundColor : "#ffffff") || "#ffffff");
+        let bgColor = object.bgColor;
+        if (!bgColor && (object.isSignature || object.signatureId) && textElement) {
+          const sigEl = textElement.querySelector(".sig-comp") || textElement;
+          const compBg = getComputedStyle(sigEl).backgroundColor;
+          if (compBg && compBg !== "rgba(0, 0, 0, 0)" && compBg !== "transparent") {
+            bgColor = compBg;
+          }
+        }
+        if (!bgColor) {
+          bgColor = object.type === "timer" && (!object.isCustomBgColor || !object.bgColor)
+            ? themeDefaults.bgColor
+            : (object.bgColor || (textElement ? getComputedStyle(textElement.parentElement || textElement).backgroundColor : "#ffffff") || "#ffffff");
+        }
         $("#bgColorInput").value = normalizeColor(bgColor);
       }
       if ($("#noBgColorButton")) {
@@ -5329,13 +5583,35 @@ function showTextToolbar(object, textElement, selectedObjectsParam = null) {
     }
 
     if ($("#borderColorInput")) {
-      $("#borderColorInput").value = normalizeColor(object.borderColor || "#0f172a");
+      let borderColor = object.borderColor;
+      if (!borderColor && (object.isSignature || object.signatureId) && textElement) {
+        const sigEl = textElement.querySelector(".sig-comp") || textElement;
+        const compBc = getComputedStyle(sigEl).borderColor;
+        if (compBc && compBc !== "rgba(0, 0, 0, 0)" && compBc !== "transparent") {
+          borderColor = compBc;
+        }
+      }
+      $("#borderColorInput").value = normalizeColor(borderColor || "#0f172a");
     }
     if ($("#borderWidthInput")) {
-      $("#borderWidthInput").value = object.borderWidth !== undefined ? object.borderWidth : 0;
+      let borderWidth = object.borderWidth;
+      if (borderWidth === undefined && (object.isSignature || object.signatureId) && textElement) {
+        const sigEl = textElement.querySelector(".sig-comp") || textElement;
+        const compBw = parseFloat(getComputedStyle(sigEl).borderWidth);
+        if (!isNaN(compBw)) borderWidth = Math.round(compBw);
+      }
+      $("#borderWidthInput").value = borderWidth !== undefined ? borderWidth : 0;
     }
     if ($("#borderStyleSelect")) {
-      $("#borderStyleSelect").value = object.borderStyle || (object.borderWidth ? "solid" : "none");
+      let borderStyle = object.borderStyle;
+      if (!borderStyle && (object.isSignature || object.signatureId) && textElement) {
+        const sigEl = textElement.querySelector(".sig-comp") || textElement;
+        const compBs = getComputedStyle(sigEl).borderStyle;
+        if (compBs && compBs !== "none") {
+          borderStyle = compBs;
+        }
+      }
+      $("#borderStyleSelect").value = borderStyle || (object.borderWidth ? "solid" : "none");
     }
     if ($("#textSizeInput")) {
       let displaySize;
@@ -5350,6 +5626,10 @@ function showTextToolbar(object, textElement, selectedObjectsParam = null) {
           const computedSize = selectedCellEl ? Number.parseFloat(getComputedStyle(selectedCellEl).fontSize) : null;
           displaySize = computedSize || object.fontSize || 16;
         }
+      } else if ((object.isSignature || object.signatureId) && textElement) {
+        const sigEl = textElement.querySelector(".sig-comp strong, .sig-comp p, .sig-comp span, .sig-comp div, .sig-comp") || textElement;
+        const computedSize = sigEl ? Number.parseFloat(getComputedStyle(sigEl).fontSize) : null;
+        displaySize = object.fontSize || computedSize || 16;
       } else {
         const canvasTextEl = textElement
           ? (textElement.classList.contains("canvas-text") ? textElement : textElement.querySelector(".canvas-text") || textElement)
@@ -7491,6 +7771,89 @@ document.querySelectorAll(".shape-select-btn").forEach((btn) => {
     render();
   });
 });
+
+function renderThemeSignaturePalette() {
+  const grid = $("#themeSignatureGrid");
+  const badge = $("#themeSignatureBadge");
+  const title = $("#themeSignatureTitle");
+  if (!grid) return;
+
+  const currentDesignKey = state.design || "bauhaus";
+  const designInfo = (typeof designs !== "undefined" && designs[currentDesignKey]) ? designs[currentDesignKey] : {};
+  const designName = designInfo.koreanName || designInfo.name || currentDesignKey;
+
+  if (badge) {
+    badge.textContent = designName;
+  }
+  if (title) {
+    title.textContent = `${designName} 시그니처`;
+  }
+
+  // Only re-render grid if design changed or grid is empty
+  if (grid.dataset.currentDesign === currentDesignKey && grid.children.length > 0) {
+    return;
+  }
+
+  grid.dataset.currentDesign = currentDesignKey;
+  grid.innerHTML = "";
+
+  const components = (typeof window.getThemeSignatureComponents === "function")
+    ? window.getThemeSignatureComponents(currentDesignKey)
+    : (window.PptThemeComponents?.[currentDesignKey] || []);
+
+  if (!components || components.length === 0) {
+    grid.innerHTML = '<p class="guide" style="grid-column: 1 / -1; margin: 4px 0; font-size: 11px;">등록된 시그니처 개체가 없습니다.</p>';
+    return;
+  }
+
+  components.forEach((comp) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "button theme-sig-btn";
+    btn.dataset.sigId = comp.id;
+    btn.title = `${comp.name} 본문에 삽입`;
+    btn.innerHTML = `
+      <span class="theme-sig-icon">${comp.icon || "✨"}</span>
+      <span class="theme-sig-name">${comp.name}</span>
+    `;
+    btn.addEventListener("click", () => {
+      insertSignatureComponent(comp);
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function insertSignatureComponent(component) {
+  const page = currentPage();
+  if (page.type === "cover") {
+    alert("테마 시그니처 개체는 본문 슬라이드에서 추가할 수 있습니다. 상단 '+ 본문 페이지' 버튼을 눌러 본문 페이지를 추가해 보세요.");
+    return;
+  }
+
+  snapshot();
+  const w = component.w || 30;
+  const h = component.h || 18;
+  const x = Math.round(50 - w / 2);
+  const y = Math.round(50 - h / 2);
+
+  const newObj = {
+    id: createId("sig"),
+    type: "html-card",
+    role: "html-container",
+    isSignature: true,
+    signatureId: component.id,
+    htmlContent: component.html,
+    x,
+    y,
+    w,
+    h
+  };
+
+  page.objects.push(newObj);
+  state.selectedIds.clear();
+  state.selectedIds.add(newObj.id);
+  render();
+}
 $("#cardImageInsertButton")?.addEventListener("click", () => {
   $("#imageInput").click();
 });

@@ -36,38 +36,86 @@
   }
 
   function renderDesignThumbnailHTML(design, c1, c2, c3) {
-    const designMeta = window.PptDesigns?.[design];
-    const name = designMeta?.name || design.toUpperCase();
-    const desc = designMeta?.description || "프레젠테이션 디자인 테마 미리보기";
+    const meta = window.PptDesigns?.[design] || {};
+    const name = meta.name || design;
+    const korName = meta.koreanName ? ` (${meta.koreanName})` : "";
+    const group = meta.group || "디자인";
+    const desc = meta.description || "";
+    const deckUrl = meta.deckUrl || "";
+    const rules = Array.isArray(meta.rules) && meta.rules.length ? meta.rules : [desc];
+    const fontInfo = meta.fonts || (meta.kt && meta.kb ? `${meta.kt} / ${meta.kb}` : "시스템 글꼴");
+    const metaTag = meta.meta || `${group} · ${meta.koreanName || name}`;
+    const slideBg = meta.slideBg || "#ffffff";
+
+    let previewHtml = "";
+    if (deckUrl) {
+      previewHtml = `
+        <div class="theme-live-preview-box" style="background:${slideBg};">
+          <iframe class="theme-live-preview-iframe" src="${deckUrl}" loading="lazy" scrolling="no" tabindex="-1" title="${name} 실물 슬라이드 미리보기"></iframe>
+          <div class="preview-badge-overlay">
+            <span class="preview-badge">16:9 커버 실물 미리보기</span>
+            <a href="${deckUrl}" target="_blank" rel="noopener" class="preview-open-link" title="새 창에서 6장 전체 덱 열기">전체 덱 보기 ↗</a>
+          </div>
+        </div>
+      `;
+    } else {
+      previewHtml = `
+        <div class="theme-live-preview-box core-cover-preview design-frame-${design}" data-design="${design}" style="background:${slideBg};">
+          <div class="core-cover-header">
+            <span class="core-cover-page-badge" style="color:${c1}; font-weight:900;">PAGE 01 · COVER</span>
+            <span class="core-cover-brand" style="color:${c2};">LOCAL PPT 2</span>
+          </div>
+          <div class="core-cover-center">
+            <h1 class="core-cover-title" style="font-family:var(--theme-title-font, inherit); color:${c1};">${name.toUpperCase()}</h1>
+            <p class="core-cover-subtitle" style="color:${c2};">${desc}</p>
+          </div>
+          <div class="core-cover-footer">
+            <div class="core-cover-tags">
+              <span class="core-tag" style="border:1.5px solid ${c1}; color:${c1};">${meta.koreanName || "테마"}</span>
+              <span class="core-tag" style="border:1.5px solid ${c2}; color:${c2};">${fontInfo}</span>
+            </div>
+            <div class="core-cover-dots">
+              <span class="thumb-color-dot" style="background:${c1};" title="1순위: ${c1}"></span>
+              <span class="thumb-color-dot" style="background:${c2};" title="2순위: ${c2}"></span>
+              <span class="thumb-color-dot" style="background:${c3};" title="3순위: ${c3}"></span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
     return `
       <div class="thumb-meta-wrap">
         <div class="thumb-header">
-          <span class="thumb-title" style="color:${c1}; font-weight:900;">${name}</span>
-          <span class="thumb-badge" style="border:1px solid ${c1}; color:${c1}; font-weight:800;">개요식 템플릿</span>
-        </div>
-        <p class="thumb-desc">${desc}</p>
-      </div>
-      <div class="thumb-slide-frame design-frame-${design}" data-design="${design}">
-        <div class="frame-overlay-top" style="color:${c1}; font-weight:900;">PAGE 02 · 개요식 템플릿</div>
-        <div class="frame-bullet-content">
-          <h2 class="frame-bullet-title">핵심 메시지</h2>
-          <div class="frame-bullet-list">
-            <div class="thumb-bullet-item" style="border-left-color:${c1};">
-              <span class="bullet-text">첫 번째 핵심 내용</span>
-            </div>
-            <div class="thumb-bullet-item" style="border-left-color:${c1};">
-              <span class="bullet-text">두 번째 핵심 내용</span>
-            </div>
-            <div class="thumb-bullet-item" style="border-left-color:${c1};">
-              <span class="bullet-text">세 번째 핵심 내용</span>
-            </div>
+          <div class="thumb-title-area">
+            <span class="thumb-title" style="color:${c1}; font-weight:950; font-size:15px;">${name}</span>
+            <span class="thumb-kor-label" style="color:#64748b; font-size:12.5px; font-weight:700;">${korName}</span>
           </div>
+          <span class="thumb-group-badge" style="border:1px solid ${c1}; color:${c1}; background:${c1}12; font-weight:800; font-size:11px; padding:2px 7px; border-radius:4px;">${group}</span>
         </div>
-        <div class="frame-footer-dots">
-          <span class="thumb-color-dot" style="background:${c1};" title="1순위: ${c1}"></span>
-          <span class="thumb-color-dot" style="background:${c2};" title="2순위: ${c2}"></span>
-          <span class="thumb-color-dot" style="background:${c3};" title="3순위: ${c3}"></span>
+        <p class="thumb-desc" style="margin:2px 0 6px 0; font-size:12px; color:#475569; line-height:1.4;">${desc}</p>
+      </div>
+
+      ${previewHtml}
+
+      <div class="thumb-specs-card">
+        <div class="thumb-font-badge-row">
+          <span class="thumb-font-icon">🖋️</span>
+          <span class="thumb-font-label">글꼴 짝: <strong>${fontInfo}</strong></span>
+        </div>
+        <div class="thumb-rules-content">
+          <strong class="thumb-rules-title">🎨 디자인 규칙 (design.md)</strong>
+          <ul class="thumb-rules-list">
+            ${rules.map(r => `<li>${r}</li>`).join("")}
+          </ul>
+        </div>
+        <div class="thumb-footnote-row">
+          <span class="thumb-meta-chip">📌 ${metaTag}</span>
+          <div class="thumb-mini-swatches" title="기본 3색: ${c1}, ${c2}, ${c3}">
+            <span class="mini-swatch" style="background:${c1};"></span>
+            <span class="mini-swatch" style="background:${c2};"></span>
+            <span class="mini-swatch" style="background:${c3};"></span>
+          </div>
         </div>
       </div>
     `;

@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ko" data-template="creative-mode">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>계절의 변화</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;700&display=swap">
+<style>
+/* === KOREAN FONTS === */
+@font-face{font-family:'kp-18';font-display:swap;src:url("fonts/Pretendard-Black.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/pretendard/Pretendard-Black.woff2") format("woff2");font-weight:900}
+@font-face{font-family:'kp-13';font-display:swap;src:url("fonts/NotoSansKR-Regular.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/noto-sans-kr/NotoSansKR-Regular.woff2") format("woff2");font-weight:400}
+/* === THEME === */
+:root{--stage-bg:#EFE9D9;--slide-bg:#EFE9D9;
+  --kt:'kp-18';--kb:'kp-13';--ka:'kp-13';
+  --wt:900;--wb:400}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-synthesis:none;word-break:keep-all;letter-spacing:0}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:disabled{cursor:default}
+/* === VIEWPORT BASE (frontend-slides, mandatory) === */
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES
+   Include this ENTIRE file in every presentation.
+   Slides are authored at 1920×1080 and scaled as a whole.
+   =========================================== */
+
+/* 1. Lock the browser viewport */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 2. Full-window deck viewport */
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 3. Fixed 16:9 design canvas.
+   JavaScript sets transform: translate(...) scale(...). */
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+
+/* 4. Slides stack inside the fixed stage.
+   Content must be laid out at 1920×1080, not reflowed per device. */
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+/* 5. Keep media inside authored slide bounds */
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* 6. Presentation chrome stays outside the slide design system */
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+/* 7. Print one fixed-size slide per page */
+@media print {
+    html,
+    body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+    }
+
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .deck-controls {
+        display: none !important;
+    }
+}
+
+/* 8. Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+/* 동작 줄이기(Windows '애니메이션 효과' 끔 등): 위 규칙이 길이를 0.01ms로 줄이면 반복 애니메이션이 깜빡이듯 빨라짐 → 반복은 한 번만 */
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-iteration-count:1 !important}}
+.dk-nav{position:absolute;z-index:50}
+
+
+/* === 측정기 그림(figure-gauge.js) 기본 === */
+.gauge{display:block;width:100%;height:auto;overflow:visible;--g-sw:2.5}
+.gauge .g-lb{font-family:var(--g-font,var(--kb));font-size:40px;font-weight:700;fill:var(--g-ink,currentColor)}
+.gauge .g-ground{stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw);opacity:.35}
+.gauge .g-board{fill:var(--g-board,none);stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw)}
+.gauge .g-ruler{fill:var(--g-ruler,none);stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw)}
+.gauge .g-tick{stroke:var(--g-ink,currentColor);stroke-width:1.5}
+.gauge .g-stick{fill:var(--g-stick,var(--g-ink,currentColor));stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw)}
+.gauge .g-mark,.gauge .g-lead,.gauge .g-dim,.gauge .g-angle{fill:none;stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw)}
+.gauge .g-angle{stroke-width:4}
+.gauge .g-shadow{fill:var(--g-shadow,var(--g-ink,currentColor));opacity:.6}
+.gauge .g-string{stroke:var(--g-acc,var(--g-ink,currentColor));stroke-width:4}
+.gauge .g-prot{fill:var(--g-prot,none);stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw)}
+.gauge .g-prot2{fill:none;stroke:var(--g-ink,currentColor);stroke-width:1.5}
+.gauge .g-hole{fill:var(--g-ink,currentColor)}
+.gauge .g-ray{stroke:var(--g-acc,var(--g-ink,currentColor));stroke-width:7}
+.gauge .g-rayh{fill:var(--g-acc,var(--g-ink,currentColor))}
+/* 만드는 중(1~3단계): 아직 안 만든 부품과 측정 표시는 흐리게 / 0·4단계는 모두 또렷 */
+.slide[data-step="1"] .gauge .g-part:not(.on),.slide[data-step="2"] .gauge .g-part:not(.on),.slide[data-step="3"] .gauge .g-part:not(.on),
+.slide[data-step="1"] .gauge .g-meas,.slide[data-step="2"] .gauge .g-meas,.slide[data-step="3"] .gauge .g-meas{opacity:var(--g-dim,.2)}
+
+/* === TEMPLATE STYLES === */
+
+/* --- 토큰 --- */
+:root{--cream:#EFE9D9;--cream2:#E4DCC4;--ink:#0F0F0F;--ink2:#2A2A2A;--green:#1F8A4C;--pink:#F06CA8;--orange:#E85A1F;--yellow:#F5C518;--bd:4px solid #0F0F0F}
+.slide{background:var(--cream);color:var(--ink);font-family:'Space Grotesk',var(--kb),sans-serif;font-weight:var(--wb)}
+.slide.green-bg{background:var(--green);color:var(--cream)}
+.slide>*{position:absolute}
+.mono,.topbar,.meta,.kb,.qb{font-family:'JetBrains Mono',var(--kb),monospace;font-weight:500;text-transform:uppercase}
+.mono{font-size:24px;letter-spacing:.06em}
+h3{font-family:'Archivo Black',var(--kt),sans-serif;font-weight:var(--wt);letter-spacing:0}
+.pink{background:var(--pink)}.yellow{background:var(--yellow)}.orange{background:var(--orange);color:var(--cream)}.green{background:var(--green);color:var(--cream)}.cream{background:var(--cream)}
+
+/* --- 크롬: 상단줄(라벨 + 알약) · 하단줄(설명 + 01 ● 05) --- */
+.topbar{left:64px;right:64px;top:48px;display:flex;justify-content:space-between;align-items:center;font-size:26px;letter-spacing:.08em}
+.pill{border:2px solid currentColor;border-radius:999px;padding:6px 20px}
+.meta{left:64px;right:260px;bottom:40px;display:flex;justify-content:space-between;align-items:center;gap:30px;font-size:22px;letter-spacing:.04em}
+.meta>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pg{display:flex;align-items:center;gap:14px;flex:none}
+.pg i{width:10px;height:10px;border-radius:50%;background:currentColor}
+.kb{display:inline-block;align-self:flex-start;background:var(--ink);color:var(--cream);font-size:24px;letter-spacing:.14em;padding:8px 16px}
+.hd{left:96px;right:96px;top:150px;font-family:'Archivo Black',var(--kt),sans-serif;font-weight:var(--wt);font-size:84px;line-height:1.1;letter-spacing:0;white-space:nowrap}
+.hd3{top:120px}
+.btns{display:flex;gap:24px}
+.btn{border:var(--bd);background:var(--cream);color:var(--ink);padding:14px 30px;font:700 30px/1 'Space Grotesk',var(--kb),sans-serif}
+.btn.go{background:var(--yellow)}
+.btn:disabled{opacity:.35}
+.badge{background:var(--yellow);color:var(--ink);border:var(--bd);padding:14px 28px;font-family:'Archivo Black',var(--kt),sans-serif;font-weight:var(--wt);font-size:36px;transform:rotate(-4deg)}
+.tbl{border:var(--bd);background:var(--cream2);color:var(--ink)}
+.tr{display:grid}
+.tr>span{border-left:3px solid var(--ink);padding:12px 18px;font-size:28px;line-height:1.35}
+.tr>span:first-child{border-left:0}
+.tr+.tr{border-top:3px solid var(--ink)}
+.th{background:var(--ink);color:var(--cream)}
+.th>span{border-color:var(--cream);font:400 24px/1.2 'Archivo Black',var(--kt),sans-serif}
+.lb{font-family:'Archivo Black',var(--kt),sans-serif;font-weight:var(--wt)}
+
+/* --- 1. 표지: 킥커 + 학습 목표 + 단원(+ 초록 영문) | 토글 스위치 포스터(주황 24px 그림자) · 노랑 배지 -4° · 노랑 원 --- */
+.k1{left:96px;top:190px}
+.t1{left:90px;top:254px;font-family:'Archivo Black',var(--kt),sans-serif;font-weight:var(--wt);font-size:104px;line-height:1.12;letter-spacing:0;white-space:nowrap}
+.t1 .gk{font-style:normal}
+.unit{left:96px;top:560px;font-family:'Archivo Black',var(--kt),sans-serif;font-weight:var(--wt);font-size:72px;line-height:1.05}
+.en{left:96px;top:660px;width:1100px;font:400 64px/.92 'Archivo Black',sans-serif;letter-spacing:-.01em;text-transform:uppercase;color:var(--green)}
+.poster{left:1340px;top:230px;width:440px;height:440px;background:var(--pink);border:var(--bd);box-shadow:24px 24px 0 var(--orange),24px 24px 0 4px var(--ink)}
+.sw{position:absolute;left:70px;top:160px;width:300px;height:130px}
+.sw .track{position:absolute;inset:0;background:var(--cream);border:var(--bd)}
+.sw .lever{position:absolute;right:12px;top:-48px;width:120px;height:190px;background:var(--green);border:var(--bd);transform:skewX(-12deg);box-shadow:-14px 0 0 #136636}
+.sw-lab{position:absolute;left:36px;bottom:30px;font:400 56px/.9 'Archivo Black',sans-serif}
+.slide>.badge{left:1250px;top:170px}
+.circ{left:1560px;top:770px;width:240px;height:190px;background:var(--green);border:var(--bd);display:grid;place-items:center}
+.circ i{width:120px;height:120px;border-radius:50%;background:var(--yellow);border:var(--bd)}
+
+/* --- 2. 흐름: 3px 점선 + 주인공 블록(크림2 + 주황 24px 그림자) 속 측정기 그림 + NOTE | 단계 카드 4장(켜지면 색, 삼각 화살표) + 버튼 --- */
+.dash{left:96px;right:96px;top:124px;border-top:3px dashed var(--ink)}
+.fig{left:96px;top:270px;width:820px;background:var(--cream2);border:var(--bd);box-shadow:24px 24px 0 var(--orange),24px 24px 0 4px var(--ink);padding:16px 28px 6px;
+  --g-ink:var(--ink);--g-acc:var(--ink);--g-stick:var(--green);--g-board:var(--pink);--g-ruler:var(--cream);--g-prot:var(--yellow);--g-shadow:var(--ink);--g-font:'Space Grotesk',var(--kb),sans-serif;--g-sw:3}
+.fig .g-lb{font-weight:700}
+.note{left:96px;width:820px;top:860px;display:flex;align-items:center;gap:20px}
+.note p{font-size:30px;font-weight:700;line-height:1.3}
+.def{left:1010px;right:96px;top:262px;font-size:28px;line-height:1.45;font-weight:500}
+.def b{font-weight:700}
+.flow{left:1010px;right:96px;top:316px;display:flex;flex-direction:column;align-items:stretch}
+.card{border:var(--bd);padding:10px 18px;display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center;background:var(--cream)}
+.slide[data-step]:not([data-step="0"]) .card:not(.on){background:var(--cream);color:var(--ink);opacity:.45}
+.num{font:400 72px/.85 'Archivo Black',sans-serif}
+.card h3{font-size:36px;line-height:1.1}
+.card p{margin-top:2px;font-size:26px;line-height:1.4;font-weight:500}
+.arw{flex:none;align-self:center;width:0;height:0;margin:4px 0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:16px solid var(--ink)}
+.slide[data-steps] .btns{left:1010px;top:860px}
+.cap{left:1010px;right:96px;top:940px;font-size:26px;font-weight:500}
+
+/* --- 3. 숫자와 그래프: 통계 칸 4개(초록·분홍·크림·주황, 4px) + 막대 차트(3px 테두리 노랑 막대, 가장 높은 막대 = 주황) + 표(그림자 · 기온) --- */
+.stats{left:96px;right:96px;top:260px;display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+.stat{border:var(--bd);padding:20px 28px;display:flex;flex-direction:column;gap:6px}
+.sn{font:400 76px/.95 'Archivo Black',var(--kt),sans-serif}
+.stat p{font-size:26px;line-height:1.35;font-weight:500}
+.chart{left:96px;right:96px;top:490px;display:flex;flex-direction:column;gap:6px}
+.ct{font-size:22px}
+.bars{height:250px;display:grid;grid-template-columns:280px repeat(7,1fr);align-items:end;border-bottom:3px solid var(--ink)}
+.bars .ax{align-self:end;padding:0 0 10px 4px;font-size:22px;border-right:3px solid var(--ink);height:100%;display:flex;align-items:flex-end}
+.col{padding:0 18px}
+.col{position:relative;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-end;gap:6px;height:100%}
+.col i{display:block;background:var(--yellow);border:3px solid var(--ink);border-bottom:0}
+.col i.mx{background:var(--orange)}
+.bv{text-align:center;font-size:24px}
+.t3{left:96px;right:96px;top:780px}
+.t3 .tr{grid-template-columns:280px repeat(7,1fr)}
+.t3 .tr>span{padding:8px 14px;font-size:26px;text-align:center}
+.t3 .tr>span:first-child{text-align:left;font-size:24px}
+
+/* --- 4. 비교와 표: 통계 칸 둘(초록·분홍) + 마커 블록(분홍·주황 24px 그림자) / 표(머리 잉크, 열 = 분홍·초록·주황) + 인용 + 노랑 배지 --- */
+.cmp{left:96px;width:1000px;top:250px;display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.cc h3{margin:6px 0 6px;font-size:38px;line-height:1.1}
+.cc p{font-size:28px;line-height:1.45}
+.marker{left:1160px;right:120px;top:250px;background:var(--pink);border:var(--bd);box-shadow:24px 24px 0 var(--orange),24px 24px 0 4px var(--ink);padding:20px 26px;display:flex;flex-direction:column;gap:10px}
+.marker p{font-size:28px;line-height:1.4;font-weight:700}
+.t4{left:96px;width:1000px;top:570px}
+.t4 .tr{grid-template-columns:1.2fr 1fr 1fr 1fr}
+.qt{left:1160px;right:96px;top:610px;border:var(--bd);background:var(--cream2);padding:22px 26px;display:flex;flex-direction:column;gap:12px}
+.qt p{font-family:'Archivo Black',var(--kt),sans-serif;font-weight:var(--wt);font-size:38px;line-height:1.25}
+.slide>.badge.b4{left:1500px;top:560px}
+
+/* --- 5. 확인하기(초록 마무리 장): 쌓인 블록 퀴즈(크림 + 18px 잉크 그림자, 노랑 QUIZ 배지 -4°, 정답 = 분홍 도장 -6°) | 빈칸(4px 칸) + 낱말 블록 --- */
+.green-bg .kb{background:var(--cream);color:var(--ink)}
+.quiz{left:96px;width:960px;top:250px;bottom:140px;background:var(--cream);color:var(--ink);border:var(--bd);box-shadow:18px 18px 0 var(--ink);padding:40px 40px 30px;display:flex;flex-direction:column}
+.qb{position:absolute;right:30px;top:-30px;background:var(--yellow);border:var(--bd);padding:10px 22px;font:400 30px/1 'Archivo Black',sans-serif;transform:rotate(-4deg)}
+.q{font-size:50px;line-height:1.15}
+.opts{margin-top:24px;display:flex;flex-direction:column;gap:14px}
+.opt{display:flex;align-items:center;gap:20px;text-align:left;border:var(--bd);background:var(--cream);padding:10px 18px;font-size:34px;font-weight:700}
+.opt b{flex:none;width:52px;height:52px;display:grid;place-items:center;background:var(--ink);color:var(--cream);font:400 28px/1 'Archivo Black',sans-serif}
+.opt.right{background:var(--green);color:var(--cream)}
+.opt.right b{background:var(--cream);color:var(--ink)}
+.opt.wrong{background:var(--pink)}
+.opt:disabled:not(.right){opacity:.4}
+.fb{margin-top:18px;min-height:84px;font-size:30px;line-height:1.45;font-weight:500;padding-right:200px}
+.rt{align-self:flex-start;margin-top:auto}
+.stamp{position:absolute;right:-30px;bottom:-30px;width:220px;height:220px;background:var(--pink);border:4px solid var(--cream);outline:4px solid var(--ink);display:grid;place-items:center;transform:rotate(-6deg);visibility:hidden;pointer-events:none}
+.stamp>div{width:170px;height:170px;border:4px solid var(--cream);border-radius:50%;display:grid;place-items:center;align-content:center;color:var(--ink);text-align:center}
+.stamp b{font:400 64px/.9 'Archivo Black',sans-serif}
+.stamp span{font:700 26px/1.2 var(--kb)}
+.quiz.solved .stamp{visibility:visible}
+.blk{left:1120px;right:96px;top:250px;bottom:140px;display:flex;flex-direction:column;gap:18px}
+.bl{font-size:30px;line-height:1.55;font-weight:500}
+.blank{position:relative;min-width:180px;margin-right:10px;padding:2px 14px;border:var(--bd);background:var(--cream);color:var(--ink);font:400 28px/1.3 'Archivo Black',var(--kt),sans-serif;text-align:center}
+.blank span{visibility:hidden}
+.blank::after{content:'?';position:absolute;left:0;right:0}
+.blank.open{background:var(--yellow)}
+.blank.open span{visibility:visible}
+.blank.open::after{content:none}
+.wl{margin-top:auto}
+.words{display:flex;flex-wrap:wrap;gap:14px}
+.words span{border:var(--bd);padding:8px 18px;font:400 30px/1.2 'Archivo Black',var(--kt),sans-serif;color:var(--ink)}
+.words span.orange{color:var(--cream)}
+
+/* --- 내비: 오른쪽 아래 사각 화살표(하단줄 번호 오른쪽) --- */
+.dk-nav{inset:0;pointer-events:none}
+.dk-prev,.dk-next{position:absolute;bottom:26px;width:56px;height:56px;border:var(--bd);background:var(--cream);color:var(--ink);font:700 28px/1 var(--kb);pointer-events:auto}
+.dk-prev{right:130px}.dk-next{right:64px}
+.dk-prev:disabled,.dk-next:disabled{opacity:.25}
+/* --- 6. 디자인 안내: 4px 테두리 표 | 4px 테두리 칸 시연 3개 --- */
+.g6{left:96px;width:900px;top:290px}
+.r6{grid-template-columns:200px 1fr}
+.r6>span{font-size:25px;line-height:1.5;padding:16px 18px}
+.r6 .lb{font-size:28px;background:var(--yellow)}
+.r6:nth-child(2) .lb{background:var(--pink)}.r6:nth-child(3) .lb{background:var(--green);color:var(--cream)}.r6:nth-child(4) .lb{background:var(--orange);color:var(--cream)}
+.r6 b{font-weight:700}
+.sw6{display:flex;flex-wrap:wrap;gap:6px 20px}
+.sw6 i{display:inline-block;width:26px;height:26px;margin-right:8px;vertical-align:-6px;border:3px solid var(--ink)}
+.sl6{left:1060px;top:290px}
+.d6{left:1060px;right:96px;height:200px;border:var(--bd);background:var(--cream2);padding:16px 24px}
+.d6.a{top:340px}.d6.b{top:556px}.d6.c{top:772px;height:160px;padding-right:190px}
+.d6 .dh{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.d6 h3{font-size:34px}
+.d6 p{margin-top:4px;font-size:22px;line-height:1.4}
+.btn.sm{font-size:20px;padding:8px 16px;border-width:3px}
+.btn.sm[aria-pressed="true"]{background:var(--yellow)}
+.sw6d{position:relative;margin-top:10px;width:300px;height:70px;background:var(--pink);border:3px solid var(--ink)}
+.sw6d .tk{position:absolute;left:20px;right:80px;top:20px;height:30px;background:var(--cream);border:3px solid var(--ink)}
+.sw6d .lv{position:absolute;left:20px;top:6px;width:50px;height:58px;background:var(--green);border:3px solid var(--ink);transform:skewX(-12deg)}
+.sw6d.play .lv{left:150px}
+.sw6d span{position:absolute;right:10px;top:20px;font:500 22px 'JetBrains Mono',monospace}
+.sw6d .on,.sw6d.play span:not(.on){display:none}.sw6d.play .on{display:block}
+.shd6{margin-top:12px;height:80px;display:flex;align-items:center}
+.blk6{border:var(--bd);background:var(--pink);padding:12px 40px;font:400 30px 'Archivo Black',var(--kt),sans-serif;box-shadow:18px 18px 0 var(--ink)}
+.blk6.play{box-shadow:24px 24px 0 var(--orange),24px 24px 0 4px var(--ink)}
+.std6{position:absolute;right:40px;bottom:16px;width:130px;height:130px;pointer-events:none}
+.std6 .st6{right:0;bottom:0;width:130px;height:130px}
+.std6 .st6>div{width:96px;height:96px}
+.std6 .st6 b{font-size:36px}.std6 .st6 span{font-size:18px}
+.std6.play .st6{visibility:visible}
+
+</style>
+<style>html.in-frame .dk-nav, html.in-frame .dk-controls, html.in-frame .hint { display: none !important; }</style>
+</head>
+<body>
+<div class="deck-viewport">
+  <main class="deck-stage" id="deckStage">
+<section class="slide">
+  <div class="topbar"><span>초등 과학 · 6학년 2학기</span><span class="pill">1단원 · 3~4차시</span></div>
+  <span class="kb k1">학습 목표</span>
+  <h1 class="t1">하루 동안 <em class="gk">태양 고도</em>,<br><em class="gk">그림자 길이</em>, <em class="gk">기온</em>의 관계</h1>
+  <p class="unit">계절의 변화</p>
+  <p class="en">Sun, Shadow & Temperature</p>
+  <div class="poster"><div class="sw"><i class="track"></i><i class="lever"></i></div><span class="sw-lab">ON</span></div>
+  <div class="badge">6학년 과학</div>
+  <div class="circ"><i></i></div>
+  <div class="meta"><span>00초등학교 · 2026</span><span class="pg">01<i></i>06</span></div>
+</section>
+<section class="slide" data-steps="4">
+  <div class="topbar"><span>측정 준비</span><span class="pill">1단원 · 3~4차시</span></div>
+  <i class="dash"></i>
+  <h2 class="hd">태양 고도 측정기 만들기</h2>
+  <div class="fig"><svg class="gauge" viewBox="0 0 1000 660" role="img" aria-label="태양 고도 측정기: 태양 빛, 수수깡, 실, 태양 고도, 그림자 길이, 자, 각도기">
+  <line class="g-ground" x1="20" x2="980" y1="580" y2="580"/>
+  <rect class="g-board" x="80" y="540" width="860" height="40"/>
+  <g class="g-part" data-s="1"><rect class="g-ruler" x="110" y="524" width="800" height="16"/><line class="g-tick" x1="120" x2="120" y1="524" y2="536"/><line class="g-tick" x1="140" x2="140" y1="524" y2="530"/><line class="g-tick" x1="160" x2="160" y1="524" y2="530"/><line class="g-tick" x1="180" x2="180" y1="524" y2="530"/><line class="g-tick" x1="200" x2="200" y1="524" y2="530"/><line class="g-tick" x1="220" x2="220" y1="524" y2="536"/><line class="g-tick" x1="240" x2="240" y1="524" y2="530"/><line class="g-tick" x1="260" x2="260" y1="524" y2="530"/><line class="g-tick" x1="280" x2="280" y1="524" y2="530"/><line class="g-tick" x1="300" x2="300" y1="524" y2="530"/><line class="g-tick" x1="320" x2="320" y1="524" y2="536"/><line class="g-tick" x1="340" x2="340" y1="524" y2="530"/><line class="g-tick" x1="360" x2="360" y1="524" y2="530"/><line class="g-tick" x1="380" x2="380" y1="524" y2="530"/><line class="g-tick" x1="400" x2="400" y1="524" y2="530"/><line class="g-tick" x1="420" x2="420" y1="524" y2="536"/><line class="g-tick" x1="440" x2="440" y1="524" y2="530"/><line class="g-tick" x1="460" x2="460" y1="524" y2="530"/><line class="g-tick" x1="480" x2="480" y1="524" y2="530"/><line class="g-tick" x1="500" x2="500" y1="524" y2="530"/><line class="g-tick" x1="520" x2="520" y1="524" y2="536"/><line class="g-tick" x1="540" x2="540" y1="524" y2="530"/><line class="g-tick" x1="560" x2="560" y1="524" y2="530"/><line class="g-tick" x1="580" x2="580" y1="524" y2="530"/><line class="g-tick" x1="600" x2="600" y1="524" y2="530"/><line class="g-tick" x1="620" x2="620" y1="524" y2="536"/><line class="g-tick" x1="640" x2="640" y1="524" y2="530"/><line class="g-tick" x1="660" x2="660" y1="524" y2="530"/><line class="g-tick" x1="680" x2="680" y1="524" y2="530"/><line class="g-tick" x1="700" x2="700" y1="524" y2="530"/><line class="g-tick" x1="720" x2="720" y1="524" y2="536"/><line class="g-tick" x1="740" x2="740" y1="524" y2="530"/><line class="g-tick" x1="760" x2="760" y1="524" y2="530"/><line class="g-tick" x1="780" x2="780" y1="524" y2="530"/><line class="g-tick" x1="800" x2="800" y1="524" y2="530"/><line class="g-tick" x1="820" x2="820" y1="524" y2="536"/><line class="g-tick" x1="840" x2="840" y1="524" y2="530"/><line class="g-tick" x1="860" x2="860" y1="524" y2="530"/><line class="g-tick" x1="880" x2="880" y1="524" y2="530"/><line class="g-tick" x1="900" x2="900" y1="524" y2="530"/><text class="g-lb" x="922" y="516" text-anchor="start">자</text></g>
+  <g class="g-meas"><rect class="g-shadow" x="220" y="524" width="446" height="16"/>
+    <path class="g-dim" d="M220 600v24M666 600v24M220 612H666"/><text class="g-lb" x="443" y="652" text-anchor="middle">그림자 길이</text></g>
+  <g class="g-part" data-s="2"><rect class="g-stick" x="196" y="150" width="24" height="374"/><path class="g-mark" d="M220 504h20v20"/>
+    <path class="g-lead" d="M182 330H196"/><text class="g-lb" x="174" y="342" text-anchor="end">수수깡</text></g>
+  <g class="g-part" data-s="4"><path class="g-prot" d="M546 524A120 120 0 0 1 786 524Z"/><path class="g-prot2" d="M588 524A78 78 0 0 1 744 524"/><line class="g-tick" x1="570" y1="524" x2="546" y2="524"/><line class="g-tick" x1="561.6" y1="505.6" x2="547.8" y2="503.2"/><line class="g-tick" x1="566.4" y1="487.7" x2="553.2" y2="483"/><line class="g-tick" x1="582.9" y1="476" x2="562.1" y2="464"/><line class="g-tick" x1="584.8" y1="455.9" x2="574.1" y2="446.9"/><line class="g-tick" x1="597.9" y1="442.8" x2="588.9" y2="432.1"/><line class="g-tick" x1="618" y1="440.9" x2="606" y2="420.1"/><line class="g-tick" x1="629.7" y1="424.4" x2="625" y2="411.2"/><line class="g-tick" x1="647.6" y1="419.6" x2="645.2" y2="405.8"/><line class="g-tick" x1="666" y1="428" x2="666" y2="404"/><line class="g-tick" x1="684.4" y1="419.6" x2="686.8" y2="405.8"/><line class="g-tick" x1="702.3" y1="424.4" x2="707" y2="411.2"/><line class="g-tick" x1="714" y1="440.9" x2="726" y2="420.1"/><line class="g-tick" x1="734.1" y1="442.8" x2="743.1" y2="432.1"/><line class="g-tick" x1="747.2" y1="455.9" x2="757.9" y2="446.9"/><line class="g-tick" x1="749.1" y1="476" x2="769.9" y2="464"/><line class="g-tick" x1="765.6" y1="487.7" x2="778.8" y2="483"/><line class="g-tick" x1="770.4" y1="505.6" x2="784.2" y2="503.2"/><line class="g-tick" x1="762" y1="524" x2="786" y2="524"/><circle class="g-hole" cx="666" cy="524" r="5"/><text class="g-lb" x="800" y="456" text-anchor="start">각도기</text></g>
+  <g class="g-part" data-s="3"><line class="g-string" x1="220" y1="150" x2="666" y2="524"/><text class="g-lb" x="478" y="344" text-anchor="start">실</text></g>
+  <g class="g-meas"><path class="g-angle" d="M616 524A50 50 0 0 1 627.7 491.9"/><path class="g-lead" d="M542 498L615 506.9"/><text class="g-lb" x="536" y="508" text-anchor="end">태양 고도</text>
+    <line class="g-ray" x1="74.5" y1="27.9" x2="187.8" y2="123"/><polygon class="g-rayh" points="209.3,141 179.5,133 196.2,113"/><text class="g-lb" x="150" y="60" text-anchor="start">태양 빛</text></g>
+</svg></div>
+  <div class="note"><span class="kb">NOTE</span><p>막대기의 그림자와 실이 이루는 각 = 태양 고도</p></div>
+  <p class="def"><b>태양 고도</b> = 태양이 지표면과 이루는 각</p>
+  <div class="flow"><div class="card cream" data-s="1"><b class="num">01</b><div><h3>자 붙이기</h3><p>우드록 한쪽에 양면테이프로 자를 붙여요</p></div></div><i class="arw"></i><div class="card pink" data-s="2"><b class="num">02</b><div><h3>수수깡 꽂기</h3><p>수수깡을 10cm 정도 잘라 자의 '0' 위치에 수직으로 꽂아요</p></div></div><i class="arw"></i><div class="card yellow" data-s="3"><b class="num">03</b><div><h3>실 묶기</h3><p>수수깡 끝에 실을 묶어요</p></div></div><i class="arw"></i><div class="card green" data-s="4"><b class="num">04</b><div><h3>각도기 끼우기</h3><p>실의 다른 끝을 각도기 가운데 구멍에 끼워요</p></div></div></div>
+  <div class="btns"><button class="btn go" data-act="step">다음 단계 →</button><button class="btn" data-act="reset">처음부터</button></div>
+  <p class="cap" data-caps="[&quot;버튼을 눌러 순서대로 만들어 보세요&quot;,&quot;01 자 붙이기&quot;,&quot;02 수수깡 꽂기&quot;,&quot;03 실 묶기&quot;,&quot;04 각도기 끼우기&quot;]">버튼을 눌러 순서대로 만들어 보세요</p>
+  <div class="meta"><span>버튼 규칙 없음 → 4px 테두리 칸으로 표현</span><span class="pg">02<i></i>06</span></div>
+</section>
+<section class="slide">
+  <div class="topbar"><span>측정 결과</span><span class="pill">예시 값</span></div>
+  <h2 class="hd hd3">하루 동안 무엇이 어떻게 변할까요?</h2>
+  <div class="stats"><div class="stat green"><span class="mono">남중 시각</span><b class="sn">12:30</b><p>태양 고도가 가장 높아요 무렵 · 남중</p></div><div class="stat pink"><span class="mono">남중 방향</span><b class="sn">정남</b><p>남중할 때 태양의 위치 쪽</p></div><div class="stat cream"><span class="mono">최고 기온</span><b class="sn">14:30</b><p>기온이 가장 높아요 무렵</p></div><div class="stat orange"><span class="mono">가장 긴 그림자</span><b class="sn">9:30</b><p>그림자가 가장 길어요 · 15:30</p></div></div>
+  <div class="chart">
+    <span class="mono ct">측정 시각별 태양 고도, 그림자 길이, 기온</span>
+    <div class="bars"><span class="mono ax">태양 고도(°)</span><div class="col"><span class="mono bv">38°</span><i class="" style="height:120px"></i></div><div class="col"><span class="mono bv">48°</span><i class="" style="height:152px"></i></div><div class="col"><span class="mono bv">55°</span><i class="" style="height:174px"></i></div><div class="col"><span class="mono bv">57°</span><i class="mx" style="height:181px"></i></div><div class="col"><span class="mono bv">54°</span><i class="" style="height:171px"></i></div><div class="col"><span class="mono bv">47°</span><i class="" style="height:149px"></i></div><div class="col"><span class="mono bv">37°</span><i class="" style="height:117px"></i></div></div>
+  </div>
+  <div class="tbl t3"><div class="tr th"><span>시각</span><span>9:30</span><span>10:30</span><span>11:30</span><span>12:30</span><span>13:30</span><span>14:30</span><span>15:30</span></div>
+    <div class="tr"><span class="lb">그림자 길이(cm)</span><span>12.9</span><span>9.1</span><span>7</span><span>6.4</span><span>7.2</span><span>9.4</span><span>13.4</span></div>
+    <div class="tr"><span class="lb">기온(℃)</span><span>22</span><span>23.8</span><span>25.2</span><span>26.3</span><span>27</span><span>27.4</span><span>26.9</span></div>
+  </div>
+  <div class="meta"><span>예시 값 — 태양 고도·그림자(10cm 막대)는 9월 중순 북위 36° 기준 계산, 기온은 교과서 그래프 모양을 따른 값</span><span class="pg">03<i></i>06</span></div>
+</section>
+<section class="slide">
+  <div class="topbar"><span>관계 정리</span><span class="pill">남중</span></div>
+  <h2 class="hd hd3">태양 고도가 바뀌면 무엇이 달라질까요?</h2>
+  <div class="cmp"><div class="stat green cc"><span class="mono">HIGH</span><h3>태양 고도가 높을 때</h3><p>그림자 길이는 짧아져요</p><p>기온은 높아져요</p></div><div class="stat pink cc"><span class="mono">LOW</span><h3>태양 고도가 낮을 때</h3><p>그림자 길이는 길어져요</p><p>기온은 낮아져요</p></div></div>
+  <div class="marker"><span class="kb">남중</span><p>태양이 정남쪽에 있을 때 '남중했다'고 해요</p><p>이때의 태양 고도를 남중 고도라고 해요</p></div>
+  <div class="tbl t4"><div class="tr th"><span>시각</span><span>태양 고도</span><span>그림자 길이</span><span>기온</span></div><div class="tr"><span class="lb">오전 9:30</span><span class="pink">낮아요</span><span class="green">길어요</span><span class="orange">낮아요</span></div><div class="tr"><span class="lb">낮 12:30</span><span class="pink">가장 높아요</span><span class="green">가장 짧아요</span><span class="orange">높아지는 중</span></div><div class="tr"><span class="lb">오후 14:30</span><span class="pink">낮아지는 중</span><span class="green">길어지는 중</span><span class="orange">가장 높아요</span></div></div>
+  <div class="qt"><span class="kb">QUOTE</span><p>태양 고도가 가장 높은 시각과 기온이 가장 높은 시각에는 차이가 있어요.</p><span class="mono">— 오늘의 정리</span></div>
+  <div class="badge b4">관계 정리</div>
+  <div class="meta"><span>계절의 변화</span><span class="pg">04<i></i>06</span></div>
+</section>
+<section class="slide green-bg">
+  <div class="topbar"><span>확인하기</span><span class="pill">00초등학교</span></div>
+  <h2 class="hd hd3">배운 내용을 확인해 볼까요?</h2>
+  <div class="quiz" data-quiz data-answer="1" data-right="정답! 태양 고도가 가장 높을 때(남중) 그림자가 가장 짧아요" data-wrong="다시 생각해 볼까요? 태양 고도와 그림자 길이의 관계를 떠올려 보세요">
+    <span class="qb">QUIZ</span>
+    <h3 class="q">하루 중 그림자 길이가 가장 짧을 때는?</h3>
+    <div class="opts"><button class="opt" data-opt="0"><b>A</b><span>오전 9시 30분</span></button><button class="opt" data-opt="1"><b>B</b><span>낮 12시 30분 무렵</span></button><button class="opt" data-opt="2"><b>C</b><span>오후 3시 30분</span></button></div>
+    <p class="fb" data-fb></p>
+    <button class="btn rt" data-act="retry">다시 풀기 ↺</button>
+    <div class="stamp"><div><b>OK</b><span>참 잘했어요</span></div></div>
+  </div>
+  <div class="blk">
+    <span class="kb">빈칸을 눌러 확인해요</span>
+    <p class="bl"><button class="blank" data-blank aria-pressed="false"><span>태양 고도</span></button>는 점점 높아졌다가 다시 낮아진다</p><p class="bl"><button class="blank" data-blank aria-pressed="false"><span>그림자 길이</span></button>는 점점 짧아졌다가 다시 길어진다</p><p class="bl"><button class="blank" data-blank aria-pressed="false"><span>기온</span></button>은 점점 높아졌다가 다시 낮아진다</p>
+    <span class="kb wl">오늘의 낱말</span>
+    <div class="words"><span class="pink">태양 고도</span><span class="yellow">남중 고도</span><span class="orange">그림자 길이</span><span class="cream">기온</span></div>
+  </div>
+  <div class="meta"><span>빈칸 규칙 없음 → 4px 테두리 칸으로 표현</span><span class="pg">05<i></i>06</span></div>
+</section>
+<section class="slide">
+  <div class="topbar"><span>디자인 안내</span><span class="pill">GUIDE</span></div>
+  <i class="dash"></i>
+  <h2 class="hd">이 디자인 사용 설명서</h2>
+  <div class="tbl g6"><div class="tr r6"><span class="lb">한눈에</span><span>네오브루탈리즘 잡지 — <b>4px 잉크 테두리 + 흐림 없는 오프셋 그림자</b>, 크림 바탕에 초록·분홍·주황·노랑 평면을 장마다 2~3색만.</span></div><div class="tr r6"><span class="lb">색</span><span><span class="sw6"><span><i style="background:#EFE9D9"></i>크림</span><span><i style="background:#0F0F0F"></i>잉크</span><span><i style="background:#1F8A4C"></i>초록</span><span><i style="background:#F06CA8"></i>분홍</span><span><i style="background:#E85A1F"></i>주황</span><span><i style="background:#F5C518"></i>노랑</span></span></span></div><div class="tr r6"><span class="lb">글꼴</span><span>제목 Archivo Black → 프리텐다드 Pretendard-Black · 본문 Space Grotesk → Noto Sans KR Regular<br>라벨·상단줄·하단줄은 JetBrains Mono 24px</span></div><div class="tr r6"><span class="lb">이렇게 쓰면 좋아요</span><span>모둠 발표·캠페인 포스터 만들기처럼 힘 있는 수업. 24px 그림자는 장마다 주인공 하나에만.</span></div></div>
+  <span class="kb sl6">대표 장치 — 눌러 보세요</span>
+  <div class="d6 a"><div class="dh"><h3>토글 스위치 포스터</h3><button class="btn sm" data-demo="#cm-sw" data-mode="toggle" aria-pressed="false">켜기 / 끄기</button></div><p>분홍 판 위 크림 트랙과 초록 레버 — 표지의 상징이에요.</p><div class="sw6d" id="cm-sw"><i class="tk"></i><i class="lv"></i><span>OFF</span><span class="on">ON</span></div></div>
+  <div class="d6 b"><div class="dh"><h3>하드 오프셋 그림자</h3><button class="btn sm" data-demo="#cm-sh" data-mode="toggle" aria-pressed="false">켜기 / 끄기</button></div><p>쌓인 블록은 잉크 18px, 장의 주인공 하나는 주황 24px.</p><div class="shd6"><div class="blk6" id="cm-sh">주인공</div></div></div>
+  <div class="d6 c"><div class="dh"><h3>분홍 도장</h3><button class="btn sm" data-demo="#cm-st" data-mode="toggle" aria-pressed="false">켜기 / 끄기</button></div><p>-6° 기울어진 분홍 도장 안에 크림 원 — 정답을 맞히면 찍혀요.</p><div class="std6" id="cm-st"><div class="stamp st6"><div><b>OK</b><span>정답</span></div></div></div></div>
+  <div class="meta"><span>00초등학교 · 2026</span><span class="pg">06<i></i>06</span></div>
+</section>
+<nav class="dk-nav"><button class="dk-prev" aria-label="이전">←</button><button class="dk-next" aria-label="다음">→</button></nav>
+  </main>
+</div>
+
+<script>
+window.DECK_CFG = {"type":"fade","dur":1,"ease":"linear"};
+
+/* === DECK ENGINE (slide-refs 공용, 덱 HTML에 그대로 인라인됨) ===
+   window.DECK_CFG = { type: 'x' | 'y' | 'fade' | 'shift' | 'rise', dur: ms, ease: css, dist: px, wheel: bool }
+   window.DECK_FX  = { enter(slide, i), step(slide, k), answer(quiz, ok, btn) }  // 템플릿별 효과 훅(선택)
+   - 넘김: → ↓ Space PageDown Enter = 다음(단계가 남았으면 단계 먼저), ← ↑ PageUp = 이전, Home/End
+   - 내비: .dk-dot(점) .dk-count(번호, data-pad면 01 형식) .dk-prev .dk-next
+   - 단계: <section data-steps="4"> 안의 [data-s="k"] 요소가 k단계부터 .on, 현재 단계는 .now
+           [data-caps='["...",...]'] 요소의 글이 단계마다 바뀜, 버튼 [data-act="step"] [data-act="reset"]
+   - 퀴즈: [data-quiz data-answer data-right data-wrong] 안의 버튼 [data-opt="i"], 결과 글 [data-fb], 다시 풀기 [data-act="retry"]
+   - 빈칸: [data-blank] 를 누르면 .open (답 보이기/숨기기)
+   - 시연(6장 디자인 안내): 버튼 [data-demo="선택자"] 를 누르면 같은 장 안의 그 요소에 .play
+       data-mode="toggle" 이면 .play 켜기/끄기(aria-pressed), 아니면 .play를 뺐다 다시 붙여 애니메이션을 처음부터 다시 재생 */
+/* 소개 발표(intro/talk.html)에 넣을 때: 주소에 ?talk=1&name=<디자인 이름>
+   - 넘김 키는 부모 창으로 보내고(postMessage) 이 덱은 넘기지 않음, 휠·터치 넘김 끔
+   - 현재 장의 '디자인 안내' 글을 디자인 이름으로 바꿈
+   부모 창(talk-engine.js로 쓰는 같은 파일)은 {deckKey}를 받으면 그 키를 누른 것처럼 처리 */
+(function () {
+  var cfg = window.DECK_CFG || { type: 'fade', dur: 400, ease: 'ease' };
+  var fx = window.DECK_FX || {};
+  var stage = document.getElementById('deckStage');
+  var slides = [].slice.call(stage.querySelectorAll('.slide'));
+  var cur = 0, busy = false;
+  var embed = /[?&]talk=1/.test(location.search), embedName = decodeURIComponent((location.search.match(/[?&]name=([^&]*)/) || [, ''])[1]);
+  function each(root, sel, fn) { [].forEach.call(root.querySelectorAll(sel), fn); }
+  if (window.top !== window) document.documentElement.classList.add('in-frame');
+
+  /* --- 무대 맞춤: 1920×1080을 통째로 축소/확대 --- */
+  function fit() {
+    var f = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = 'translate(' + (innerWidth - 1920 * f) / 2 + 'px,' + (innerHeight - 1080 * f) / 2 + 'px) scale(' + f + ')';
+  }
+  fit(); addEventListener('resize', fit);
+
+  /* --- 내비 표시 --- */
+  var dots = [].slice.call(document.querySelectorAll('.dk-dot'));
+  var count = document.querySelector('.dk-count');
+  var prev = document.querySelector('.dk-prev'), next = document.querySelector('.dk-next');
+  function pad(n) { return count && count.hasAttribute('data-pad') && n < 10 ? '0' + n : '' + n; }
+  function ui() {
+    dots.forEach(function (d, i) { d.classList.toggle('on', i === cur); d.setAttribute('aria-current', i === cur ? 'true' : 'false'); });
+    if (count) count.textContent = pad(cur + 1) + ' / ' + pad(slides.length);
+    if (prev) prev.disabled = cur === 0;
+    if (next) next.disabled = cur === slides.length - 1;
+    document.documentElement.setAttribute('data-slide', cur + 1);
+  }
+
+  /* --- 슬라이드 등장(요소 애니메이션 다시 재생) --- */
+  function enter(s) {
+    s.classList.remove('visible'); void s.offsetWidth; s.classList.add('visible');
+    if (fx.enter) fx.enter(s, slides.indexOf(s));
+  }
+
+  /* --- 넘김: 템플릿 명세의 방식(x 가로 밀기 / y 세로 밀기 / fade 교차 페이드) --- */
+  function go(n) {
+    if (busy || n === cur || n < 0 || n >= slides.length) return;
+    var a = slides[cur], b = slides[n], dir = n > cur ? 1 : -1;
+    // shift: 투명도 + 짧은 가로 이동(cfg.dist px) — 예: blue-professional 40px
+    var tf = cfg.type === 'x' ? function (v) { return 'translateX(' + v * 100 + '%)'; }
+      : cfg.type === 'y' ? function (v) { return 'translateY(' + v * 100 + '%)'; }
+      : cfg.type === 'shift' ? function (v) { return 'translateX(' + v * (cfg.dist || 40) + 'px)'; } : null;
+    var fade = !tf || cfg.type === 'shift' || cfg.type === 'rise';
+    busy = true;
+    b.style.transition = 'none';
+    b.style.transform = tf ? tf(dir) : '';
+    b.style.opacity = fade ? '0' : '1';
+    b.classList.remove('visible'); b.classList.add('active');
+    void b.offsetWidth;
+    var tr = 'transform ' + cfg.dur + 'ms ' + cfg.ease + ', opacity ' + cfg.dur + 'ms ' + cfg.ease;
+    a.style.transition = tr; b.style.transition = tr;
+    // rise: 새 장이 아래(cfg.dist px)에서 0.98배로 떠오르며 나타나고, 이전 장은 그냥 사라짐 — 예: bold-poster
+    if (cfg.type === 'rise') { b.style.transition = 'none'; b.style.transform = 'translateY(' + (cfg.dist || 30) + 'px) scale(.98)'; void b.offsetWidth; b.style.transition = tr; b.style.transform = 'none'; }
+    if (tf) { a.style.transform = tf(-dir); b.style.transform = 'translate(0,0)'; }
+    if (fade) { a.style.opacity = '0'; b.style.opacity = '1'; }
+    cur = n; ui();
+    setTimeout(function () { enter(b); }, tf ? cfg.dur * 0.35 : cfg.dur * 0.5);
+    setTimeout(function () {
+      a.classList.remove('active', 'visible');
+      [a, b].forEach(function (s) { s.style.transition = ''; s.style.transform = ''; s.style.opacity = ''; });
+      busy = false;
+    }, cfg.dur + 40);
+  }
+
+  /* --- 단계 버튼 --- */
+  function maxStep(s) { return +(s.getAttribute('data-steps') || 0); }
+  function setStep(s, k) {
+    var max = maxStep(s); k = Math.max(0, Math.min(max, k));
+    s.setAttribute('data-step', k);
+    each(s, '[data-s]', function (e) { var v = +e.getAttribute('data-s'); e.classList.toggle('on', k > 0 && v <= k); e.classList.toggle('now', v === k); });
+    var cap = s.querySelector('[data-caps]');
+    if (cap) { cap.textContent = JSON.parse(cap.getAttribute('data-caps'))[k]; cap.classList.remove('flash'); void cap.offsetWidth; cap.classList.add('flash'); }
+    each(s, '[data-act="step"]', function (b) { b.disabled = k >= max; });
+    each(s, '[data-act="reset"]', function (b) { b.disabled = k === 0; });
+    if (fx.step) fx.step(s, k);
+  }
+  slides.forEach(function (s) { if (maxStep(s)) setStep(s, 0); });
+
+  /* --- 퀴즈 --- */
+  each(stage, '[data-quiz]', function (q) {
+    var ans = +q.getAttribute('data-answer'), fb = q.querySelector('[data-fb]');
+    each(q, '[data-opt]', function (b) {
+      b.addEventListener('click', function () {
+        var ok = +b.getAttribute('data-opt') === ans;
+        b.classList.remove('right', 'wrong'); void b.offsetWidth; b.classList.add(ok ? 'right' : 'wrong');
+        q.classList.remove('solved', 'tried'); void q.offsetWidth; q.classList.add(ok ? 'solved' : 'tried');
+        if (fb) fb.textContent = q.getAttribute(ok ? 'data-right' : 'data-wrong');
+        if (ok) each(q, '[data-opt]', function (x) { x.disabled = true; });
+        if (fx.answer) fx.answer(q, ok, b);
+      });
+    });
+  });
+
+  /* --- 클릭·키보드·휠·터치 --- */
+  stage.addEventListener('click', function (e) {
+    var bl = e.target.closest ? e.target.closest('[data-blank]') : null;
+    if (bl) { bl.classList.toggle('open'); bl.setAttribute('aria-pressed', bl.classList.contains('open')); return; }
+    var dm = e.target.closest ? e.target.closest('[data-demo]') : null;
+    if (dm) {
+      var tg = dm.closest('.slide').querySelector(dm.getAttribute('data-demo'));
+      if (tg && dm.getAttribute('data-mode') === 'toggle') dm.setAttribute('aria-pressed', tg.classList.toggle('play'));
+      else if (tg) { tg.classList.remove('play'); void tg.offsetWidth; tg.classList.add('play'); }
+      return;
+    }
+    var b = e.target.closest ? e.target.closest('[data-act]') : null; if (!b) return;
+    var s = b.closest('.slide'), k = +(s.getAttribute('data-step') || 0);
+    if (b.getAttribute('data-act') === 'step') setStep(s, k + 1);
+    if (b.getAttribute('data-act') === 'reset') setStep(s, 0);
+    if (b.getAttribute('data-act') === 'retry') each(s, '[data-quiz]', function (q) {
+      q.classList.remove('solved', 'tried');
+      each(q, '[data-opt]', function (x) { x.disabled = false; x.classList.remove('right', 'wrong'); });
+      var fb = q.querySelector('[data-fb]'); if (fb) fb.textContent = '';
+    });
+  });
+  dots.forEach(function (d, i) { d.addEventListener('click', function () { go(i); }); });
+  if (prev) prev.addEventListener('click', function () { go(cur - 1); });
+  if (next) next.addEventListener('click', function () { go(cur + 1); });
+  addEventListener('keydown', function (e) {
+    var t = e.target; if (t && t.closest && t.closest('button,a') && (e.key === ' ' || e.key === 'Enter')) return;
+    if (embed) {
+      if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter', 'ArrowLeft', 'ArrowUp', 'PageUp', 'Home', 'End'].indexOf(e.key) >= 0) { e.preventDefault(); parent.postMessage({ deckKey: e.key }, '*'); }
+      return;
+    }
+    var s = slides[cur], k = +(s.getAttribute('data-step') || 0), max = maxStep(s);
+    if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter'].indexOf(e.key) >= 0) { e.preventDefault(); if (max && k < max) setStep(s, k + 1); else go(cur + 1); }
+    else if (['ArrowLeft', 'ArrowUp', 'PageUp'].indexOf(e.key) >= 0) { e.preventDefault(); go(cur - 1); }
+    else if (e.key === 'Home') go(0);
+    else if (e.key === 'End') go(slides.length - 1);
+  });
+  if (cfg.wheel && !embed) {
+    var lock = 0;
+    addEventListener('wheel', function (e) {
+      if (Date.now() < lock || Math.abs(e.deltaY) < 30) return;
+      lock = Date.now() + cfg.dur + 200; go(cur + (e.deltaY > 0 ? 1 : -1));
+    }, { passive: true });
+  }
+  var tx = null, ty = null;
+  addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+  addEventListener('touchend', function (e) {
+    if (tx === null || embed) return;
+    var dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty, v = cfg.type === 'y' ? dy : dx;
+    if (Math.abs(v) > 50) go(cur + (v < 0 ? 1 : -1)); tx = ty = null;
+  }, { passive: true });
+
+  /* --- 시작: 주소 끝 #2 처럼 장 지정 가능 --- */
+  var h = parseInt((location.hash || '').slice(1), 10);
+  if (h >= 1 && h <= slides.length) cur = h - 1;
+  addEventListener('hashchange', function () { var n = parseInt(location.hash.slice(1), 10); if (n >= 1) go(n - 1); });
+  slides.forEach(function (s, i) { s.classList.toggle('active', i === cur); });
+  ui();
+  if (embed && embedName) {
+    var tw = document.createTreeWalker(slides[cur], NodeFilter.SHOW_TEXT), nd;
+    while ((nd = tw.nextNode())) if (nd.nodeValue.indexOf('디자인 안내') >= 0) nd.nodeValue = nd.nodeValue.replace('디자인 안내', embedName);
+  }
+  // 부모(발표)가 보낸 키 처리
+  addEventListener('message', function (e) { if (e.data && e.data.deckKey) dispatchEvent(new KeyboardEvent('keydown', { key: e.data.deckKey })); });
+  // 첫 장 등장: 화면이 그려진 뒤 시작(창이 가려져 rAF가 멈춰도 타이머로 시작)
+  var started = false;
+  function start() { if (!started) { started = true; enter(slides[cur]); } }
+  requestAnimationFrame(function () { requestAnimationFrame(start); });
+  setTimeout(start, 120);
+})();
+
+</script>
+</body>
+</html>

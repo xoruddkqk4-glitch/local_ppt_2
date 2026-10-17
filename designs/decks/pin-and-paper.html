@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ko" data-template="pin-and-paper">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>계절의 변화</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Caveat:wght@600;700&family=DM+Mono:wght@500&display=swap">
+<style>
+/* === KOREAN FONTS === */
+@font-face{font-family:'kp-33';font-display:swap;src:url("fonts/HakgyoansimUndongjangL.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/hakgyoansim-undongjang/HakgyoansimUndongjangL.woff2") format("woff2");font-weight:300}
+@font-face{font-family:'kp-5';font-display:swap;src:url("fonts/Pretendard-Regular.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/pretendard/Pretendard-Regular.woff2") format("woff2");font-weight:400}
+@font-face{font-family:'kp-34';font-display:swap;src:url("fonts/Hakgyoansim Badasseugi TTF L.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/hakgyoansim-badasseugi/Hakgyoansim-Badasseugi-TTF-L.woff2") format("woff2");font-weight:300}
+/* === THEME === */
+:root{--stage-bg:#EFE56A;--slide-bg:#EFE56A;
+  --kt:'kp-33';--kb:'kp-5';--ka:'kp-34';
+  --wt:300;--wb:400}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-synthesis:none;word-break:keep-all;letter-spacing:0}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:disabled{cursor:default}
+/* === VIEWPORT BASE (frontend-slides, mandatory) === */
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES
+   Include this ENTIRE file in every presentation.
+   Slides are authored at 1920×1080 and scaled as a whole.
+   =========================================== */
+
+/* 1. Lock the browser viewport */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 2. Full-window deck viewport */
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 3. Fixed 16:9 design canvas.
+   JavaScript sets transform: translate(...) scale(...). */
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+
+/* 4. Slides stack inside the fixed stage.
+   Content must be laid out at 1920×1080, not reflowed per device. */
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+/* 5. Keep media inside authored slide bounds */
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* 6. Presentation chrome stays outside the slide design system */
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+/* 7. Print one fixed-size slide per page */
+@media print {
+    html,
+    body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+    }
+
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .deck-controls {
+        display: none !important;
+    }
+}
+
+/* 8. Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+/* 동작 줄이기(Windows '애니메이션 효과' 끔 등): 위 규칙이 길이를 0.01ms로 줄이면 반복 애니메이션이 깜빡이듯 빨라짐 → 반복은 한 번만 */
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-iteration-count:1 !important}}
+.dk-nav{position:absolute;z-index:50}
+
+
+/* === 측정기 그림(figure-gauge.js) 기본 === */
+.gauge{display:block;width:100%;height:auto;overflow:visible;--g-sw:2.5}
+.gauge .g-lb{font-family:var(--g-font,var(--kb));font-size:40px;font-weight:700;fill:var(--g-ink,currentColor)}
+.gauge .g-ground{stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw);opacity:.35}
+.gauge .g-board{fill:var(--g-board,none);stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw)}
+.gauge .g-ruler{fill:var(--g-ruler,none);stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw)}
+.gauge .g-tick{stroke:var(--g-ink,currentColor);stroke-width:1.5}
+.gauge .g-stick{fill:var(--g-stick,var(--g-ink,currentColor));stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw)}
+.gauge .g-mark,.gauge .g-lead,.gauge .g-dim,.gauge .g-angle{fill:none;stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw)}
+.gauge .g-angle{stroke-width:4}
+.gauge .g-shadow{fill:var(--g-shadow,var(--g-ink,currentColor));opacity:.6}
+.gauge .g-string{stroke:var(--g-acc,var(--g-ink,currentColor));stroke-width:4}
+.gauge .g-prot{fill:var(--g-prot,none);stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw)}
+.gauge .g-prot2{fill:none;stroke:var(--g-ink,currentColor);stroke-width:1.5}
+.gauge .g-hole{fill:var(--g-ink,currentColor)}
+.gauge .g-ray{stroke:var(--g-acc,var(--g-ink,currentColor));stroke-width:7}
+.gauge .g-rayh{fill:var(--g-acc,var(--g-ink,currentColor))}
+/* 만드는 중(1~3단계): 아직 안 만든 부품과 측정 표시는 흐리게 / 0·4단계는 모두 또렷 */
+.slide[data-step="1"] .gauge .g-part:not(.on),.slide[data-step="2"] .gauge .g-part:not(.on),.slide[data-step="3"] .gauge .g-part:not(.on),
+.slide[data-step="1"] .gauge .g-meas,.slide[data-step="2"] .gauge .g-meas,.slide[data-step="3"] .gauge .g-meas{opacity:var(--g-dim,.2)}
+
+/* === TEMPLATE STYLES === */
+
+/* --- 종이 · 잉크 --- */
+:root{--paper:#EFE56A;--p2:#F5ECA0;--px:#FBE6A4;--cream:#F8F1D6;--ink:#1F3A8A;--ink2:#2D4FB8;--red:#C2342B;--olive:#6B7A2E;--orange:#D8702A;--dash:1.5px dashed rgba(31,58,138,.45)}
+.slide{color:var(--ink);font-family:'Space Grotesk',var(--kb),sans-serif;background:radial-gradient(120% 90% at 20% 10%,rgba(255,255,255,.18),transparent 60%),radial-gradient(140% 100% at 80% 95%,rgba(0,0,0,.05),transparent 55%),var(--paper)}
+.slide::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:30;opacity:.35;mix-blend-mode:multiply;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.3  0 0 0 0 0.28  0 0 0 0 0.1  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+.slide>*{position:absolute}
+.scrib,.num,.pill.yes,.pill.part,.big small,.qm{font-family:'Caveat',var(--ka),cursive}
+.chrome,.lbl,.stamp,.pill.no{font-family:'DM Mono',var(--kb),monospace;font-weight:500;text-transform:uppercase}
+.hd,h3,.t1,.big,.q,.qt p{font-family:'Space Grotesk',var(--kt),sans-serif;font-weight:var(--wt);letter-spacing:0}
+.ul{border-bottom:2px solid var(--ink);padding-bottom:2px}
+
+/* --- 크롬 --- */
+.chrome{left:64px;right:64px;display:flex;justify-content:space-between;align-items:center;letter-spacing:.12em}
+.chrome.top{top:44px;font-size:22px}
+.chrome.bot{bottom:36px;font-size:19px;letter-spacing:.14em;opacity:.65}
+.chrome.bot span:first-child{max-width:1100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nr{text-transform:none;letter-spacing:.02em;font-size:18px}
+.mk{width:38px;height:19px;vertical-align:-3px;margin-right:12px}
+
+/* --- 꽂힌 카드 · 옷핀 · 도장 · 알약 --- */
+.card{background:var(--cream);border:1.5px solid var(--ink);border-radius:4px;box-shadow:5px 6px 0 0 var(--ink);padding:28px 28px 24px}
+.card.p2{background:var(--p2)}.card.px{background:var(--px)}
+.tilt{transform:rotate(1deg)}
+.pin{display:block;width:100%;height:auto;color:var(--ink)}
+.cpin{position:absolute;width:170px;top:-28px;left:40px;transform:rotate(-9deg)}
+.stamp{display:inline-block;border:3px solid var(--red);color:var(--red);padding:6px 16px;font-size:22px;letter-spacing:.18em;transform:rotate(-4deg)}
+.pill{display:inline-block;border-radius:999px;padding:4px 16px;white-space:nowrap}
+.pill.yes{background:var(--ink);color:var(--paper);border:1.5px solid var(--ink);font-size:34px;font-weight:600}
+.pill.no{border:1.5px solid var(--red);color:var(--red);font-size:20px;letter-spacing:.14em;padding:8px 16px}
+.pill.part{background:var(--p2);color:var(--ink);border:1.5px solid var(--ink);font-size:32px;font-weight:600}
+.num{font-size:70px;font-weight:700;line-height:.9}
+.num.sm{font-size:52px}
+.lbl{font-size:20px;letter-spacing:.18em;opacity:.75}
+
+/* --- 1. 표지: 단원 제목(인쇄) + 영문 + 기록 라벨 '학습 목표' + 학습 목표(가장 큰 인쇄 글자 덩어리) + PART 알약 + 기울어진 카드(도장) + 큰 옷핀 --- */
+.t1{left:60px;top:128px;font-size:80px;line-height:1.08;white-space:nowrap}
+.en{left:64px;top:232px;width:1050px;font:700 46px/1.05 'Space Grotesk',sans-serif;letter-spacing:-.02em}
+.gl{left:66px;top:350px;font-size:24px;opacity:.85}
+.goal{left:58px;top:388px;width:1180px;font-size:108px;line-height:1.16;white-space:nowrap}
+.goal .gk{font-style:normal}
+.pills{left:64px;top:700px;display:flex;gap:16px}
+.cover-card{left:1260px;top:250px;width:560px;height:520px;display:flex;flex-direction:column;transform:rotate(1.4deg)}
+.cover-card .num{margin-top:14px;font-size:200px;line-height:.8}
+.cover-card h3{margin-top:18px;font-size:44px;line-height:1.15}
+.cover-card .dash{margin-top:auto;border-top:var(--dash);padding-top:16px;font-size:28px}
+.cover-card .stamp{position:absolute;right:24px;top:110px}
+.bigpin{left:1150px;top:170px;width:380px;transform:rotate(-14deg)}
+
+/* --- 2. 만드는 순서: 84px 제목 + 밑줄 손글씨 정의 / 옷핀 꽂은 그림 카드(잉크 선 그림 + 손글씨 이름표, 아직 안 만든 부품은 흐림) | 꽂힌 카드 4장(손글씨 숫자 · 여백 메모, 단계마다 켜짐) + 카드 단추 --- */
+.hd{left:64px;right:64px;top:110px;font-size:96px;line-height:1.1}
+.hd.md{font-size:84px}
+.def{left:70px;top:222px;font-size:44px;font-weight:700;transform:rotate(-1.5deg);transform-origin:left}
+.figc{left:64px;width:880px;top:300px;padding:30px 30px 18px;display:flex;flex-direction:column;
+  --g-ink:var(--ink);--g-acc:var(--orange);--g-stick:var(--px);--g-board:var(--p2);--g-ruler:var(--cream);--g-prot:rgba(255,255,255,.45);--g-shadow:var(--ink);--g-font:'Caveat',var(--ka),cursive;--g-dim:.22}
+.figc .gauge{margin-top:4px}
+.figc .g-lb{font-size:46px}
+.pfg{left:auto;right:60px;top:-30px;transform:rotate(12deg)}
+.s2n{position:static;margin-top:16px;font-size:38px;font-weight:700;transform:rotate(-1.5deg);transform-origin:left}
+.cards{left:990px;right:72px;top:300px;display:flex;flex-direction:column;gap:16px}
+.cards .card{position:relative;display:grid;grid-template-columns:76px 1fr;align-items:start;padding:14px 22px 16px;opacity:.38}
+.cards .card.on{opacity:1}
+.cards .num{font-size:62px;line-height:.9}
+.cards h3{font-size:38px;line-height:1.15;display:flex;align-items:baseline;gap:18px}
+.cards .note{font-size:32px;font-weight:600;line-height:1;transform:rotate(-1.5deg)}
+.cards p{margin-top:4px;font-size:28px;line-height:1.4}
+.btns{left:990px;right:200px;top:872px;display:flex;gap:20px;align-items:center}
+.bt{flex:none;padding:14px 26px;font:700 30px/1 var(--kb);color:var(--ink)}
+.bt:disabled{opacity:.4}
+.cap{font-size:34px;font-weight:600;line-height:1.05;margin-left:4px}
+
+/* --- 3. 숫자와 그래프: 큰 숫자 카드 4장(손글씨 단위) | 그래프 카드(옷핀 · 도장 '예시 값') + 손글씨 메모 --- */
+.stats{left:64px;width:700px;top:250px;bottom:110px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:1fr 1fr;gap:28px}
+.stat{display:flex;flex-direction:column}
+.big{margin-top:10px;font-size:96px;line-height:.95;letter-spacing:-.02em;white-space:nowrap}
+.big small{display:block;margin-top:4px;font-size:36px;font-weight:600;letter-spacing:0}
+.stat p{margin-top:auto;font-size:26px;line-height:1.35}
+.chartc{left:810px;right:72px;top:250px;height:600px;display:flex;flex-direction:column;gap:8px;padding-top:40px}
+.pc{left:auto;right:70px;top:-30px;transform:rotate(10deg)}
+.lg{display:flex;gap:24px;align-items:center;flex-wrap:wrap;font-size:24px}
+.lg .lbl{width:100%}
+.k{display:inline-block;width:22px;height:14px;margin-right:8px;vertical-align:middle;border-radius:2px}
+.k.bn{background:var(--ink)}.k.ls{background:var(--olive)}.k.lt{background:var(--orange)}
+.cv{flex:1;width:100%;min-height:0}
+.cv .gl{stroke:rgba(31,58,138,.45);stroke-width:1.5;stroke-dasharray:6 6}
+.cv .base{stroke:var(--ink);stroke-width:1.5}
+.cv .ax{font:500 18px 'DM Mono',monospace;fill:var(--ink)}
+.cv .bn{fill:var(--ink)}
+.cv .bvl{font:700 26px 'Caveat',cursive;fill:var(--cream)}
+.cv .ls{fill:none;stroke:var(--olive);stroke-width:3}.cv .lsp,.cv .lst{fill:var(--olive)}
+.cv .lt{fill:none;stroke:var(--orange);stroke-width:3}.cv .ltp,.cv .ltt{fill:var(--orange)}
+.cv .pv{font:700 26px 'Caveat',cursive;paint-order:stroke;stroke:var(--cream);stroke-width:6px}
+.cs{position:absolute;right:28px;bottom:24px}
+.s3n{left:830px;top:880px;font-size:42px;font-weight:700;transform:rotate(-2deg)}
+
+/* --- 4. 비교와 표: 비교 카드 두 장 + 남중 메모 카드(손글씨 숫자) / 비교 표(점선 ink 칸) + 기울어진 인용 카드(큰 손글씨 따옴표, 8px 9px 그림자) --- */
+.cmp{left:64px;width:1080px;top:240px;height:260px;display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.cmp h3{margin:8px 0 10px;font-size:40px;line-height:1.1}
+.it{font-size:28px;line-height:1.5;border-top:var(--dash);padding-top:6px}
+.lst{left:1190px;right:72px;top:240px;height:260px;padding-top:36px}
+.pl2{left:auto;right:40px;top:-34px;width:160px;transform:rotate(16deg)}
+.li{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:baseline;margin-top:10px}
+.li p{font-size:26px;line-height:1.4}
+.tbl{left:64px;width:1080px;top:540px;padding:20px 24px 16px}
+.tbl table{width:100%;border-collapse:collapse;margin-top:10px}
+.tbl th,.tbl td{padding:14px 18px;border-bottom:1.5px solid rgba(31,58,138,.5);border-right:1.5px solid rgba(31,58,138,.5);font-size:26px;line-height:1.35;text-align:left}
+.tbl th{font:500 19px 'DM Mono',var(--kb),monospace;letter-spacing:.14em}
+.tbl tr>*:last-child{border-right:0}
+.tbl tr:last-child td{border-bottom:0}
+.qt{left:1190px;right:72px;top:560px;height:340px;padding:40px 40px 30px;box-shadow:8px 9px 0 0 var(--ink);display:flex;flex-direction:column}
+.qm{position:absolute;left:24px;top:-60px;font-size:200px;line-height:1;font-weight:700}
+.qt p{margin-top:30px;font-size:40px;line-height:1.3;font-weight:500}
+.qt .lbl{margin-top:auto}
+
+/* --- 5. 확인하기: 퀴즈 카드(손글씨 a b c · YES/NO 알약 · 정답 시 도장) | 기울어진 빈칸 카드(PART 알약 → YES 알약) + 오늘의 낱말 --- */
+.quiz{left:64px;width:1000px;top:262px;bottom:110px;display:flex;flex-direction:column;padding:42px 36px 26px}
+.pq{width:180px;left:auto;right:40px;top:-40px;transform:rotate(16deg)}
+.q{margin-top:10px;font-size:48px;line-height:1.15}
+.opts{margin-top:14px}
+.opt{width:100%;display:grid;grid-template-columns:56px 1fr auto;align-items:center;gap:10px;text-align:left;padding:10px 0;border-bottom:var(--dash);font-size:34px;color:var(--ink)}
+.opt .pill{display:none}
+.opt.right .pill.yes,.opt.wrong .pill.no{display:inline-block}
+.opt:disabled:not(.right){opacity:.5}
+.fb{margin-top:14px;min-height:76px;font-size:28px;line-height:1.4}
+.rt{align-self:flex-start;margin-top:auto}
+.qs{position:absolute;right:250px;top:34px;font-size:28px;padding:8px 20px;visibility:hidden}
+.quiz.solved .qs{visibility:visible}
+.blk{left:1110px;right:72px;top:262px;bottom:165px;display:flex;flex-direction:column;gap:18px;padding-top:44px}
+.pb{left:60px;top:-30px;transform:rotate(-8deg)}
+.bl{font-size:30px;line-height:1.5}
+.blank{margin-right:8px;min-width:160px;text-align:center;position:relative;vertical-align:middle}
+.blank span{visibility:hidden}
+.blank::after{content:'?';position:absolute;left:0;right:0}
+.blank.open{background:var(--ink);color:var(--paper)}
+.blank.open span{visibility:visible}
+.blank.open::after{content:none}
+.words{margin-top:auto;border-top:var(--dash);padding-top:12px}
+.words .scrib{font-size:38px;font-weight:700;line-height:1.1;margin-top:6px}
+
+/* --- 내비: 오른쪽 아래 작은 꽂힌 카드 화살표 --- */
+.dk-nav{position:absolute;right:64px;bottom:80px;display:flex;gap:14px;z-index:40}
+.dk-prev,.dk-next{width:54px;height:50px;background:var(--cream);border:1.5px solid var(--ink);border-radius:4px;box-shadow:3px 4px 0 0 var(--ink);font:700 24px/1 'DM Mono',monospace;color:var(--ink)}
+.dk-prev:disabled,.dk-next:disabled{opacity:.35}
+/* --- 6. 디자인 안내: 큰 꽂힌 카드(설명) | 대표 장치 카드 3장(눌러 보기) --- */
+.h6{font-size:84px}
+.g6{left:64px;width:960px;top:236px;bottom:96px;display:flex;flex-direction:column;gap:8px;padding:34px 36px 22px}
+.pg6{left:auto;right:60px}
+.g6 .lbl{margin-top:8px}
+.ab6{font-size:27px;line-height:1.5}
+.sw6{display:flex;flex-wrap:wrap;gap:8px 24px;font-size:23px}
+.sw6 i{display:inline-block;width:28px;height:28px;margin-right:8px;vertical-align:-7px;border:1.5px solid var(--ink);border-radius:4px}
+.ft6 p,.tip6 p{font-size:23px;line-height:1.45}
+.ft6 b{font-weight:700}
+.pl6{display:flex;align-items:center;gap:14px}
+.pl6 .pill.yes,.pl6 .pill.part{font-size:28px}
+.pl6 .scrib{font-size:30px}
+.m6{position:absolute;right:30px;bottom:24px;font-size:38px;transform:rotate(-3deg);border-bottom:2px solid var(--ink)}
+.sl6{left:1070px;top:236px;font-size:20px}
+.d6{left:1070px;right:64px;height:200px;padding:20px 24px 16px}
+.d6.a{top:272px}.d6.b{top:494px}.d6.c{top:716px}
+.d6 .dh{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.d6 h3{font-size:34px}
+.d6 p{margin-top:6px;font-size:21px;line-height:1.4}
+.bt.sm{padding:6px 16px;font-size:22px;box-shadow:3px 4px 0 0 var(--ink)}
+.bt.sm[aria-pressed="true"]{background:var(--ink);color:var(--cream)}
+.pinbox{position:relative;height:70px;margin-top:6px}
+.pc6{position:absolute;left:30px;top:0;width:230px;transform:rotate(-6deg)}
+.pc6.op{visibility:hidden}
+.pinbox.play .cl{visibility:hidden}.pinbox.play .op{visibility:visible}
+.stbox{position:relative;height:70px;display:flex;align-items:center;gap:30px;margin-top:6px}
+.stbox .scrib{font-size:36px}
+.st6{visibility:hidden}
+.stbox.play .st6{visibility:visible}
+.tlbox{height:74px;display:flex;align-items:center;padding-left:20px;margin-top:4px}
+.tc6{display:flex;align-items:center;gap:16px;padding:6px 22px;font-size:24px}
+.tc6.play{transform:rotate(1.4deg)}
+
+</style>
+<style>html.in-frame .dk-nav, html.in-frame .dk-controls, html.in-frame .hint { display: none !important; }</style>
+</head>
+<body>
+<div class="deck-viewport">
+  <main class="deck-stage" id="deckStage">
+<section class="slide">
+  <div class="chrome top"><span><svg class="mk" viewBox="0 0 32 16"><g fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="24" cy="8" r="5"/><path d="M19 8H3M8 3L3 8l5 5"/></g></svg>00초등학교 · FIELD NOTES</span><span>초등 과학 · 6학년 2학기 · 1단원 · 3~4차시</span></div>
+  <p class="t1">계절의 변화</p>
+  <p class="en">Sun, Shadow & Temperature</p>
+  <span class="lbl gl">학습 목표</span>
+  <h1 class="goal">하루 동안 <em class="gk">태양 고도</em>,<br><em class="gk">그림자 길이</em>, <em class="gk">기온</em>의 관계</h1>
+  <div class="pills"><span class="pill part">초등 과학 · 6학년 2학기</span><span class="pill part">1단원 · 3~4차시</span></div>
+  <div class="card px tilt cover-card"><span class="lbl">SUBJECT No. 01</span><b class="num">01</b><h3>관찰 노트 · 2026</h3><p class="dash">태양 · 막대기 · 그림자</p><span class="stamp">RECEIVED 2026</span></div>
+  <div class="bigpin"><svg class="pin" viewBox="0 0 360 110"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M296 42 C230 40 140 38 74 40"/><path d="M300 74 C220 76 150 76 88 72"/><path d="M300 74 C326 76 338 62 334 52 C330 40 314 36 302 42 C292 48 296 62 310 62 C322 62 326 50 318 46"/><path d="M28 30 h50 a12 12 0 0 1 12 12 v18 a12 12 0 0 1 -12 12 h-50 a12 12 0 0 1 -12 -12 v-18 a12 12 0 0 1 12 -12 z"/><path d="M40 44 h28"/></g></svg></div>
+  <div class="chrome bot"><span>00초등학교 · 관찰 기록 2026</span><span>P. 01 / 06</span></div>
+</section>
+<section class="slide" data-steps="4">
+  <div class="chrome top"><span><svg class="mk" viewBox="0 0 32 16"><g fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="24" cy="8" r="5"/><path d="M19 8H3M8 3L3 8l5 5"/></g></svg>00초등학교 · FIELD NOTES</span><span>측정 준비</span></div>
+  <h2 class="hd">태양 고도 측정기 만들기</h2>
+  <p class="scrib def"><span class="ul">태양 고도</span> = 태양이 지표면과 이루는 각</p>
+  <div class="card figc"><i class="cpin pfg"><svg class="pin" viewBox="0 0 360 110"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M296 42 C230 40 140 38 74 40"/><path d="M300 74 C220 76 150 76 88 72"/><path d="M300 74 C326 76 338 62 334 52 C330 40 314 36 302 42 C292 48 296 62 310 62 C322 62 326 50 318 46"/><path d="M28 30 h50 a12 12 0 0 1 12 12 v18 a12 12 0 0 1 -12 12 h-50 a12 12 0 0 1 -12 -12 v-18 a12 12 0 0 1 12 -12 z"/><path d="M40 44 h28"/></g></svg></i><span class="lbl">FIG. 01 · 태양 고도 측정기</span><svg class="gauge" viewBox="0 0 1000 660" role="img" aria-label="태양 고도 측정기: 태양 빛, 수수깡, 실, 태양 고도, 그림자 길이, 자, 각도기">
+  <line class="g-ground" x1="20" x2="980" y1="580" y2="580"/>
+  <rect class="g-board" x="80" y="540" width="860" height="40"/>
+  <g class="g-part" data-s="1"><rect class="g-ruler" x="110" y="524" width="800" height="16"/><line class="g-tick" x1="120" x2="120" y1="524" y2="536"/><line class="g-tick" x1="140" x2="140" y1="524" y2="530"/><line class="g-tick" x1="160" x2="160" y1="524" y2="530"/><line class="g-tick" x1="180" x2="180" y1="524" y2="530"/><line class="g-tick" x1="200" x2="200" y1="524" y2="530"/><line class="g-tick" x1="220" x2="220" y1="524" y2="536"/><line class="g-tick" x1="240" x2="240" y1="524" y2="530"/><line class="g-tick" x1="260" x2="260" y1="524" y2="530"/><line class="g-tick" x1="280" x2="280" y1="524" y2="530"/><line class="g-tick" x1="300" x2="300" y1="524" y2="530"/><line class="g-tick" x1="320" x2="320" y1="524" y2="536"/><line class="g-tick" x1="340" x2="340" y1="524" y2="530"/><line class="g-tick" x1="360" x2="360" y1="524" y2="530"/><line class="g-tick" x1="380" x2="380" y1="524" y2="530"/><line class="g-tick" x1="400" x2="400" y1="524" y2="530"/><line class="g-tick" x1="420" x2="420" y1="524" y2="536"/><line class="g-tick" x1="440" x2="440" y1="524" y2="530"/><line class="g-tick" x1="460" x2="460" y1="524" y2="530"/><line class="g-tick" x1="480" x2="480" y1="524" y2="530"/><line class="g-tick" x1="500" x2="500" y1="524" y2="530"/><line class="g-tick" x1="520" x2="520" y1="524" y2="536"/><line class="g-tick" x1="540" x2="540" y1="524" y2="530"/><line class="g-tick" x1="560" x2="560" y1="524" y2="530"/><line class="g-tick" x1="580" x2="580" y1="524" y2="530"/><line class="g-tick" x1="600" x2="600" y1="524" y2="530"/><line class="g-tick" x1="620" x2="620" y1="524" y2="536"/><line class="g-tick" x1="640" x2="640" y1="524" y2="530"/><line class="g-tick" x1="660" x2="660" y1="524" y2="530"/><line class="g-tick" x1="680" x2="680" y1="524" y2="530"/><line class="g-tick" x1="700" x2="700" y1="524" y2="530"/><line class="g-tick" x1="720" x2="720" y1="524" y2="536"/><line class="g-tick" x1="740" x2="740" y1="524" y2="530"/><line class="g-tick" x1="760" x2="760" y1="524" y2="530"/><line class="g-tick" x1="780" x2="780" y1="524" y2="530"/><line class="g-tick" x1="800" x2="800" y1="524" y2="530"/><line class="g-tick" x1="820" x2="820" y1="524" y2="536"/><line class="g-tick" x1="840" x2="840" y1="524" y2="530"/><line class="g-tick" x1="860" x2="860" y1="524" y2="530"/><line class="g-tick" x1="880" x2="880" y1="524" y2="530"/><line class="g-tick" x1="900" x2="900" y1="524" y2="530"/><text class="g-lb" x="922" y="516" text-anchor="start">자</text></g>
+  <g class="g-meas"><rect class="g-shadow" x="220" y="524" width="446" height="16"/>
+    <path class="g-dim" d="M220 600v24M666 600v24M220 612H666"/><text class="g-lb" x="443" y="652" text-anchor="middle">그림자 길이</text></g>
+  <g class="g-part" data-s="2"><rect class="g-stick" x="196" y="150" width="24" height="374"/><path class="g-mark" d="M220 504h20v20"/>
+    <path class="g-lead" d="M182 330H196"/><text class="g-lb" x="174" y="342" text-anchor="end">수수깡</text></g>
+  <g class="g-part" data-s="4"><path class="g-prot" d="M546 524A120 120 0 0 1 786 524Z"/><path class="g-prot2" d="M588 524A78 78 0 0 1 744 524"/><line class="g-tick" x1="570" y1="524" x2="546" y2="524"/><line class="g-tick" x1="561.6" y1="505.6" x2="547.8" y2="503.2"/><line class="g-tick" x1="566.4" y1="487.7" x2="553.2" y2="483"/><line class="g-tick" x1="582.9" y1="476" x2="562.1" y2="464"/><line class="g-tick" x1="584.8" y1="455.9" x2="574.1" y2="446.9"/><line class="g-tick" x1="597.9" y1="442.8" x2="588.9" y2="432.1"/><line class="g-tick" x1="618" y1="440.9" x2="606" y2="420.1"/><line class="g-tick" x1="629.7" y1="424.4" x2="625" y2="411.2"/><line class="g-tick" x1="647.6" y1="419.6" x2="645.2" y2="405.8"/><line class="g-tick" x1="666" y1="428" x2="666" y2="404"/><line class="g-tick" x1="684.4" y1="419.6" x2="686.8" y2="405.8"/><line class="g-tick" x1="702.3" y1="424.4" x2="707" y2="411.2"/><line class="g-tick" x1="714" y1="440.9" x2="726" y2="420.1"/><line class="g-tick" x1="734.1" y1="442.8" x2="743.1" y2="432.1"/><line class="g-tick" x1="747.2" y1="455.9" x2="757.9" y2="446.9"/><line class="g-tick" x1="749.1" y1="476" x2="769.9" y2="464"/><line class="g-tick" x1="765.6" y1="487.7" x2="778.8" y2="483"/><line class="g-tick" x1="770.4" y1="505.6" x2="784.2" y2="503.2"/><line class="g-tick" x1="762" y1="524" x2="786" y2="524"/><circle class="g-hole" cx="666" cy="524" r="5"/><text class="g-lb" x="800" y="456" text-anchor="start">각도기</text></g>
+  <g class="g-part" data-s="3"><line class="g-string" x1="220" y1="150" x2="666" y2="524"/><text class="g-lb" x="478" y="344" text-anchor="start">실</text></g>
+  <g class="g-meas"><path class="g-angle" d="M616 524A50 50 0 0 1 627.7 491.9"/><path class="g-lead" d="M542 498L615 506.9"/><text class="g-lb" x="536" y="508" text-anchor="end">태양 고도</text>
+    <line class="g-ray" x1="74.5" y1="27.9" x2="187.8" y2="123"/><polygon class="g-rayh" points="209.3,141 179.5,133 196.2,113"/><text class="g-lb" x="150" y="60" text-anchor="start">태양 빛</text></g>
+</svg><p class="scrib s2n">막대기의 그림자와 실이 이루는 각 = 태양 고도</p></div>
+  <div class="cards"><div class="card cream step" data-s="1"><b class="num">01</b><div><h3>자 붙이기<span class="scrib note">테이프로 단단히!</span></h3><p>우드록 한쪽에 양면테이프로 자를 붙여요</p></div></div><div class="card p2 step" data-s="2"><b class="num">02</b><div><h3>수수깡 꽂기<span class="scrib note">꼭 수직으로</span></h3><p>수수깡을 10cm 정도 잘라 자의 '0' 위치에 수직으로 꽂아요</p></div></div><div class="card cream step" data-s="3"><b class="num">03</b><div><h3>실 묶기<span class="scrib note">실은 팽팽하게</span></h3><p>수수깡 끝에 실을 묶어요</p></div></div><div class="card px tilt step" data-s="4"><b class="num">04</b><div><h3>각도기 끼우기<span class="scrib note">구멍에 쏙</span></h3><p>실의 다른 끝을 각도기 가운데 구멍에 끼워요</p></div></div></div>
+  <div class="btns"><button class="card bt" data-act="step">다음 단계 →</button><button class="card bt" data-act="reset">처음부터</button><p class="scrib cap" data-caps="[&quot;버튼을 눌러 순서대로 만들어 보세요&quot;,&quot;01 자 붙이기 — 끝!&quot;,&quot;02 수수깡 꽂기 — 끝!&quot;,&quot;03 실 묶기 — 끝!&quot;,&quot;04 각도기 끼우기 — 끝!&quot;]">버튼을 눌러 순서대로 만들어 보세요</p></div>
+  <div class="chrome bot"><span>계절의 변화</span><span class="nr">버튼 규칙 없음 → 꽂힌 카드으로 표현</span><span>P. 02 / 06</span></div>
+</section>
+<section class="slide">
+  <div class="chrome top"><span><svg class="mk" viewBox="0 0 32 16"><g fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="24" cy="8" r="5"/><path d="M19 8H3M8 3L3 8l5 5"/></g></svg>00초등학교 · FIELD NOTES</span><span>측정 결과</span></div>
+  <h2 class="hd md">하루 동안 무엇이 어떻게 변할까요?</h2>
+  <div class="stats"><div class="card cream stat"><span class="lbl">남중 시각</span><b class="big">12:30<small>무렵 · 남중</small></b><p>태양 고도가 가장 높아요</p></div><div class="card p2 stat"><span class="lbl">남중 방향</span><b class="big">정남<small>쪽</small></b><p>남중할 때 태양의 위치</p></div><div class="card cream stat"><span class="lbl">최고 기온</span><b class="big">14:30<small>무렵</small></b><p>기온이 가장 높아요</p></div><div class="card p2 stat"><span class="lbl">가장 긴 그림자</span><b class="big">9:30<small>· 15:30</small></b><p>그림자가 가장 길어요</p></div></div>
+  <div class="card chartc"><i class="cpin pc"><svg class="pin" viewBox="0 0 360 110"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M296 42 C230 40 140 38 74 40"/><path d="M300 74 C220 76 150 76 88 72"/><path d="M300 74 C326 76 338 62 334 52 C330 40 314 36 302 42 C292 48 296 62 310 62 C322 62 326 50 318 46"/><path d="M28 30 h50 a12 12 0 0 1 12 12 v18 a12 12 0 0 1 -12 12 h-50 a12 12 0 0 1 -12 -12 v-18 a12 12 0 0 1 12 -12 z"/><path d="M40 44 h28"/></g></svg></i>
+    <div class="lg"><span class="lbl">측정 시각별 태양 고도, 그림자 길이, 기온</span><span><i class="k bn"></i>태양 고도(°)</span><span><i class="k ls"></i>그림자 길이(cm)</span><span><i class="k lt"></i>기온(℃)</span></div>
+    <svg class="cv" viewBox="0 0 1000 330"><line x1="70" x2="980" y1="280" y2="280" class="gl"/><text x="60" y="286" class="ax" text-anchor="end">0°</text><line x1="70" x2="980" y1="150" y2="150" class="gl"/><text x="60" y="156" class="ax" text-anchor="end">40°</text><line x1="70" x2="980" y1="20" y2="20" class="gl"/><text x="60" y="26" class="ax" text-anchor="end">80°</text><rect x="105" y="156.5" width="60" height="123.5" class="bn"/><text x="135" y="186.5" class="bvl" text-anchor="middle">38</text><rect x="235" y="124" width="60" height="156" class="bn"/><text x="265" y="154" class="bvl" text-anchor="middle">48</text><rect x="365" y="101.25" width="60" height="178.75" class="bn"/><text x="395" y="131.25" class="bvl" text-anchor="middle">55</text><rect x="495" y="94.75" width="60" height="185.25" class="bn"/><text x="525" y="124.75" class="bvl" text-anchor="middle">57</text><rect x="625" y="104.5" width="60" height="175.5" class="bn"/><text x="655" y="134.5" class="bvl" text-anchor="middle">54</text><rect x="755" y="127.25" width="60" height="152.75" class="bn"/><text x="785" y="157.25" class="bvl" text-anchor="middle">47</text><rect x="885" y="159.75" width="60" height="120.25" class="bn"/><text x="915" y="189.75" class="bvl" text-anchor="middle">37</text><polyline class="ls" points="135,196.15 265,220.85 395,234.5 525,238.4 655,233.2 785,218.9 915,192.9"/><circle cx="135" cy="196.15" r="6" class="lsp"/><text x="171" y="204.15" class="pv lst">12.9</text><circle cx="265" cy="220.85" r="6" class="lsp"/><text x="301" y="228.85" class="pv lst">9.1</text><circle cx="395" cy="234.5" r="6" class="lsp"/><text x="431" y="242.5" class="pv lst">7</text><circle cx="525" cy="238.4" r="6" class="lsp"/><text x="561" y="246.4" class="pv lst">6.4</text><circle cx="655" cy="233.2" r="6" class="lsp"/><text x="691" y="241.2" class="pv lst">7.2</text><circle cx="785" cy="218.9" r="6" class="lsp"/><text x="821" y="226.9" class="pv lst">9.4</text><circle cx="915" cy="192.9" r="6" class="lsp"/><text x="951" y="200.9" class="pv lst">13.4</text><polyline class="lt" points="135,124 265,100.6 395,82.4 525,68.1 655,59 785,53.80000000000001 915,60.30000000000001"/><circle cx="135" cy="124" r="6" class="ltp"/><text x="135" y="110" class="pv ltt" text-anchor="middle">22</text><circle cx="265" cy="100.6" r="6" class="ltp"/><text x="265" y="86.6" class="pv ltt" text-anchor="middle">23.8</text><circle cx="395" cy="82.4" r="6" class="ltp"/><text x="395" y="68.4" class="pv ltt" text-anchor="middle">25.2</text><circle cx="525" cy="68.1" r="6" class="ltp"/><text x="525" y="54.099999999999994" class="pv ltt" text-anchor="middle">26.3</text><circle cx="655" cy="59" r="6" class="ltp"/><text x="655" y="45" class="pv ltt" text-anchor="middle">27</text><circle cx="785" cy="53.80000000000001" r="6" class="ltp"/><text x="785" y="39.80000000000001" class="pv ltt" text-anchor="middle">27.4</text><circle cx="915" cy="60.30000000000001" r="6" class="ltp"/><text x="915" y="46.30000000000001" class="pv ltt" text-anchor="middle">26.9</text><line x1="70" x2="980" y1="280" y2="280" class="base"/><text x="135" y="312" class="ax" text-anchor="middle">9:30</text><text x="265" y="312" class="ax" text-anchor="middle">10:30</text><text x="395" y="312" class="ax" text-anchor="middle">11:30</text><text x="525" y="312" class="ax" text-anchor="middle">12:30</text><text x="655" y="312" class="ax" text-anchor="middle">13:30</text><text x="785" y="312" class="ax" text-anchor="middle">14:30</text><text x="915" y="312" class="ax" text-anchor="middle">15:30</text></svg>
+    <span class="stamp cs">예시 값</span>
+  </div>
+  <p class="scrib s3n">↑ 12:30 그림자가 가장 짧아요!</p>
+  <div class="chrome bot"><span>SOURCE · 예시 값 — 태양 고도·그림자(10cm 막대)는 9월 중순 북위 36° 기준 계산, 기온은 교과서 그래프 모양을 따른 값</span><span>P. 03 / 06</span></div>
+</section>
+<section class="slide">
+  <div class="chrome top"><span><svg class="mk" viewBox="0 0 32 16"><g fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="24" cy="8" r="5"/><path d="M19 8H3M8 3L3 8l5 5"/></g></svg>00초등학교 · FIELD NOTES</span><span>관계 정리</span></div>
+  <h2 class="hd md">태양 고도가 바뀌면 무엇이 달라질까요?</h2>
+  <div class="cmp"><div class="card cream"><span class="lbl">HIGH</span><h3>태양 고도가 높을 때</h3><p class="it">그림자 길이는 짧아져요</p><p class="it">기온은 높아져요</p></div><div class="card p2"><span class="lbl">LOW</span><h3>태양 고도가 낮을 때</h3><p class="it">그림자 길이는 길어져요</p><p class="it">기온은 낮아져요</p></div></div>
+  <div class="card lst"><i class="cpin pl2"><svg class="pin" viewBox="0 0 360 130"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M296 42 C230 40 140 38 74 40"/><path d="M300 76 C230 92 150 108 40 118"/><path d="M300 76 C326 78 338 64 334 54 C330 42 314 38 302 44 C292 50 296 64 310 64 C322 64 326 52 318 48"/><path d="M28 30 h50 a12 12 0 0 1 12 12 v18 a12 12 0 0 1 -12 12 h-50 a12 12 0 0 1 -12 -12 v-18 a12 12 0 0 1 12 -12 z"/></g></svg></i><span class="lbl">MEMO · 남중</span><div class="li"><b class="num sm">1</b><p>태양이 정남쪽에 있을 때 '남중했다'고 해요</p></div><div class="li"><b class="num sm">2</b><p>이때의 태양 고도를 남중 고도라고 해요</p></div></div>
+  <div class="card tbl"><span class="lbl">시각별 변화</span><table><tr><th>시각</th><th>태양 고도</th><th>그림자 길이</th><th>기온</th></tr><tr><td>오전 9:30</td><td>낮아요</td><td>길어요</td><td>낮아요</td></tr><tr><td>낮 12:30</td><td>가장 높아요</td><td>가장 짧아요</td><td>높아지는 중</td></tr><tr><td>오후 14:30</td><td>낮아지는 중</td><td>길어지는 중</td><td>가장 높아요</td></tr></table></div>
+  <div class="card px tilt qt"><b class="qm">“</b><p>태양 고도가 가장 높은 시각과 기온이 가장 높은 시각에는 차이가 있어요.</p><span class="lbl">— 오늘의 정리</span></div>
+  <div class="chrome bot"><span>계절의 변화</span><span>P. 04 / 06</span></div>
+</section>
+<section class="slide">
+  <div class="chrome top"><span><svg class="mk" viewBox="0 0 32 16"><g fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="24" cy="8" r="5"/><path d="M19 8H3M8 3L3 8l5 5"/></g></svg>00초등학교 · FIELD NOTES</span><span>확인하기</span></div>
+  <h2 class="hd md">배운 내용을 확인해 볼까요?</h2>
+  <div class="card quiz" data-quiz data-answer="1" data-right="정답! 태양 고도가 가장 높을 때(남중) 그림자가 가장 짧아요" data-wrong="다시 생각해 볼까요? 태양 고도와 그림자 길이의 관계를 떠올려 보세요"><i class="cpin pq"><svg class="pin" viewBox="0 0 360 130"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M296 42 C230 40 140 38 74 40"/><path d="M300 76 C230 92 150 108 40 118"/><path d="M300 76 C326 78 338 64 334 54 C330 42 314 38 302 44 C292 50 296 64 310 64 C322 64 326 52 318 48"/><path d="M28 30 h50 a12 12 0 0 1 12 12 v18 a12 12 0 0 1 -12 12 h-50 a12 12 0 0 1 -12 -12 v-18 a12 12 0 0 1 12 -12 z"/></g></svg></i>
+    <span class="lbl">QUESTION · 퀴즈</span>
+    <h3 class="q">하루 중 그림자 길이가 가장 짧을 때는?</h3>
+    <div class="opts"><button class="opt" data-opt="0"><b class="num sm">a</b><span class="ot">오전 9시 30분</span><span class="pill yes">맞아요!</span><span class="pill no">NO</span></button><button class="opt" data-opt="1"><b class="num sm">b</b><span class="ot">낮 12시 30분 무렵</span><span class="pill yes">맞아요!</span><span class="pill no">NO</span></button><button class="opt" data-opt="2"><b class="num sm">c</b><span class="ot">오후 3시 30분</span><span class="pill yes">맞아요!</span><span class="pill no">NO</span></button></div>
+    <p class="fb" data-fb></p>
+    <button class="card bt rt" data-act="retry">다시 풀기</button>
+    <span class="stamp qs">CHECKED</span>
+  </div>
+  <div class="card p2 tilt blk"><i class="cpin pb"><svg class="pin" viewBox="0 0 360 110"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M296 42 C230 40 140 38 74 40"/><path d="M300 74 C220 76 150 76 88 72"/><path d="M300 74 C326 76 338 62 334 52 C330 40 314 36 302 42 C292 48 296 62 310 62 C322 62 326 50 318 46"/><path d="M28 30 h50 a12 12 0 0 1 12 12 v18 a12 12 0 0 1 -12 12 h-50 a12 12 0 0 1 -12 -12 v-18 a12 12 0 0 1 12 -12 z"/><path d="M40 44 h28"/></g></svg></i>
+    <span class="lbl">빈칸을 눌러 확인해요</span>
+    <p class="bl"><button class="pill part blank" data-blank aria-pressed="false"><span>태양 고도</span></button>는 점점 높아졌다가 다시 낮아진다</p><p class="bl"><button class="pill part blank" data-blank aria-pressed="false"><span>그림자 길이</span></button>는 점점 짧아졌다가 다시 길어진다</p><p class="bl"><button class="pill part blank" data-blank aria-pressed="false"><span>기온</span></button>은 점점 높아졌다가 다시 낮아진다</p>
+    <div class="words"><span class="lbl">오늘의 낱말</span><p class="scrib">태양 고도 · 남중 고도 · 그림자 길이 · 기온</p></div>
+  </div>
+  <div class="chrome bot"><span>계절의 변화</span><span class="nr">버튼 규칙 없음 → 꽂힌 카드으로 표현 · 빈칸 규칙 없음 → PART 알약으로 표현</span><span>P. 05 / 06</span></div>
+</section>
+<section class="slide">
+  <div class="chrome top"><span><svg class="mk" viewBox="0 0 32 16"><g fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="24" cy="8" r="5"/><path d="M19 8H3M8 3L3 8l5 5"/></g></svg>00초등학교 · FIELD NOTES</span><span>디자인 안내</span></div>
+  <h2 class="hd h6">이 디자인 사용 설명서</h2>
+  <div class="card g6"><i class="cpin pg6"><svg class="pin" viewBox="0 0 360 110"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M296 42 C230 40 140 38 74 40"/><path d="M300 74 C220 76 150 76 88 72"/><path d="M300 74 C326 76 338 62 334 52 C330 40 314 36 302 42 C292 48 296 62 310 62 C322 62 326 50 318 46"/><path d="M28 30 h50 a12 12 0 0 1 12 12 v18 a12 12 0 0 1 -12 12 h-50 a12 12 0 0 1 -12 -12 v-18 a12 12 0 0 1 12 -12 z"/><path d="M40 44 h28"/></g></svg></i>
+    <span class="lbl">한눈에</span><p class="ab6">노란 리갈패드에 쓴 <span class="ul">현장 관찰 노트</span>예요. 짙은 코발트 잉크 한 색으로 쓰고, 크림 카드를 <b>옷핀으로 꽂아</b> 붙입니다. 사람 목소리는 손글씨로 여백에 적어요.</p>
+    <span class="lbl">색</span><div class="sw6"><span><i style="background:#EFE56A"></i>노란 종이</span><span><i style="background:#F8F1D6"></i>크림 카드</span><span><i style="background:#1F3A8A"></i>코발트 잉크</span><span><i style="background:#C2342B"></i>빨강 = 도장·NO만</span></div>
+    <span class="lbl">글꼴</span><div class="ft6"><p><b>인쇄 제목</b> Space Grotesk 700 → Hakgyoansim Undongjang</p><p><b>본문</b> 프리텐다드 Pretendard-Regular · <b>기록 라벨</b> DM Mono</p><p><b>손글씨</b> Caveat → Hakgyoansim Badasseugi TTF L</p></div>
+    <span class="lbl">알약</span><div class="pl6"><span class="pill yes">YES</span><span class="pill no">NO</span><span class="pill part">PART</span><span class="scrib">← 맞음 / 틀림 / 반쯤</span></div>
+    <span class="lbl">이렇게 쓰면 좋아요</span><div class="tip6"><p>— 실험·관찰 기록, 조사 발표처럼 '내가 적은 노트' 느낌의 수업</p><p>— 카드는 한 장에 한두 장만 비뚤게 — 다 기울이면 어지러워요</p><p>— 손글씨는 짧은 여백 메모에만</p></div>
+    <p class="scrib m6">여백 메모는 이렇게!</p>
+  </div>
+  <span class="lbl sl6">대표 장치 — 눌러 보세요</span>
+  <div class="card d6 a"><div class="dh"><h3>옷핀 닫힘 ↔ 열림</h3><button class="card bt sm" data-demo="#pp-pin" data-mode="toggle" aria-pressed="false">켜기 / 끄기</button></div><p>카드를 잡아 주는 손그림 옷핀 — 닫힌 핀과 벌어진 핀 두 가지예요.</p><div class="pinbox" id="pp-pin"><i class="pc6 cl"><svg class="pin" viewBox="0 0 360 110"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M296 42 C230 40 140 38 74 40"/><path d="M300 74 C220 76 150 76 88 72"/><path d="M300 74 C326 76 338 62 334 52 C330 40 314 36 302 42 C292 48 296 62 310 62 C322 62 326 50 318 46"/><path d="M28 30 h50 a12 12 0 0 1 12 12 v18 a12 12 0 0 1 -12 12 h-50 a12 12 0 0 1 -12 -12 v-18 a12 12 0 0 1 12 -12 z"/><path d="M40 44 h28"/></g></svg></i><i class="pc6 op"><svg class="pin" viewBox="0 0 360 130"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M296 42 C230 40 140 38 74 40"/><path d="M300 76 C230 92 150 108 40 118"/><path d="M300 76 C326 78 338 64 334 54 C330 42 314 38 302 44 C292 50 296 64 310 64 C322 64 326 52 318 48"/><path d="M28 30 h50 a12 12 0 0 1 12 12 v18 a12 12 0 0 1 -12 12 h-50 a12 12 0 0 1 -12 -12 v-18 a12 12 0 0 1 12 -12 z"/></g></svg></i></div></div>
+  <div class="card d6 b"><div class="dh"><h3>빨간 고무도장</h3><button class="card bt sm" data-demo="#pp-st" data-mode="toggle" aria-pressed="false">켜기 / 끄기</button></div><p>-4° 기울어진 빨간 도장 — 'RECEIVED', '확인' 같은 상태 표시에만 써요.</p><div class="stbox" id="pp-st"><span class="scrib">관찰 기록지 No.03</span><span class="stamp st6">CHECKED</span></div></div>
+  <div class="card d6 c"><div class="dh"><h3>비뚤게 꽂기</h3><button class="card bt sm" data-demo="#pp-tilt" data-mode="toggle" aria-pressed="false">켜기 / 끄기</button></div><p>카드를 0.6~1.5° 기울이고 잉크색 그림자(5px 6px)를 붙여요.</p><div class="tlbox"><div class="card tc6" id="pp-tilt"><b class="num sm">1</b><span>꽂힌 카드</span></div></div></div>
+  <div class="chrome bot"><span>계절의 변화</span><span>P. 06 / 06</span></div>
+</section>
+<nav class="dk-nav"><button class="dk-prev" aria-label="이전">←</button><button class="dk-next" aria-label="다음">→</button></nav>
+  </main>
+</div>
+
+<script>
+window.DECK_CFG = {"type":"fade","dur":300,"ease":"ease","wheel":true};
+
+/* === DECK ENGINE (slide-refs 공용, 덱 HTML에 그대로 인라인됨) ===
+   window.DECK_CFG = { type: 'x' | 'y' | 'fade' | 'shift' | 'rise', dur: ms, ease: css, dist: px, wheel: bool }
+   window.DECK_FX  = { enter(slide, i), step(slide, k), answer(quiz, ok, btn) }  // 템플릿별 효과 훅(선택)
+   - 넘김: → ↓ Space PageDown Enter = 다음(단계가 남았으면 단계 먼저), ← ↑ PageUp = 이전, Home/End
+   - 내비: .dk-dot(점) .dk-count(번호, data-pad면 01 형식) .dk-prev .dk-next
+   - 단계: <section data-steps="4"> 안의 [data-s="k"] 요소가 k단계부터 .on, 현재 단계는 .now
+           [data-caps='["...",...]'] 요소의 글이 단계마다 바뀜, 버튼 [data-act="step"] [data-act="reset"]
+   - 퀴즈: [data-quiz data-answer data-right data-wrong] 안의 버튼 [data-opt="i"], 결과 글 [data-fb], 다시 풀기 [data-act="retry"]
+   - 빈칸: [data-blank] 를 누르면 .open (답 보이기/숨기기)
+   - 시연(6장 디자인 안내): 버튼 [data-demo="선택자"] 를 누르면 같은 장 안의 그 요소에 .play
+       data-mode="toggle" 이면 .play 켜기/끄기(aria-pressed), 아니면 .play를 뺐다 다시 붙여 애니메이션을 처음부터 다시 재생 */
+/* 소개 발표(intro/talk.html)에 넣을 때: 주소에 ?talk=1&name=<디자인 이름>
+   - 넘김 키는 부모 창으로 보내고(postMessage) 이 덱은 넘기지 않음, 휠·터치 넘김 끔
+   - 현재 장의 '디자인 안내' 글을 디자인 이름으로 바꿈
+   부모 창(talk-engine.js로 쓰는 같은 파일)은 {deckKey}를 받으면 그 키를 누른 것처럼 처리 */
+(function () {
+  var cfg = window.DECK_CFG || { type: 'fade', dur: 400, ease: 'ease' };
+  var fx = window.DECK_FX || {};
+  var stage = document.getElementById('deckStage');
+  var slides = [].slice.call(stage.querySelectorAll('.slide'));
+  var cur = 0, busy = false;
+  var embed = /[?&]talk=1/.test(location.search), embedName = decodeURIComponent((location.search.match(/[?&]name=([^&]*)/) || [, ''])[1]);
+  function each(root, sel, fn) { [].forEach.call(root.querySelectorAll(sel), fn); }
+  if (window.top !== window) document.documentElement.classList.add('in-frame');
+
+  /* --- 무대 맞춤: 1920×1080을 통째로 축소/확대 --- */
+  function fit() {
+    var f = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = 'translate(' + (innerWidth - 1920 * f) / 2 + 'px,' + (innerHeight - 1080 * f) / 2 + 'px) scale(' + f + ')';
+  }
+  fit(); addEventListener('resize', fit);
+
+  /* --- 내비 표시 --- */
+  var dots = [].slice.call(document.querySelectorAll('.dk-dot'));
+  var count = document.querySelector('.dk-count');
+  var prev = document.querySelector('.dk-prev'), next = document.querySelector('.dk-next');
+  function pad(n) { return count && count.hasAttribute('data-pad') && n < 10 ? '0' + n : '' + n; }
+  function ui() {
+    dots.forEach(function (d, i) { d.classList.toggle('on', i === cur); d.setAttribute('aria-current', i === cur ? 'true' : 'false'); });
+    if (count) count.textContent = pad(cur + 1) + ' / ' + pad(slides.length);
+    if (prev) prev.disabled = cur === 0;
+    if (next) next.disabled = cur === slides.length - 1;
+    document.documentElement.setAttribute('data-slide', cur + 1);
+  }
+
+  /* --- 슬라이드 등장(요소 애니메이션 다시 재생) --- */
+  function enter(s) {
+    s.classList.remove('visible'); void s.offsetWidth; s.classList.add('visible');
+    if (fx.enter) fx.enter(s, slides.indexOf(s));
+  }
+
+  /* --- 넘김: 템플릿 명세의 방식(x 가로 밀기 / y 세로 밀기 / fade 교차 페이드) --- */
+  function go(n) {
+    if (busy || n === cur || n < 0 || n >= slides.length) return;
+    var a = slides[cur], b = slides[n], dir = n > cur ? 1 : -1;
+    // shift: 투명도 + 짧은 가로 이동(cfg.dist px) — 예: blue-professional 40px
+    var tf = cfg.type === 'x' ? function (v) { return 'translateX(' + v * 100 + '%)'; }
+      : cfg.type === 'y' ? function (v) { return 'translateY(' + v * 100 + '%)'; }
+      : cfg.type === 'shift' ? function (v) { return 'translateX(' + v * (cfg.dist || 40) + 'px)'; } : null;
+    var fade = !tf || cfg.type === 'shift' || cfg.type === 'rise';
+    busy = true;
+    b.style.transition = 'none';
+    b.style.transform = tf ? tf(dir) : '';
+    b.style.opacity = fade ? '0' : '1';
+    b.classList.remove('visible'); b.classList.add('active');
+    void b.offsetWidth;
+    var tr = 'transform ' + cfg.dur + 'ms ' + cfg.ease + ', opacity ' + cfg.dur + 'ms ' + cfg.ease;
+    a.style.transition = tr; b.style.transition = tr;
+    // rise: 새 장이 아래(cfg.dist px)에서 0.98배로 떠오르며 나타나고, 이전 장은 그냥 사라짐 — 예: bold-poster
+    if (cfg.type === 'rise') { b.style.transition = 'none'; b.style.transform = 'translateY(' + (cfg.dist || 30) + 'px) scale(.98)'; void b.offsetWidth; b.style.transition = tr; b.style.transform = 'none'; }
+    if (tf) { a.style.transform = tf(-dir); b.style.transform = 'translate(0,0)'; }
+    if (fade) { a.style.opacity = '0'; b.style.opacity = '1'; }
+    cur = n; ui();
+    setTimeout(function () { enter(b); }, tf ? cfg.dur * 0.35 : cfg.dur * 0.5);
+    setTimeout(function () {
+      a.classList.remove('active', 'visible');
+      [a, b].forEach(function (s) { s.style.transition = ''; s.style.transform = ''; s.style.opacity = ''; });
+      busy = false;
+    }, cfg.dur + 40);
+  }
+
+  /* --- 단계 버튼 --- */
+  function maxStep(s) { return +(s.getAttribute('data-steps') || 0); }
+  function setStep(s, k) {
+    var max = maxStep(s); k = Math.max(0, Math.min(max, k));
+    s.setAttribute('data-step', k);
+    each(s, '[data-s]', function (e) { var v = +e.getAttribute('data-s'); e.classList.toggle('on', k > 0 && v <= k); e.classList.toggle('now', v === k); });
+    var cap = s.querySelector('[data-caps]');
+    if (cap) { cap.textContent = JSON.parse(cap.getAttribute('data-caps'))[k]; cap.classList.remove('flash'); void cap.offsetWidth; cap.classList.add('flash'); }
+    each(s, '[data-act="step"]', function (b) { b.disabled = k >= max; });
+    each(s, '[data-act="reset"]', function (b) { b.disabled = k === 0; });
+    if (fx.step) fx.step(s, k);
+  }
+  slides.forEach(function (s) { if (maxStep(s)) setStep(s, 0); });
+
+  /* --- 퀴즈 --- */
+  each(stage, '[data-quiz]', function (q) {
+    var ans = +q.getAttribute('data-answer'), fb = q.querySelector('[data-fb]');
+    each(q, '[data-opt]', function (b) {
+      b.addEventListener('click', function () {
+        var ok = +b.getAttribute('data-opt') === ans;
+        b.classList.remove('right', 'wrong'); void b.offsetWidth; b.classList.add(ok ? 'right' : 'wrong');
+        q.classList.remove('solved', 'tried'); void q.offsetWidth; q.classList.add(ok ? 'solved' : 'tried');
+        if (fb) fb.textContent = q.getAttribute(ok ? 'data-right' : 'data-wrong');
+        if (ok) each(q, '[data-opt]', function (x) { x.disabled = true; });
+        if (fx.answer) fx.answer(q, ok, b);
+      });
+    });
+  });
+
+  /* --- 클릭·키보드·휠·터치 --- */
+  stage.addEventListener('click', function (e) {
+    var bl = e.target.closest ? e.target.closest('[data-blank]') : null;
+    if (bl) { bl.classList.toggle('open'); bl.setAttribute('aria-pressed', bl.classList.contains('open')); return; }
+    var dm = e.target.closest ? e.target.closest('[data-demo]') : null;
+    if (dm) {
+      var tg = dm.closest('.slide').querySelector(dm.getAttribute('data-demo'));
+      if (tg && dm.getAttribute('data-mode') === 'toggle') dm.setAttribute('aria-pressed', tg.classList.toggle('play'));
+      else if (tg) { tg.classList.remove('play'); void tg.offsetWidth; tg.classList.add('play'); }
+      return;
+    }
+    var b = e.target.closest ? e.target.closest('[data-act]') : null; if (!b) return;
+    var s = b.closest('.slide'), k = +(s.getAttribute('data-step') || 0);
+    if (b.getAttribute('data-act') === 'step') setStep(s, k + 1);
+    if (b.getAttribute('data-act') === 'reset') setStep(s, 0);
+    if (b.getAttribute('data-act') === 'retry') each(s, '[data-quiz]', function (q) {
+      q.classList.remove('solved', 'tried');
+      each(q, '[data-opt]', function (x) { x.disabled = false; x.classList.remove('right', 'wrong'); });
+      var fb = q.querySelector('[data-fb]'); if (fb) fb.textContent = '';
+    });
+  });
+  dots.forEach(function (d, i) { d.addEventListener('click', function () { go(i); }); });
+  if (prev) prev.addEventListener('click', function () { go(cur - 1); });
+  if (next) next.addEventListener('click', function () { go(cur + 1); });
+  addEventListener('keydown', function (e) {
+    var t = e.target; if (t && t.closest && t.closest('button,a') && (e.key === ' ' || e.key === 'Enter')) return;
+    if (embed) {
+      if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter', 'ArrowLeft', 'ArrowUp', 'PageUp', 'Home', 'End'].indexOf(e.key) >= 0) { e.preventDefault(); parent.postMessage({ deckKey: e.key }, '*'); }
+      return;
+    }
+    var s = slides[cur], k = +(s.getAttribute('data-step') || 0), max = maxStep(s);
+    if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter'].indexOf(e.key) >= 0) { e.preventDefault(); if (max && k < max) setStep(s, k + 1); else go(cur + 1); }
+    else if (['ArrowLeft', 'ArrowUp', 'PageUp'].indexOf(e.key) >= 0) { e.preventDefault(); go(cur - 1); }
+    else if (e.key === 'Home') go(0);
+    else if (e.key === 'End') go(slides.length - 1);
+  });
+  if (cfg.wheel && !embed) {
+    var lock = 0;
+    addEventListener('wheel', function (e) {
+      if (Date.now() < lock || Math.abs(e.deltaY) < 30) return;
+      lock = Date.now() + cfg.dur + 200; go(cur + (e.deltaY > 0 ? 1 : -1));
+    }, { passive: true });
+  }
+  var tx = null, ty = null;
+  addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+  addEventListener('touchend', function (e) {
+    if (tx === null || embed) return;
+    var dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty, v = cfg.type === 'y' ? dy : dx;
+    if (Math.abs(v) > 50) go(cur + (v < 0 ? 1 : -1)); tx = ty = null;
+  }, { passive: true });
+
+  /* --- 시작: 주소 끝 #2 처럼 장 지정 가능 --- */
+  var h = parseInt((location.hash || '').slice(1), 10);
+  if (h >= 1 && h <= slides.length) cur = h - 1;
+  addEventListener('hashchange', function () { var n = parseInt(location.hash.slice(1), 10); if (n >= 1) go(n - 1); });
+  slides.forEach(function (s, i) { s.classList.toggle('active', i === cur); });
+  ui();
+  if (embed && embedName) {
+    var tw = document.createTreeWalker(slides[cur], NodeFilter.SHOW_TEXT), nd;
+    while ((nd = tw.nextNode())) if (nd.nodeValue.indexOf('디자인 안내') >= 0) nd.nodeValue = nd.nodeValue.replace('디자인 안내', embedName);
+  }
+  // 부모(발표)가 보낸 키 처리
+  addEventListener('message', function (e) { if (e.data && e.data.deckKey) dispatchEvent(new KeyboardEvent('keydown', { key: e.data.deckKey })); });
+  // 첫 장 등장: 화면이 그려진 뒤 시작(창이 가려져 rAF가 멈춰도 타이머로 시작)
+  var started = false;
+  function start() { if (!started) { started = true; enter(slides[cur]); } }
+  requestAnimationFrame(function () { requestAnimationFrame(start); });
+  setTimeout(start, 120);
+})();
+
+</script>
+</body>
+</html>

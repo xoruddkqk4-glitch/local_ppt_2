@@ -1133,3 +1133,39 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
       - 테마 선택 시 3색 팔레트 픽커 및 16:9 대형 슬라이드 미리보기 실시간 동기화.
     - `updateThemeThumbGridActive()`: 활성화된 테마 카드가 필터링 상태와 무관하게 표시되고 스크롤 뷰에 위치하도록 동기화 보강.
 - **검증 결과**: `node -c designs/options.js; node -c ai-intake.js; node -c app.js; node -c layouts/options.js; node -c server.js` 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0). 44종 메타데이터, 3색 HEX 팔레트 유효성 및 CSS 미니 프레임 클래스 1:1 매칭 검증 완료.
+
+## [2026-10-18 02:28] 업데이트 이력 (Commit ID: 102f8b2)
+- **수정 내용**:
+  - `designs/options.js`:
+    - **44종 테마 8대 비주얼 아키타입 분류 체계 구축 (`window.PptThemeArchetypes`)**:
+      - 44종 전체 테마를 대표 디자인 정체성에 따라 8대 아키타입(`pixel/8-bit-orbit`, `windows/retro-windows`, `brutal/block-frame`, `clay`, `paper/pin-and-paper`, `bauhaus`, `tech/cobalt-grid`, `editorial/biennale-yellow`)으로 그룹핑.
+    - **테마별 고품질 시그니처 컴포넌트 66종 라이브러리 탑재 (`window.PptThemeComponents`, `getThemeSignatureComponents`)**:
+      - 각 테마의 미적 개성을 살린 대표 시그니처 개체(윈도우 95 시스템 대화상자/3D 버튼/진행바/경고창/마키 전광판, 8비트 CRT 터미널/체력 게이지/코인 버튼, 클레이 3D 버튼/볼륨 카드/버블, 포스트잇 메모지/바인더 클립 리걸패드/마스킹 테이프, 바우하우스 스탬프/헤비 바/스위스 배지, HUD 계측 태그/조준선 박스/네온 발광 바/사이버 지표 등) 등록.
+      - 슬라이드 테마 선택 시 실시간으로 대표 개체 목록을 반환하는 동적 매핑 로직 완비.
+      - 시그니처 버튼 라벨의 아이콘 중복 노출 현상 정리.
+  - `index.html`:
+    - 좌측 사이드바 패널 개체 선택 영역 하단에 `03 테마 시그니처 개체` 섹션(`#themeSignatureBlock`) 추가.
+    - 현재 슬라이드 테마에 최적화된 시그니처 개체들을 한눈에 확인하고 클릭 한 번으로 본문 슬라이드에 즉시 배치할 수 있는 전용 팔레트 UI 구축.
+    - 테마 스타일 모달 창의 썸네일 규격을 통일하고 16:9 실물 커버 미리보기 타이틀 업데이트.
+  - `ai-intake.js`:
+    - 테마 스타일 모달 창에서 코어 디자인을 포함한 44종 모든 테마의 썸네일 박스 크기와 비례를 완벽하게 통일하여 시각적 일관성 확보.
+    - 16:9 커버 실물 라이브 미리보기 iframe 및 코어 커버 프리뷰 연동.
+  - `app.js`:
+    - **테마 시그니처 패널 동적 연동 (`updateThemeSignatureControls`, `insertThemeSignatureComponent`)**:
+      - 슬라이드 테마 변경 또는 다른 슬라이드 선택 시 현재 테마의 시그니처 개체 버튼들을 왼쪽 패널에 동적 렌더링.
+      - 개체 추가 시 본문 캔버스 중앙에 최적 비율(`w, h`)로 자동 배치하고 즉각 선택 상태로 전환.
+    - **시그니처 개체의 캔버스 조작 및 텍스트 서식 툴바(`#textToolbar`) 완벽 통합**:
+      - `pointerdown` 이벤트 처리기 개선: HTML 카드 내부 클릭 시 조기 반환되던 문제를 해결하여 시그니처 개체 클릭 시 선택 테두리(`is-selected`), 8개 크기 조절 핸들, 상단 360도 회전 핸들이 정상 활성화되도록 지원.
+      - `applySignatureCustomStyles(wrapper, object, element)`: 서식 툴바에서 글자색(`textColor`), 배경색(`bgColor`), 테두리(`borderColor`, `borderWidth`, `borderStyle`), 글자 크기(`fontSize`), 정렬(`textAlign`) 변경 시 시그니처 개체 내부 컨테이너 및 텍스트에 실시간 즉시 반영.
+      - `showTextToolbar`: 시그니처 개체 선택 시 현재 계산된 글자색, 배경색, 테두리, 폰트 크기, 정렬값을 자동으로 읽어와 서식 툴바 컨트롤에 정확히 표시.
+      - `beginSignatureTextEdit(event, object, element)`: 시그니처 개체 더블 클릭 시 내부 텍스트(제목, 본문, 라벨 등)가 인라인 편집 상태(`contentEditable = "true"`)로 전환되어 문구를 직접 수정할 수 있도록 지원.
+      - `commitActiveTextEditing`: 텍스트 수정 및 서식 변경 시 `object.htmlContent`에 실시간 동기화하여 안전하게 저장.
+      - 인라인 셀렉션 툴바(`#textSelectionToolbar`) 연동 및 `syncActiveInlineEdit()` 지원.
+  - `style.css`:
+    - 8대 아키타입별 66종 시그니처 컴포넌트 전용 CSS 스타일링 완비.
+    - 시그니처 개체 캔버스 컨테이너(`.canvas-object.signature-object`) 투명 배경, 선택 시 파란 점선 외곽선(`.is-selected`), 편집 모드 외곽선(`.is-editing`), 이동 커서(`cursor: grab;`, `cursor: text;`) 스타일 적용.
+    - 인라인 텍스트 편집 중인 요소에 대한 점선 가이드 및 텍스트 선택 허용 스타일 추가.
+- **검증 결과**:
+  - `node --check app.js; node --check designs/options.js; node --check ai-intake.js` 구문 및 정적 무결성 100% 통과 (Exit code: 0).
+  - `scratch/verify_signature_support.js` 실행: 14개 아키타입(별칭 포함), 66종 시그니처 컴포넌트 등록, 중복 아이콘 0건, 텍스트 서식 툴바 및 인라인 편집/드래그 연동 100% 검증 완료.
+

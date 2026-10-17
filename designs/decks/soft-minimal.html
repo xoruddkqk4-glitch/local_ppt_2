@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko" data-template="soft-minimal">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOFT LAYERED MINIMAL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&display=swap">
+<style>
+/* === KOREAN FONTS === */
+@font-face{font-family:'Pretendard';font-display:swap;src:url("fonts/Pretendard-Regular.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/pretendard/Pretendard-Regular.woff2") format("woff2");font-weight:400}
+@font-face{font-family:'Pretendard';font-display:swap;src:url("fonts/Pretendard-Bold.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/pretendard/Pretendard-Bold.woff2") format("woff2");font-weight:700}
+:root {
+  --stage-bg: #F7F8FC;
+  --slide-bg: #F7F8FC;
+  --font-title: 'Plus Jakarta Sans', 'Pretendard', sans-serif;
+  --font-body: 'Pretendard', sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--stage-bg, #000); font-family:var(--font-body); }
+.deck-viewport { position:fixed; inset:0; overflow:hidden; background:var(--stage-bg, #000); }
+.deck-stage { position:absolute; left:0; top:0; width:1920px; height:1080px; overflow:hidden; transform-origin:0 0; background:var(--slide-bg, #fff); }
+.slide { position:absolute; inset:0; width:1920px; height:1080px; overflow:hidden; display:block; visibility:visible; opacity:1; background:var(--slide-bg, #fff); }
+html.in-frame .dk-nav, html.in-frame .dk-controls, html.in-frame .hint { display:none !important; }
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+  <div class="deck-stage" id="deckStage">
+    <section class="slide s1 active visible" style="font-family:var(--font-title);">
+      
+      <div style="position:absolute; right:200px; top:120px; width:500px; height:500px; border-radius:50%; background:radial-gradient(circle, rgba(99,102,241,0.18) 0%, rgba(247,248,252,0) 70%); pointer-events:none;"></div>
+      <div style="position:absolute; left:120px; top:120px; display:flex; gap:16px;">
+        <span style="background:#fff; border:1px solid #e2e8f0; box-shadow:0 4px 12px rgba(0,0,0,0.05); border-radius:24px; padding:10px 26px; font-size:22px; font-weight:700; color:#6366f1;">ELEGANT SOFTNESS</span>
+        <span style="background:#fff; border:1px solid #e2e8f0; box-shadow:0 4px 12px rgba(0,0,0,0.05); border-radius:24px; padding:10px 26px; font-size:22px; font-weight:700; color:#14b8a6;">MODERN SAAS</span>
+      </div>
+      <div style="position:absolute; left:120px; top:280px; z-index:2;">
+        <h1 style="font-size:132px; font-weight:900; line-height:0.95; letter-spacing:-0.04em; color:#0f172a; margin:0;">SOFT LAYERED<br>MINIMAL</h1>
+        <p style="font-size:38px; font-weight:600; color:#64748b; margin:35px 0 0 0;">눈이 편안한 뉴트럴 톤과 섬세한 레이어로 전하는 세련미</p>
+      </div>
+      <div style="position:absolute; right:150px; top:240px; width:380px; background:#fff; border-radius:28px; padding:36px; box-shadow:0 20px 40px rgba(99,102,241,0.12); border:1px solid #e2e8f0;">
+        <div style="width:48px; height:48px; border-radius:14px; background:#6366f1; margin-bottom:20px;"></div>
+        <span style="font-size:32px; font-weight:800; color:#0f172a;">SUBTLE DEPTH</span>
+        <p style="font-size:22px; color:#64748b; margin:12px 0 0 0; line-height:1.5;">과하지 않은 그림자와 부드러운 라운딩으로 완성한 가독성</p>
+      </div>
+      <div style="position:absolute; left:120px; right:120px; bottom:90px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e2e8f0; padding-top:20px;">
+        <span style="font-size:22px; font-weight:600; color:#94a3b8;">#6366F1 · #14B8A6 · #F59E0B</span>
+        <span style="font-size:24px; font-weight:800; color:#0f172a;">LOCAL PPT · CORE DESIGN 08</span>
+      </div>
+        
+    </section>
+  </div>
+</div>
+<script>
+(function() {
+  var stage = document.getElementById('deckStage');
+  if (window.top !== window) document.documentElement.classList.add('in-frame');
+  function fit() {
+    var f = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = 'translate(' + (innerWidth - 1920 * f) / 2 + 'px,' + (innerHeight - 1080 * f) / 2 + 'px) scale(' + f + ')';
+  }
+  fit();
+  addEventListener('resize', fit);
+})();
+</script>
+</body>
+</html>

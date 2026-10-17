@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko" data-template="bauhaus">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BAUHAUS 1919</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap">
+<style>
+/* === KOREAN FONTS === */
+@font-face{font-family:'Pretendard';font-display:swap;src:url("fonts/Pretendard-Regular.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/pretendard/Pretendard-Regular.woff2") format("woff2");font-weight:400}
+@font-face{font-family:'Pretendard';font-display:swap;src:url("fonts/Pretendard-Bold.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/pretendard/Pretendard-Bold.woff2") format("woff2");font-weight:700}
+:root {
+  --stage-bg: #FFFDF8;
+  --slide-bg: #FFFDF8;
+  --font-title: 'Archivo Black', 'Pretendard', sans-serif;
+  --font-body: 'Pretendard', sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--stage-bg, #000); font-family:var(--font-body); }
+.deck-viewport { position:fixed; inset:0; overflow:hidden; background:var(--stage-bg, #000); }
+.deck-stage { position:absolute; left:0; top:0; width:1920px; height:1080px; overflow:hidden; transform-origin:0 0; background:var(--slide-bg, #fff); }
+.slide { position:absolute; inset:0; width:1920px; height:1080px; overflow:hidden; display:block; visibility:visible; opacity:1; background:var(--slide-bg, #fff); }
+html.in-frame .dk-nav, html.in-frame .dk-controls, html.in-frame .hint { display:none !important; }
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+  <div class="deck-stage" id="deckStage">
+    <section class="slide s1 active visible" style="font-family:var(--font-title);">
+      
+      <div style="position:absolute; inset:0; background-image:linear-gradient(#1515150e 1px,transparent 1px),linear-gradient(90deg,#1515150e 1px,transparent 1px); background-size:60px 60px;"></div>
+      <div style="position:absolute; left:120px; top:100px; display:flex; align-items:center; gap:20px;">
+        <span style="background:#151515; color:#fff; font-size:24px; font-weight:900; padding:8px 24px; letter-spacing:0.1em;">WEIMAR · DESSAU</span>
+        <span style="font-size:24px; font-weight:800; color:#151515;">FORM FOLLOWS FUNCTION</span>
+      </div>
+      <div style="position:absolute; left:120px; top:240px; z-index:2;">
+        <h1 style="font-size:160px; font-weight:900; line-height:0.9; letter-spacing:-0.05em; color:#151515; margin:0;">BAUHAUS</h1>
+        <p style="font-size:42px; font-weight:700; color:#e11d48; margin:30px 0 0 0; letter-spacing:-0.02em;">기하학과 삼원색으로 구축하는 현대 조형의 본질</p>
+      </div>
+      <div style="position:absolute; right:160px; top:180px; width:400px; height:400px;">
+        <div style="position:absolute; right:0; top:0; width:340px; height:340px; border-radius:50%; background:#2563eb;"></div>
+        <div style="position:absolute; left:40px; bottom:20px; width:260px; height:260px; background:#e11d48; transform:rotate(12deg);"></div>
+        <div style="position:absolute; right:120px; bottom:80px; width:0; height:0; border-left:140px solid transparent; border-right:140px solid transparent; border-bottom:240px solid #f59e0b;"></div>
+      </div>
+      <div style="position:absolute; left:120px; right:120px; bottom:90px; display:flex; justify-content:space-between; align-items:flex-end; border-top:4px solid #151515; padding-top:24px;">
+        <div style="display:flex; gap:16px;">
+          <span style="font-size:22px; font-weight:800; background:#e11d48; color:#fff; padding:6px 18px;">#E11D48</span>
+          <span style="font-size:22px; font-weight:800; background:#2563eb; color:#fff; padding:6px 18px;">#2563EB</span>
+          <span style="font-size:22px; font-weight:800; background:#f59e0b; color:#151515; padding:6px 18px;">#F59E0B</span>
+        </div>
+        <span style="font-size:26px; font-weight:900; letter-spacing:0.05em; color:#151515;">LOCAL PPT · CORE DESIGN 01</span>
+      </div>
+        
+    </section>
+  </div>
+</div>
+<script>
+(function() {
+  var stage = document.getElementById('deckStage');
+  if (window.top !== window) document.documentElement.classList.add('in-frame');
+  function fit() {
+    var f = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = 'translate(' + (innerWidth - 1920 * f) / 2 + 'px,' + (innerHeight - 1080 * f) / 2 + 'px) scale(' + f + ')';
+  }
+  fit();
+  addEventListener('resize', fit);
+})();
+</script>
+</body>
+</html>

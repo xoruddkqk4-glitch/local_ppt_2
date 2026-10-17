@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko" data-template="swiss-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWISS GRID MODERN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap">
+<style>
+/* === KOREAN FONTS === */
+@font-face{font-family:'Pretendard';font-display:swap;src:url("fonts/Pretendard-Regular.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/pretendard/Pretendard-Regular.woff2") format("woff2");font-weight:400}
+@font-face{font-family:'Pretendard';font-display:swap;src:url("fonts/Pretendard-Bold.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/pretendard/Pretendard-Bold.woff2") format("woff2");font-weight:700}
+:root {
+  --stage-bg: #FFFFFF;
+  --slide-bg: #FFFFFF;
+  --font-title: 'Inter', 'Pretendard', sans-serif;
+  --font-body: 'Pretendard', sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--stage-bg, #000); font-family:var(--font-body); }
+.deck-viewport { position:fixed; inset:0; overflow:hidden; background:var(--stage-bg, #000); }
+.deck-stage { position:absolute; left:0; top:0; width:1920px; height:1080px; overflow:hidden; transform-origin:0 0; background:var(--slide-bg, #fff); }
+.slide { position:absolute; inset:0; width:1920px; height:1080px; overflow:hidden; display:block; visibility:visible; opacity:1; background:var(--slide-bg, #fff); }
+html.in-frame .dk-nav, html.in-frame .dk-controls, html.in-frame .hint { display:none !important; }
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+  <div class="deck-stage" id="deckStage">
+    <section class="slide s1 active visible" style="font-family:var(--font-title);">
+      
+      <div style="position:absolute; inset:0; background-image:linear-gradient(#1113180e 1px,transparent 1px),linear-gradient(90deg,#1113180e 1px,transparent 1px); background-size:60px 60px;"></div>
+      <div style="position:absolute; left:120px; top:120px; display:flex; gap:16px;">
+        <span style="background:#1e40af; color:#fff; padding:6px 18px; font-size:20px; font-weight:800;">MODERN DATA</span>
+        <span style="border:1px solid #111; padding:6px 18px; font-size:20px; font-weight:800;">12-COL BLUEPRINT</span>
+      </div>
+      <div style="position:absolute; left:120px; top:280px;">
+        <h1 style="font-size:130px; font-weight:900; line-height:0.95; letter-spacing:-0.05em; color:#111318; margin:0;">SWISS GRID<br>SYSTEM</h1>
+        <p style="font-size:36px; font-weight:700; color:#1e40af; margin:30px 0 0 0;">정교한 12열 시스템과 단일 블루 포인트의 신뢰감</p>
+      </div>
+      <div style="position:absolute; right:140px; top:240px; width:380px; border:2px solid #111318; background:#fff; padding:32px;">
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:20px;">
+          <div style="height:24px; background:#1e40af;"></div><div style="height:24px; background:#1e40af; opacity:0.6;"></div><div style="height:24px; background:#1e40af; opacity:0.3;"></div><div style="height:24px; border:1px solid #111;"></div>
+        </div>
+        <span style="font-size:28px; font-weight:900; color:#111318;">SYSTEM ARCHITECTURE</span>
+        <p style="font-size:20px; color:#64748b; margin:12px 0 0 0;">데이터와 텍스트를 명확하게 정렬하는 정밀 모듈</p>
+      </div>
+      <div style="position:absolute; left:120px; right:120px; bottom:90px; display:flex; justify-content:space-between; align-items:center; border-top:2px solid #111318; padding-top:20px;">
+        <span style="font-size:22px; font-weight:700; color:#64748b;">#1E40AF · #0F766E · #B45309</span>
+        <span style="font-size:24px; font-weight:900; color:#111318;">LOCAL PPT · CORE DESIGN 06</span>
+      </div>
+        
+    </section>
+  </div>
+</div>
+<script>
+(function() {
+  var stage = document.getElementById('deckStage');
+  if (window.top !== window) document.documentElement.classList.add('in-frame');
+  function fit() {
+    var f = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = 'translate(' + (innerWidth - 1920 * f) / 2 + 'px,' + (innerHeight - 1080 * f) / 2 + 'px) scale(' + f + ')';
+  }
+  fit();
+  addEventListener('resize', fit);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko" data-template="swiss">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWISS MINIMAL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap">
+<style>
+/* === KOREAN FONTS === */
+@font-face{font-family:'Pretendard';font-display:swap;src:url("fonts/Pretendard-Regular.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/pretendard/Pretendard-Regular.woff2") format("woff2");font-weight:400}
+@font-face{font-family:'Pretendard';font-display:swap;src:url("fonts/Pretendard-Bold.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/pretendard/Pretendard-Bold.woff2") format("woff2");font-weight:700}
+:root {
+  --stage-bg: #FFFFFF;
+  --slide-bg: #FFFFFF;
+  --font-title: 'Inter', 'Pretendard', sans-serif;
+  --font-body: 'Pretendard', sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--stage-bg, #000); font-family:var(--font-body); }
+.deck-viewport { position:fixed; inset:0; overflow:hidden; background:var(--stage-bg, #000); }
+.deck-stage { position:absolute; left:0; top:0; width:1920px; height:1080px; overflow:hidden; transform-origin:0 0; background:var(--slide-bg, #fff); }
+.slide { position:absolute; inset:0; width:1920px; height:1080px; overflow:hidden; display:block; visibility:visible; opacity:1; background:var(--slide-bg, #fff); }
+html.in-frame .dk-nav, html.in-frame .dk-controls, html.in-frame .hint { display:none !important; }
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+  <div class="deck-stage" id="deckStage">
+    <section class="slide s1 active visible" style="font-family:var(--font-title);">
+      
+      <div style="position:absolute; inset:0; background-image:linear-gradient(#1111110a 1px,transparent 1px),linear-gradient(90deg,#1111110a 1px,transparent 1px); background-size:80px 80px;"></div>
+      <div style="position:absolute; left:120px; top:120px; display:flex; align-items:center; gap:24px;">
+        <div style="width:24px; height:24px; background:#2563eb;"></div>
+        <span style="font-size:22px; font-weight:800; letter-spacing:0.12em; color:#111;">ZURICH · BASEL SCHOOL</span>
+      </div>
+      <div style="position:absolute; left:120px; top:260px; z-index:2;">
+        <h1 style="font-size:144px; font-weight:900; line-height:0.92; letter-spacing:-0.05em; color:#111; margin:0;">SWISS<br>MINIMAL</h1>
+        <p style="font-size:38px; font-weight:700; color:#475569; margin:35px 0 0 0; letter-spacing:-0.03em;">완벽한 기하학적 비례와 넉넉한 여백이 만드는 정제된 명료함</p>
+      </div>
+      <div style="position:absolute; right:160px; top:240px; width:340px; border:2px solid #111; padding:32px; background:#fff;">
+        <span style="font-size:18px; font-weight:800; color:#2563eb; letter-spacing:0.08em;">GRID SPECIFICATION</span>
+        <div style="font-size:48px; font-weight:900; margin:14px 0; color:#111;">12 COL</div>
+        <p style="font-size:20px; color:#64748b; margin:0; line-height:1.5;">정보의 질서와 가독성을 최우선으로 고려한 기능적 타이포그래피</p>
+      </div>
+      <div style="position:absolute; left:120px; right:120px; bottom:90px; display:flex; justify-content:space-between; align-items:center; border-top:2px solid #111; padding-top:24px;">
+        <span style="font-size:22px; font-weight:700; color:#64748b;">HELVETICA &amp; INTER TYPOGRAPHY</span>
+        <span style="font-size:24px; font-weight:900; color:#111;">LOCAL PPT · CORE DESIGN 05</span>
+      </div>
+        
+    </section>
+  </div>
+</div>
+<script>
+(function() {
+  var stage = document.getElementById('deckStage');
+  if (window.top !== window) document.documentElement.classList.add('in-frame');
+  function fit() {
+    var f = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = 'translate(' + (innerWidth - 1920 * f) / 2 + 'px,' + (innerHeight - 1080 * f) / 2 + 'px) scale(' + f + ')';
+  }
+  fit();
+  addEventListener('resize', fit);
+})();
+</script>
+</body>
+</html>

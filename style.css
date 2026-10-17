@@ -586,7 +586,21 @@ kbd { border:1px solid currentColor; padding:1px 3px; font-size:10px; }
 .page-item.is-current .page-thumbnail-box { border-color:#2563eb; }
 .mini-slide-canvas { width:100%; height:100%; position:relative; overflow:hidden; box-sizing:border-box; background-color:var(--paper, #fffdf8); }
 .mini-canvas-object { position:absolute; box-sizing:border-box; overflow:hidden; display:flex; align-items:center; justify-content:center; }
-.presentation-stage { position:relative; flex:none; width:100%; height:auto; max-height:calc(100vh - 150px); aspect-ratio:16/9; overflow:hidden; border:3px solid var(--ink); background-color:var(--paper); background-image:linear-gradient(#1515150c 1px,transparent 1px),linear-gradient(90deg,#1515150c 1px,transparent 1px); background-size:5% 5%; box-shadow:8px 8px 0 var(--ink); }
+.presentation-stage {
+  position: relative;
+  flex: none;
+  width: 100%;
+  height: auto;
+  max-height: calc(100vh - 150px);
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  border: 3px solid var(--ink);
+  background-color: var(--slide-bg, #ffffff);
+  box-shadow: 8px 8px 0 var(--ink);
+  font-family: var(--theme-body-font, Pretendard, system-ui, sans-serif);
+  font-weight: var(--theme-body-weight, 400);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
 .stage-canvas-row { display:flex; align-items:center; justify-content:center; gap:14px; width:100%; max-width:100%; height:100%; min-height:0; }
 .stage-floating-actions { display:flex; flex-direction:column; gap:8px; align-self:center; flex-shrink:0; }
 .floating-action-btn { padding:10px 14px; font-size:12.5px; font-weight:900; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:3px 3px 0 var(--ink); background:var(--paper); border:2px solid var(--ink); cursor:pointer; transition:transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; }
@@ -622,7 +636,11 @@ body.is-fullscreen .canvas-object {
 .stage-marquee-box { position:absolute; border:1.5px dashed var(--blue, #2563eb); background:rgba(37,99,235,0.12); pointer-events:none; z-index:99; border-radius:2px; box-sizing:border-box; }
 .canvas-object.is-editing { outline:3px solid #2563eb; outline-offset:4px; cursor:text; z-index:100 !important; user-select:text !important; }
 .canvas-object.is-editing .canvas-text,
-.canvas-object.is-editing .canvas-text * { user-select:text !important; cursor:text !important; outline:none !important; pointer-events:auto !important; }
+.canvas-object.is-editing .canvas-text *,
+.canvas-object.is-editing .html-content-wrapper,
+.canvas-object.is-editing .sig-comp,
+.canvas-object.is-editing .sig-comp * { user-select:text !important; cursor:text !important; outline:none !important; pointer-events:auto !important; }
+.canvas-object.is-editing [contenteditable="true"] { outline: 2px dashed #2563eb !important; outline-offset: 3px !important; border-radius: 3px; }
 .canvas-object.is-editing .canvas-text { color:var(--ink, #151515); }
 .canvas-text { width:100%; height:100%; box-sizing:border-box !important; display:block; align-content:center; text-align:center; white-space:pre-wrap; word-break:keep-all; overflow-wrap:break-word; overflow:hidden; font-size:calc(var(--object-font-size,28px) * var(--stage-scale, 1) * var(--hierarchy-scale, 1)); font-weight:850; line-height:1.15; }
 .canvas-text div,
@@ -2610,7 +2628,8 @@ body.is-present-mode #presentationStage {
 }
 
 /* HTML Custom Slide Fit & Scrollbar Elimination */
-.html-card-object {
+.slide[data-template="html-custom"] .html-card-object,
+.html-card-object.full-slide-html {
   width: 100% !important;
   height: 100% !important;
   overflow: hidden !important;
@@ -2642,4 +2661,1584 @@ body.is-present-mode #presentationStage {
   box-sizing: border-box !important;
 }
 
+/* =========================================================
+   DYNAMIC THEME TYPOGRAPHY & FONT BINDING (k-slide & Core)
+   ========================================================= */
+#presentationStage,
+.presentation-stage {
+  font-family: var(--theme-body-font, Pretendard, system-ui, sans-serif);
+  font-weight: var(--theme-body-weight, 400);
+}
 
+#presentationStage [data-role="cover-title"],
+#presentationStage [data-role="page-title"],
+#presentationStage [data-role="mind-root"],
+#presentationStage .cover-title,
+#presentationStage .page-title,
+#presentationStage .bullet-title,
+#presentationStage .card-title,
+#presentationStage h1,
+#presentationStage h2 {
+  font-family: var(--theme-title-font, var(--theme-body-font, Pretendard, sans-serif)) !important;
+  font-weight: var(--theme-title-weight, 700) !important;
+  letter-spacing: -0.02em;
+}
+
+#presentationStage [data-role="cover-subtitle"],
+#presentationStage [data-role="bullet-item"],
+#presentationStage [data-role="cover-item"],
+#presentationStage [data-role="mind-node"],
+#presentationStage .cover-subtitle,
+#presentationStage .bullet-text,
+#presentationStage .card-description,
+#presentationStage .canvas-text p {
+  font-family: var(--theme-body-font, Pretendard, sans-serif) !important;
+  font-weight: var(--theme-body-weight, 400) !important;
+}
+
+#presentationStage.is-dark-theme .canvas-text,
+#presentationStage.is-dark-theme .canvas-text *:not([style*="color:"]) {
+  color: var(--ink, #f8fafc);
+}
+
+/* =========================================================
+   STAGE DESIGN BACKGROUND TEXTURES & PATTERNS
+   ========================================================= */
+#presentationStage[data-design="bauhaus"],
+.presentation-stage[data-design="bauhaus"] {
+  background-color: #FFFDF8;
+  background-image: linear-gradient(#1515150c 1px, transparent 1px), linear-gradient(90deg, #1515150c 1px, transparent 1px);
+  background-size: 5% 5%;
+}
+
+#presentationStage[data-design="8-bit-orbit"],
+.presentation-stage[data-design="8-bit-orbit"] {
+  background-color: #0A0E27;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 2px, rgba(0, 0, 0, 0.28) 2px 4px),
+    radial-gradient(ellipse at center, transparent 40%, rgba(10, 14, 39, 0.85) 100%);
+  color: #ffffff;
+  border-color: #5EDCF4;
+  box-shadow: 8px 8px 0 #5EDCF4;
+}
+#presentationStage[data-design="8-bit-orbit"] .canvas-text {
+  color: #ffffff;
+  text-shadow: 2px 2px 0 #0A0E27;
+}
+
+#presentationStage[data-design="biennale-yellow"],
+.presentation-stage[data-design="biennale-yellow"] {
+  background-color: #E9E5DB;
+  background-image: radial-gradient(ellipse at 50% 12%, rgba(241, 238, 46, 0.7) 0%, rgba(241, 238, 46, 0.3) 35%, rgba(233, 229, 219, 0) 75%);
+  color: #1A1A2E;
+  border-color: #1A1A2E;
+}
+
+#presentationStage[data-design="block-frame"],
+.presentation-stage[data-design="block-frame"] {
+  background-color: #FFFFFF;
+  border: 4px solid #111111;
+  box-shadow: 10px 10px 0 #111111;
+}
+
+#presentationStage[data-design="pin-and-paper"],
+.presentation-stage[data-design="pin-and-paper"] {
+  background-color: #FFFDF8;
+  background-image:
+    linear-gradient(90deg, transparent 72px, #f43f5e33 72px, #f43f5e33 74px, transparent 74px),
+    repeating-linear-gradient(transparent 0 28px, #0284c718 28px 29px);
+  border-color: #0f172a;
+}
+
+#presentationStage[data-design="retro-windows"],
+.presentation-stage[data-design="retro-windows"] {
+  background-color: #008080;
+  border: 4px outset #dfdfdf;
+  box-shadow: 8px 8px 0 #000000;
+}
+
+#presentationStage[data-design="cobalt-grid"],
+.presentation-stage[data-design="cobalt-grid"] {
+  background-color: #0E1626;
+  background-image:
+    linear-gradient(rgba(78, 140, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(78, 140, 255, 0.12) 1px, transparent 1px);
+  background-size: 40px 40px;
+  color: #f1f5f9;
+  border-color: #3b82f6;
+  box-shadow: 8px 8px 0 #1e3a8a;
+}
+#presentationStage[data-design="cobalt-grid"] .canvas-text {
+  color: #f8fafc;
+}
+
+#presentationStage[data-design="raw-grid"],
+.presentation-stage[data-design="raw-grid"] {
+  background-color: #FFFFFF;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  border-color: #000000;
+}
+
+#presentationStage[data-design="editorial-forest"],
+.presentation-stage[data-design="editorial-forest"] {
+  background-color: #2E4A2A;
+  color: #D9DFD2;
+  border-color: #E89CB1;
+  box-shadow: 8px 8px 0 #1B2F18;
+}
+#presentationStage[data-design="editorial-forest"] .canvas-text {
+  color: #D9DFD2;
+}
+
+#presentationStage[data-design="broadside"],
+.presentation-stage[data-design="broadside"] {
+  background-color: #111111;
+  color: #F0ECE5;
+  border-color: #E85D26;
+  box-shadow: 8px 8px 0 #E85D26;
+}
+#presentationStage[data-design="broadside"] .canvas-text {
+  color: #F0ECE5;
+}
+
+#presentationStage[data-design="studio"],
+.presentation-stage[data-design="studio"] {
+  background-color: #0F1013;
+  color: #F3F4F6;
+  border-color: #374151;
+  box-shadow: 8px 8px 0 #000000;
+}
+#presentationStage[data-design="studio"] .canvas-text {
+  color: #F3F4F6;
+}
+
+#presentationStage[data-design="cyber"],
+.presentation-stage[data-design="cyber"] {
+  background-color: #0a0b10;
+  background-image:
+    linear-gradient(rgba(0, 243, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 0, 85, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+  color: #00f3ff;
+  border-color: #00f3ff;
+  box-shadow: 0 0 16px rgba(0, 243, 255, 0.35);
+}
+#presentationStage[data-design="cyber"] .canvas-text {
+  color: #ffffff;
+}
+
+#presentationStage[data-design="skeuo"],
+.presentation-stage[data-design="skeuo"] {
+  background-color: #EAD2AA;
+  background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.06) 100%);
+  border: 3px solid #5d351b;
+  box-shadow: inset 0 0 16px rgba(107, 62, 37, 0.35), 8px 8px 0 #5d351b;
+}
+
+#presentationStage[data-design="clay"],
+.presentation-stage[data-design="clay"] {
+  background-color: #F7EEE9;
+  border: 3px solid #d4c2b9;
+  box-shadow: 10px 10px 24px #c4b6b5, -6px -6px 16px #ffffff;
+  border-radius: 12px;
+}
+
+#presentationStage[data-design="swiss"],
+.presentation-stage[data-design="swiss"] {
+  background-color: #FFFFFF;
+  border: 2px solid #111111;
+  box-shadow: 8px 8px 0 #111111;
+}
+
+#presentationStage[data-design="monochrome"],
+.presentation-stage[data-design="monochrome"] {
+  background-color: #FFFFFF;
+  border: 3px solid #000000;
+  box-shadow: 8px 8px 0 #000000;
+  color: #000000;
+}
+
+/* =========================================================
+   MODAL 16:9 LIVE PREVIEW & DESIGN RULES CARD
+   ========================================================= */
+.theme-live-preview-box {
+  position: relative;
+  width: 100% !important;
+  max-width: 100% !important;
+  aspect-ratio: 16 / 9 !important;
+  flex: 0 0 auto !important;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid var(--ink, #151515);
+  box-shadow: 3px 3px 0 var(--ink, #151515);
+  background: #000000;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box !important;
+}
+
+.theme-live-preview-iframe {
+  width: 100% !important;
+  height: 100% !important;
+  border: none;
+  display: block;
+  pointer-events: none;
+}
+
+.preview-badge-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.preview-badge {
+  font-size: 10px;
+  font-weight: 900;
+  padding: 3px 7px;
+  background: rgba(15, 23, 42, 0.85);
+  color: #ffffff;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+  letter-spacing: 0.02em;
+}
+
+.preview-open-link {
+  font-size: 10px;
+  font-weight: 900;
+  padding: 3px 7px;
+  background: #2563eb;
+  color: #ffffff;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+}
+
+.preview-open-link:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+/* Core 10 Themes Cover Frame */
+.core-cover-preview {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  padding: 18px 24px;
+  box-sizing: border-box !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.core-cover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.core-cover-brand {
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.core-cover-center {
+  margin: auto 0;
+  text-align: left;
+}
+
+.core-cover-title {
+  font-size: 26px;
+  font-weight: 950;
+  margin: 0 0 6px 0;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.core-cover-subtitle {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.4;
+  opacity: 0.9;
+}
+
+.core-cover-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.core-cover-tags {
+  display: flex;
+  gap: 6px;
+}
+
+.core-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.core-cover-dots {
+  display: flex;
+  gap: 5px;
+}
+
+/* Specs & Rules Card */
+.thumb-specs-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.thumb-font-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #1e293b;
+}
+
+.thumb-font-label strong {
+  color: #2563eb;
+  font-weight: 800;
+}
+
+.thumb-rules-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.thumb-rules-title {
+  font-size: 11px;
+  font-weight: 900;
+  color: #334155;
+  letter-spacing: -0.01em;
+}
+
+.thumb-rules-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.thumb-rules-list li {
+  margin-bottom: 2px;
+}
+
+.thumb-footnote-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2px;
+  padding-top: 6px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.thumb-meta-chip {
+  font-size: 10.5px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.thumb-mini-swatches {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.mini-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+/* Container scrolling & sizing */
+.design-thumbnail-preview {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  min-height: 0;
+  overflow-y: auto;
+  gap: 10px;
+  padding-right: 4px;
+}
+
+/* =========================================================
+   DYNAMIC THEME SIGNATURE PALETTE & COMPONENTS SYSTEM
+   Section 03 동적 시그니처 개체 및 캔버스 렌더링 스타일
+   ========================================================= */
+
+/* Left Panel Section 03 Dynamic Palette UI */
+.theme-signature-block {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #cbd5e1;
+}
+
+.theme-signature-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.theme-signature-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.theme-signature-icon {
+  font-size: 14px;
+}
+
+#themeSignatureTitle {
+  font-size: 12px;
+  font-weight: 850;
+  color: #0f172a;
+}
+
+.theme-signature-badge {
+  background: #2563eb;
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.theme-signature-guide {
+  margin: 0 0 10px;
+  font-size: 10.5px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.theme-signature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.theme-sig-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 7px 8px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  border-radius: 6px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #1e293b !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.theme-sig-btn:hover {
+  background: #f8fafc !important;
+  border-color: #2563eb !important;
+  color: #2563eb !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 3px 6px rgba(37, 99, 235, 0.16) !important;
+}
+
+.theme-sig-icon {
+  font-size: 14px;
+  flex: none;
+}
+
+.theme-sig-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Canvas Object Signature Component Container */
+.canvas-object.signature-object {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  cursor: grab;
+}
+
+.canvas-object.signature-object.is-selected {
+  outline: 3px dashed #2563eb !important;
+  outline-offset: 5px !important;
+}
+
+.canvas-object.signature-object.is-editing {
+  outline: 3px solid #2563eb !important;
+  outline-offset: 5px !important;
+  cursor: text;
+}
+
+.canvas-object.signature-object .html-content-wrapper {
+  overflow: visible !important;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.sig-comp {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+}
+
+/* --- 1. Pixel & 8-Bit Orbit Styles --- */
+.sig-comp.pbtn {
+  background: #5edcf4;
+  color: #0f1b3d;
+  font-family: 'Space Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  padding: 8px 16px;
+  box-shadow: 3px 0 0 0 #0f1b3d, 0 3px 0 0 #0f1b3d, 3px 3px 0 0 #0f1b3d, 6px 3px 0 0 #f4d03f, 3px 6px 0 0 #f4d03f, 6px 6px 0 0 #f4d03f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+}
+
+.sig-comp.pbtn.pink {
+  background: #f0a6ca;
+  box-shadow: 3px 0 0 0 #0f1b3d, 0 3px 0 0 #0f1b3d, 3px 3px 0 0 #0f1b3d, 6px 3px 0 0 #5edcf4, 3px 6px 0 0 #5edcf4, 6px 6px 0 0 #5edcf4;
+}
+
+.sig-comp.pbar-box {
+  background: #0f1b3d;
+  border: 2px solid #5edcf4;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: 4px 4px 0 #f4d03f;
+}
+
+.pbar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  color: #f4d03f;
+  font-family: monospace;
+}
+
+.pbar-track {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid #5edcf4;
+  overflow: hidden;
+}
+
+.pbar-fill {
+  height: 100%;
+  background: #5edcf4;
+}
+
+.sig-comp.chip {
+  background: #0f1b3d;
+  color: #5edcf4;
+  font-family: 'Space Mono', monospace;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border: 1px solid #5edcf4;
+  box-shadow: 3px 3px 0 #0a0e27;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.05em;
+}
+
+.sig-comp.crt-box {
+  background: rgba(10, 14, 39, 0.95);
+  border: 2px solid #5edcf4;
+  padding: 14px 18px;
+  color: #5edcf4;
+  font-family: 'Space Mono', monospace;
+  box-shadow: 4px 4px 0 #f0a6ca;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.crt-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f4d03f;
+  margin-bottom: 6px;
+  letter-spacing: 0.05em;
+}
+
+.crt-body {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.sig-comp.qline-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #5edcf4;
+}
+
+.qline {
+  width: 50px;
+  height: 4px;
+  background: #f4d03f;
+  box-shadow: 2px 2px 0 #0f1b3d;
+  flex: none;
+}
+
+/* --- 2. Retro Windows OS Styles --- */
+.sig-comp.win {
+  background: #d4d0c8;
+  border-top: 2px solid #fff;
+  border-left: 2px solid #fff;
+  border-right: 2px solid #000;
+  border-bottom: 2px solid #000;
+  box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #404040;
+  font-family: 'MS Sans Serif', Tahoma, 'Pretendard', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.sig-comp.win .tb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  background: linear-gradient(90deg, #000080, #1084d0);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sig-comp.win .ic {
+  width: 16px;
+  height: 16px;
+  font-size: 11px;
+  display: grid;
+  place-items: center;
+}
+
+.sig-comp.win .fn {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sig-comp.win .wb {
+  display: flex;
+  gap: 2px;
+}
+
+.sig-comp.win .wb i {
+  width: 18px;
+  height: 16px;
+  background: #d4d0c8;
+  border-top: 1px solid #fff;
+  border-left: 1px solid #fff;
+  border-right: 1px solid #000;
+  border-bottom: 1px solid #000;
+  font-size: 10px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  color: #000;
+}
+
+.sig-comp.win .body {
+  padding: 10px 14px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: #000;
+}
+
+.sig-comp.win .gbox {
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  padding: 12px 10px 8px;
+  position: relative;
+  margin-top: 4px;
+}
+
+.sig-comp.win .gt {
+  position: absolute;
+  top: -9px;
+  left: 8px;
+  background: #d4d0c8;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #000;
+}
+
+.sig-comp.win .btn {
+  padding: 4px 14px;
+  background: #d4d0c8;
+  border-top: 2px solid #fff;
+  border-left: 2px solid #fff;
+  border-right: 2px solid #000;
+  border-bottom: 2px solid #000;
+  box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #404040;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #000;
+}
+
+.sig-comp.win .btn:active {
+  border-top-color: #000;
+  border-left-color: #000;
+  border-right-color: #fff;
+  border-bottom-color: #fff;
+}
+
+.sig-comp.win-alert-box {
+  background: #d4d0c8;
+  border-top: 2px solid #fff;
+  border-left: 2px solid #fff;
+  border-right: 2px solid #000;
+  border-bottom: 2px solid #000;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #404040;
+}
+
+.sig-comp.win-alert-icon {
+  font-size: 24px;
+  flex: none;
+}
+
+.sig-comp.win-alert-content strong {
+  display: block;
+  font-size: 13px;
+  color: #000;
+  margin-bottom: 2px;
+}
+
+.sig-comp.win-alert-content p {
+  margin: 0;
+  font-size: 11.5px;
+  color: #333;
+}
+
+.sig-comp.win-prog-wrap {
+  background: #d4d0c8;
+  border-top: 2px solid #fff;
+  border-left: 2px solid #fff;
+  border-right: 2px solid #000;
+  border-bottom: 2px solid #000;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.win-prog-lbl {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #000;
+}
+
+.sig-comp .prog {
+  height: 20px;
+  background: #fff;
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  padding: 2px;
+}
+
+.sig-comp .pf {
+  display: block;
+  height: 100%;
+  background: #000080;
+}
+
+.sig-comp.marq {
+  background: #fff;
+  border: 2px inset #808080;
+  padding: 4px 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #000080;
+  display: flex;
+  align-items: center;
+}
+
+/* --- 3. Neo-Brutalism & Block Frame Styles --- */
+.sig-comp.pill {
+  background: #fff;
+  color: #000;
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 #000;
+  padding: 6px 16px;
+  font-size: 13.5px;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.pill.pk {
+  background: #fe90e8;
+}
+
+.sig-comp.pill.yel {
+  background: #f7cb46;
+}
+
+.sig-comp.cb-card {
+  background: #fff;
+  border: 3px solid #000;
+  box-shadow: 6px 6px 0 #000;
+  padding: 16px 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.cb {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 0 solid #000;
+}
+
+.cb.tl {
+  left: 6px;
+  top: 6px;
+  border-width: 3px 0 0 3px;
+}
+
+.cb.br {
+  right: 6px;
+  bottom: 6px;
+  border-width: 0 3px 3px 0;
+}
+
+.cb-title {
+  font-size: 15px;
+  font-weight: 900;
+  color: #000;
+  margin-bottom: 4px;
+}
+
+.cb-desc {
+  font-size: 12px;
+  color: #333;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.sig-comp.stripe-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stripe {
+  flex: 1;
+  height: 26px;
+  border: 3px solid #000;
+  background: repeating-linear-gradient(45deg, #000 0 5px, #99e885 5px 12px);
+}
+
+.stripe-text {
+  font-size: 11px;
+  font-weight: 900;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+.sig-comp.tab-sticker {
+  background: #fff;
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 #000;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 900;
+  transform: rotate(-3deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.ln-cube {
+  background: #f7cb46;
+  color: #000;
+  border: 3px solid #000;
+  font-size: 18px;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+  box-shadow: 3px 3px 0 #000;
+}
+
+/* --- 4. Claymorphism & Soft 3D Styles --- */
+.sig-comp.clay-pill {
+  background: linear-gradient(135deg, #ff79b0, #ec4899);
+  color: #fff;
+  border-radius: 999px;
+  padding: 8px 22px;
+  font-size: 13.5px;
+  font-weight: 700;
+  box-shadow: 6px 6px 16px rgba(236, 72, 153, 0.35), inset 2px 2px 4px rgba(255, 255, 255, 0.6), inset -2px -2px 4px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.sig-comp.clay-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 18px 22px;
+  box-shadow: 10px 10px 24px rgba(185, 170, 169, 0.25), -6px -6px 16px #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.clay-card-icon {
+  font-size: 20px;
+  margin-bottom: 2px;
+}
+
+.clay-card-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #53414b;
+}
+
+.clay-card-desc {
+  font-size: 12px;
+  color: #78656f;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.sig-comp.clay-bubble {
+  background: #f7eee9;
+  color: #8b5cf6;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 4px 4px 10px rgba(139, 92, 246, 0.15), -3px -3px 8px #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.clay-stat {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 10px 16px;
+  box-shadow: 6px 6px 18px rgba(0, 0, 0, 0.06), -4px -4px 12px #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.clay-stat-val {
+  font-size: 22px;
+  font-weight: 900;
+  color: #10b981;
+}
+
+.clay-stat-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+/* --- 5. Pin & Paper & Craft Styles --- */
+.sig-comp.sticky-note {
+  padding: 18px 20px;
+  box-shadow: 3px 6px 15px rgba(0, 0, 0, 0.12);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-family: 'Caveat', 'Pretendard', sans-serif;
+}
+
+.sig-comp.sticky-note.yellow {
+  background: #fff8a6;
+  color: #2e2810;
+  transform: rotate(-1.5deg);
+}
+
+.sig-comp.sticky-note.mint {
+  background: #d4f7dc;
+  color: #12361b;
+  transform: rotate(1.5deg);
+}
+
+.pin-deco {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  filter: drop-shadow(1px 2px 2px rgba(0, 0, 0, 0.3));
+}
+
+.tape-deco {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px dashed rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.sticky-title {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.sticky-body {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.sig-comp.washi-tape-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.washi-tape {
+  flex: 1;
+  height: 18px;
+  background: rgba(239, 229, 106, 0.75);
+  border-left: 2px dashed rgba(0, 0, 0, 0.2);
+  border-right: 2px dashed rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.washi-text {
+  font-size: 11px;
+  font-weight: 800;
+  color: #333;
+  letter-spacing: 0.04em;
+}
+
+.sig-comp.clip-note {
+  background: #fffdf5;
+  border: 1px solid #d5cebf;
+  border-radius: 4px;
+  padding: 18px 20px;
+  box-shadow: 4px 6px 16px rgba(0, 0, 0, 0.08);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.binder-clip {
+  position: absolute;
+  top: -10px;
+  left: 24px;
+  width: 22px;
+  height: 14px;
+  background: #475569;
+  border-radius: 2px 2px 0 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.clip-note-title {
+  font-size: 15px;
+  font-weight: 850;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.clip-note-desc {
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* --- 6. Bauhaus & Constructivism Styles --- */
+.sig-comp.bauhaus-stamp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 11px;
+  color: #111;
+  letter-spacing: 0.05em;
+}
+
+.b-circle {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e11d48;
+}
+
+.b-square {
+  width: 14px;
+  height: 14px;
+  background: #2563eb;
+}
+
+.b-tri {
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 14px solid #f59e0b;
+}
+
+.sig-comp.construct-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.c-block {
+  width: 16px;
+  height: 16px;
+  background: #000;
+  flex: none;
+}
+
+.c-title {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: #000;
+}
+
+.sig-comp.swiss-badge {
+  background: #000;
+  color: #fff;
+  font-family: 'Helvetica Neue', 'Pretendard', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.04em;
+}
+
+.sig-comp.bauhaus-card {
+  background: #fffdf8;
+  border: 2px solid #000;
+  box-shadow: 4px 4px 0 #000;
+  padding: 16px 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.b-bar-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, #e11d48 33%, #2563eb 33% 66%, #f59e0b 66%);
+}
+
+.b-title {
+  font-size: 14px;
+  font-weight: 900;
+  color: #000;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.b-desc {
+  font-size: 11.5px;
+  color: #333;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* --- 7. Tech, Cobalt & Cyber Styles --- */
+.sig-comp.telemetry-tag {
+  background: rgba(15, 32, 66, 0.9);
+  border: 1px solid #3b82f6;
+  color: #60a5fa;
+  font-family: 'Chakra Petch', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.25);
+}
+
+.tele-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+  flex: none;
+}
+
+.sig-comp.crosshair-box {
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #f8fafc;
+  padding: 16px 20px;
+  position: relative;
+  font-family: 'Chakra Petch', sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.ch {
+  position: absolute;
+  font-size: 11px;
+  color: #3b82f6;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.ch.tl {
+  top: 3px;
+  left: 4px;
+}
+
+.ch.tr {
+  top: 3px;
+  right: 4px;
+}
+
+.ch.bl {
+  bottom: 3px;
+  left: 4px;
+}
+
+.ch.br {
+  bottom: 3px;
+  right: 4px;
+}
+
+.ch-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #60a5fa;
+  margin-bottom: 4px;
+}
+
+.ch-desc {
+  font-size: 11.5px;
+  color: #cbd5e1;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.sig-comp.neon-glow-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: monospace;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #67e8f9;
+}
+
+.neon-line {
+  width: 40px;
+  height: 4px;
+  background: #22d3ee;
+  box-shadow: 0 0 8px #22d3ee;
+  flex: none;
+}
+
+.sig-comp.cobalt-stat {
+  background: rgba(15, 32, 66, 0.85);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: 8px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(15, 32, 66, 0.4);
+}
+
+.c-stat-val {
+  font-size: 22px;
+  font-weight: 900;
+  color: #38bdf8;
+  font-family: 'Chakra Petch', monospace;
+}
+
+.c-stat-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+/* --- 8. Editorial & Biennale Yellow Styles --- */
+.sig-comp.editorial-badge {
+  border-top: 1px solid #1a1a2e;
+  border-bottom: 1px solid #1a1a2e;
+  padding: 6px 14px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #1a1a2e;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-comp.serif-quote-box {
+  border-left: 3px solid #f1ee2e;
+  background: rgba(233, 229, 219, 0.5);
+  padding: 12px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+.quote-mark {
+  font-size: 28px;
+  line-height: 1;
+  color: #1a1a2e;
+  opacity: 0.35;
+  margin-bottom: -6px;
+}
+
+.quote-body {
+  font-size: 12.5px;
+  font-style: italic;
+  line-height: 1.5;
+  color: #1a1a2e;
+  margin: 0 0 4px;
+}
+
+.quote-author {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.04em;
+}
+
+.sig-comp.bloom-glow-card {
+  background: #1a1a2e;
+  color: #f8fafc;
+  border-radius: 4px;
+  padding: 16px 20px;
+  box-shadow: 0 8px 24px rgba(241, 238, 46, 0.18);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.bloom-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #f1ee2e;
+  margin-bottom: 4px;
+  letter-spacing: 0.04em;
+}
+
+.bloom-desc {
+  font-size: 11.5px;
+  color: #e2e8f0;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sig-comp.index-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #1a1a2e;
+  letter-spacing: 0.06em;
+}
+
+.idx-dot {
+  color: #f1ee2e;
+  font-size: 12px;
+}
+
+/* =========================================================
+   BODY SLIDE THEME INHERITANCE (8-Archetype Integration)
+   본문 템플릿(카드, 박스, 요약)이 표지의 테두리/그림자를 자동 계승
+   ========================================================= */
+
+/* Archetype 1: Pixel & 8-Bit (8-bit-orbit, retro-zine, etc.) */
+body[data-design="8-bit-orbit"] #presentationStage .card,
+body[data-design="8-bit-orbit"] #presentationStage .structured-card,
+body[data-design="8-bit-orbit"] #presentationStage .side-accent-card {
+  background: rgba(15, 27, 61, 0.88) !important;
+  color: #ffffff !important;
+  border: 2px solid #5edcf4 !important;
+  box-shadow: 4px 4px 0 #0a0e27, 8px 8px 0 #f4d03f !important;
+  border-radius: 0 !important;
+}
+
+body[data-design="8-bit-orbit"] #presentationStage .card-title,
+body[data-design="8-bit-orbit"] #presentationStage .structured-card-heading {
+  color: #5edcf4 !important;
+  font-family: 'Space Mono', monospace !important;
+}
+
+body[data-design="8-bit-orbit"] #presentationStage .structured-card-value {
+  color: #f4d03f !important;
+}
+
+/* Archetype 2: Windows 95/98 (retro-windows) */
+body[data-design="retro-windows"] #presentationStage .card,
+body[data-design="retro-windows"] #presentationStage .structured-card,
+body[data-design="retro-windows"] #presentationStage .side-accent-card {
+  background: #d4d0c8 !important;
+  color: #000000 !important;
+  border-top: 2px solid #fff !important;
+  border-left: 2px solid #fff !important;
+  border-right: 2px solid #000 !important;
+  border-bottom: 2px solid #000 !important;
+  box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #404040 !important;
+  border-radius: 0 !important;
+}
+
+body[data-design="retro-windows"] #presentationStage .card-title,
+body[data-design="retro-windows"] #presentationStage .structured-card-heading {
+  color: #000080 !important;
+  font-family: 'MS Sans Serif', Tahoma, sans-serif !important;
+  font-weight: 700 !important;
+}
+
+/* Archetype 3: Neo-Brutalism & Bold Poster (block-frame, bold-poster, etc.) */
+body[data-design="block-frame"] #presentationStage .card,
+body[data-design="block-frame"] #presentationStage .structured-card,
+body[data-design="block-frame"] #presentationStage .side-accent-card,
+body[data-design="bold-poster"] #presentationStage .card,
+body[data-design="bold-poster"] #presentationStage .structured-card,
+body[data-design="peoples-platform"] #presentationStage .card {
+  background: #ffffff !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 6px 6px 0 #000000 !important;
+  border-radius: 0 !important;
+  color: #000000 !important;
+}
+
+/* Archetype 4: Pin & Paper & Craft (pin-and-paper, scatterbrain) */
+body[data-design="pin-and-paper"] #presentationStage .card,
+body[data-design="pin-and-paper"] #presentationStage .structured-card,
+body[data-design="scatterbrain"] #presentationStage .card,
+body[data-design="scatterbrain"] #presentationStage .structured-card {
+  background: #fffdf5 !important;
+  border: 1px solid #d5cebf !important;
+  box-shadow: 4px 6px 16px rgba(0, 0, 0, 0.07) !important;
+  border-radius: 4px !important;
+}
+
+/* Archetype 5: Tech & Cobalt Grid (cobalt-grid, raw-grid, cartesian) */
+body[data-design="cobalt-grid"] #presentationStage .card,
+body[data-design="cobalt-grid"] #presentationStage .structured-card,
+body[data-design="cobalt-grid"] #presentationStage .side-accent-card,
+body[data-design="raw-grid"] #presentationStage .card {
+  background: rgba(15, 32, 66, 0.78) !important;
+  color: #f0f4f8 !important;
+  border: 1px solid rgba(59, 130, 246, 0.45) !important;
+  box-shadow: 0 6px 20px rgba(15, 32, 66, 0.35) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+body[data-design="cobalt-grid"] #presentationStage .card-title,
+body[data-design="cobalt-grid"] #presentationStage .structured-card-heading {
+  color: #38bdf8 !important;
+  font-family: 'Chakra Petch', monospace !important;
+}
+
+/* Archetype 6: Editorial & Biennale (biennale-yellow, broadside, editorial-forest) */
+body[data-design="biennale-yellow"] #presentationStage .card,
+body[data-design="biennale-yellow"] #presentationStage .structured-card,
+body[data-design="editorial-forest"] #presentationStage .card,
+body[data-design="broadside"] #presentationStage .card {
+  border: 1px solid rgba(26, 26, 46, 0.18) !important;
+  border-radius: 2px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+}

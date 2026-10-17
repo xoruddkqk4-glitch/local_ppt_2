@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ko" data-template="8-bit-orbit">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>계절의 변화</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tektur:wght@700;900&family=Chakra+Petch:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+/* === KOREAN FONTS === */
+@font-face{font-family:'kp-0';font-display:swap;src:url("fonts/Mona12-Bold.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/mona12/Mona12-Bold.woff2") format("woff2");font-weight:700}
+@font-face{font-family:'kp-1';font-display:swap;src:url("fonts/Orbit-Regular.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/orbit/Orbit-Regular.woff2") format("woff2");font-weight:400}
+/* === THEME === */
+:root{--stage-bg:#0A0E27;--slide-bg:#0A0E27;
+  --kt:'kp-0';--kb:'kp-1';--ka:'kp-1';
+  --wt:700;--wb:400}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-synthesis:none;word-break:keep-all;letter-spacing:0}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:disabled{cursor:default}
+/* === VIEWPORT BASE (frontend-slides, mandatory) === */
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES
+   Include this ENTIRE file in every presentation.
+   Slides are authored at 1920×1080 and scaled as a whole.
+   =========================================== */
+
+/* 1. Lock the browser viewport */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 2. Full-window deck viewport */
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 3. Fixed 16:9 design canvas.
+   JavaScript sets transform: translate(...) scale(...). */
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+
+/* 4. Slides stack inside the fixed stage.
+   Content must be laid out at 1920×1080, not reflowed per device. */
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+/* 5. Keep media inside authored slide bounds */
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* 6. Presentation chrome stays outside the slide design system */
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+/* 7. Print one fixed-size slide per page */
+@media print {
+    html,
+    body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+    }
+
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .deck-controls {
+        display: none !important;
+    }
+}
+
+/* 8. Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+/* 동작 줄이기(Windows '애니메이션 효과' 끔 등): 위 규칙이 길이를 0.01ms로 줄이면 반복 애니메이션이 깜빡이듯 빨라짐 → 반복은 한 번만 */
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-iteration-count:1 !important}}
+.dk-nav{position:absolute;z-index:50}
+
+
+/* === 측정기 그림(figure-gauge.js) 기본 === */
+.gauge{display:block;width:100%;height:auto;overflow:visible;--g-sw:2.5}
+.gauge .g-lb{font-family:var(--g-font,var(--kb));font-size:40px;font-weight:700;fill:var(--g-ink,currentColor)}
+.gauge .g-ground{stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw);opacity:.35}
+.gauge .g-board{fill:var(--g-board,none);stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw)}
+.gauge .g-ruler{fill:var(--g-ruler,none);stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw)}
+.gauge .g-tick{stroke:var(--g-ink,currentColor);stroke-width:1.5}
+.gauge .g-stick{fill:var(--g-stick,var(--g-ink,currentColor));stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw)}
+.gauge .g-mark,.gauge .g-lead,.gauge .g-dim,.gauge .g-angle{fill:none;stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw)}
+.gauge .g-angle{stroke-width:4}
+.gauge .g-shadow{fill:var(--g-shadow,var(--g-ink,currentColor));opacity:.6}
+.gauge .g-string{stroke:var(--g-acc,var(--g-ink,currentColor));stroke-width:4}
+.gauge .g-prot{fill:var(--g-prot,none);stroke:var(--g-ink,currentColor);stroke-width:var(--g-sw)}
+.gauge .g-prot2{fill:none;stroke:var(--g-ink,currentColor);stroke-width:1.5}
+.gauge .g-hole{fill:var(--g-ink,currentColor)}
+.gauge .g-ray{stroke:var(--g-acc,var(--g-ink,currentColor));stroke-width:7}
+.gauge .g-rayh{fill:var(--g-acc,var(--g-ink,currentColor))}
+/* 만드는 중(1~3단계): 아직 안 만든 부품과 측정 표시는 흐리게 / 0·4단계는 모두 또렷 */
+.slide[data-step="1"] .gauge .g-part:not(.on),.slide[data-step="2"] .gauge .g-part:not(.on),.slide[data-step="3"] .gauge .g-part:not(.on),
+.slide[data-step="1"] .gauge .g-meas,.slide[data-step="2"] .gauge .g-meas,.slide[data-step="3"] .gauge .g-meas{opacity:var(--g-dim,.2)}
+
+/* === TEMPLATE STYLES === */
+
+/* --- 토큰: 픽셀 단위·격자·그림자는 명세 고정값 그대로, 글자는 1920 무대·교실 화면용으로 키움 --- */
+:root{--void:#0A0E27;--navy:#0F1B3D;--cyan:#5EDCF4;--pink:#F0A6CA;--yellow:#F4D03F;--lav:#E2D5F2;
+  --stack-cy:4px 0 0 0 var(--navy),0 4px 0 0 var(--navy),4px 4px 0 0 var(--navy),8px 4px 0 0 var(--yellow),4px 8px 0 0 var(--yellow),8px 8px 0 0 var(--yellow);
+  --stack-pk:4px 0 0 0 var(--navy),0 4px 0 0 var(--navy),4px 4px 0 0 var(--navy),8px 4px 0 0 var(--cyan),4px 8px 0 0 var(--cyan),8px 8px 0 0 var(--cyan);
+  --stack-4:4px 0 0 0 var(--navy),0 4px 0 0 var(--navy),4px 4px 0 0 var(--navy),6px 2px 0 0 var(--yellow),2px 6px 0 0 var(--yellow),6px 6px 0 0 var(--yellow);
+  --stack-4p:4px 0 0 0 var(--navy),0 4px 0 0 var(--navy),4px 4px 0 0 var(--navy),6px 2px 0 0 var(--cyan),2px 6px 0 0 var(--cyan),6px 6px 0 0 var(--cyan);
+  --ease:cubic-bezier(0.22,1,0.36,1)}
+.deck-stage{cursor:crosshair}
+.slide{font-family:'Chakra Petch',var(--kb),sans-serif}
+.slide.dark{background-color:var(--void);background-image:linear-gradient(rgba(94,220,244,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(94,220,244,.07) 1px,transparent 1px);background-size:40px 40px;color:rgba(255,255,255,.7)}
+.slide.lav,.slide.pinkg{background-color:var(--lav);background-image:linear-gradient(rgba(15,27,61,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(15,27,61,.08) 1px,transparent 1px);background-size:40px 40px;color:rgba(15,27,61,.75)}
+.slide.pinkg{background-color:var(--pink)}
+.content{position:absolute;inset:56px 120px 104px 120px;z-index:10;display:flex;flex-direction:column}
+.nr{position:absolute;left:120px;bottom:28px;z-index:52;font-size:18px;opacity:.6}
+
+/* --- 분위기 층(모든 장): 노이즈 49 / 스캔라인 50 / CRT 비네트 51 --- */
+.grain{position:absolute;inset:0;z-index:49;opacity:.035;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E")}
+.scan{position:absolute;inset:0;z-index:50;pointer-events:none;mix-blend-mode:multiply;background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(10,14,39,.04) 2px 4px)}
+.dark .scan{mix-blend-mode:normal;background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(0,0,0,.16) 2px 4px)}
+.crt{position:absolute;inset:0;z-index:51;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,rgba(10,14,39,.55) 100%)}
+.star{position:absolute;z-index:1;animation:twinkle 3s steps(2) infinite}
+@keyframes twinkle{0%,100%{opacity:.25}50%{opacity:1}}
+.pt{position:absolute;z-index:1;width:8px;height:8px;opacity:.7;animation:float 8s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-28px)}}
+.land{position:absolute;left:0;right:0;bottom:0;height:150px;z-index:2;opacity:.3}
+.land i{position:absolute;bottom:0;background:var(--navy);box-shadow:inset 0 4px 0 #1d2f63}
+
+/* --- 공통 부품 --- */
+.pill{align-self:flex-start;background:var(--navy);color:var(--yellow);font:700 28px 'Space Mono',var(--kb),monospace;letter-spacing:0;padding:10px 22px}
+.chip{display:inline-block;align-self:flex-start;background:var(--navy);color:var(--cyan);font:400 24px 'Space Mono',var(--kb),monospace;letter-spacing:.05em;padding:4px 12px}
+.br{position:absolute;width:24px;height:24px;border:0 solid var(--cyan);z-index:3}
+.br.tl{left:-8px;top:-8px;border-width:4px 0 0 4px}.br.brr{right:-8px;bottom:-8px;border-width:0 4px 4px 0}
+.br.navy{border-color:var(--navy)}.br.pk{border-color:var(--pink)}
+.hl{margin-top:18px;font-family:'Tektur',var(--kt),sans-serif;font-weight:400;font-size:72px;line-height:1.2;color:var(--navy)}
+.hl.cy{color:var(--cyan);text-shadow:3px 3px 0 var(--navy)}
+.qline{display:block;flex:none;width:60px;height:4px;background:var(--yellow);box-shadow:4px 4px 0 var(--navy)}
+.badges{display:flex;gap:16px;flex-wrap:wrap}
+.badge{border:2px solid var(--yellow);color:var(--yellow);font:400 28px 'Space Mono',var(--kb),monospace;letter-spacing:.1em;padding:8px 18px}
+.fcard{position:relative;background:rgba(255,255,255,.35);backdrop-filter:blur(8px);border:2px solid rgba(15,27,61,.2);padding:28px}
+.sblock{position:relative;background:rgba(94,220,244,.08);border:2px solid rgba(94,220,244,.2);padding:28px 32px}
+.sk{font:400 26px 'Space Mono',var(--kb),monospace;color:var(--pink)}
+.plus{padding-left:1.1em;text-indent:-1.1em;font-size:30px;line-height:1.65}
+.plus::before{content:'+';display:inline-block;width:1.1em;text-indent:0;color:var(--cyan);font-weight:700}
+.pbtn{background:var(--cyan);color:var(--navy);font:700 32px 'Tektur',var(--kb),sans-serif;letter-spacing:.04em;padding:16px 36px;box-shadow:var(--stack-cy)}
+.pbtn.pink{background:var(--pink);box-shadow:var(--stack-pk)}
+.pbtn:hover:not(:disabled),.pbtn:active:not(:disabled){transform:translate(2px,2px);box-shadow:var(--stack-4)}
+.pbtn.pink:hover:not(:disabled),.pbtn.pink:active:not(:disabled){box-shadow:var(--stack-4p)}
+.pbtn:disabled{opacity:.35}
+.btns{display:flex;gap:28px}
+
+/* --- 1. 표지(남색 격자): 라벨 알약 + 단원(작은 디스플레이) + 눈썹 + 학습 목표 픽셀 히어로(2단 글자 그림자) + 모서리 괄호 + 히어로 배지 --- */
+.cover{justify-content:center;padding-bottom:40px}
+.unit{margin-top:40px;font-family:'Tektur',var(--kt),sans-serif;font-size:60px;line-height:1.2;color:var(--cyan);text-shadow:3px 3px 0 var(--navy);display:flex;align-items:baseline;gap:32px}
+.unit span{font:700 30px 'Tektur',sans-serif;letter-spacing:.04em;color:rgba(255,255,255,.7);text-shadow:none}
+.eyebrow{margin-top:44px;font:400 28px 'Space Mono',var(--kb),monospace;color:var(--yellow)}
+.hero-wrap{position:relative;align-self:flex-start;margin-top:18px;padding:18px 32px 26px 24px}
+.hero{font-family:'Tektur',var(--kt),sans-serif;font-weight:400;font-size:124px;line-height:1.22;color:var(--cyan);text-shadow:4px 4px 0 var(--yellow),8px 8px 0 var(--navy);white-space:nowrap}
+.hero .gk{font-style:normal}
+.cover .badges{margin-top:40px}
+
+/* --- 2. 흐름(라벤더 격자): 기능 카드 속 측정기 그림 + 인용 선 메모 | 정의 + 점선 레일 위 사각 노드 4개(활성 = 노랑) + 픽셀 버튼 --- */
+.split2{flex:1;min-height:0;margin-top:26px;display:grid;grid-template-columns:860px 1fr;gap:56px}
+.figwrap{display:flex;flex-direction:column;gap:22px}
+.fig{padding:18px 28px 14px;--g-ink:var(--navy);--g-acc:var(--navy);--g-stick:var(--cyan);--g-board:var(--pink);--g-ruler:#fff;--g-prot:rgba(255,255,255,.6);--g-shadow:var(--navy);--g-font:'Space Mono',var(--kb),monospace}
+.fig .gauge{margin-top:6px}
+.qline-row{display:flex;align-items:center;gap:28px}
+.qline-row p{font-weight:500;font-size:32px;line-height:1.6;color:var(--navy)}
+.side{display:flex;flex-direction:column;min-height:0}
+.def{font-size:30px;line-height:1.6}
+.def b{color:var(--navy)}
+.tl{position:relative;margin-top:16px;display:flex;flex-direction:column;gap:14px;padding-left:64px}
+.rail{position:absolute;left:10px;top:12px;bottom:12px;width:4px;background:repeating-linear-gradient(to bottom,var(--navy) 0 16px,transparent 16px 24px)}
+.ev{position:relative;opacity:.45}
+.ev.on{opacity:1}
+.node{position:absolute;left:-64px;top:2px;width:24px;height:24px;background:var(--cyan);border:4px solid var(--navy)}
+.ev.on .node{background:var(--yellow)}
+.ev .chip{font-size:22px}
+.ev h3{display:inline;margin-left:16px;font-family:'Tektur',var(--kt),sans-serif;font-weight:400;font-size:40px;line-height:1.25;color:var(--navy)}
+.ev p{margin-top:4px;font-size:28px;line-height:1.6}
+.side .btns{margin-top:auto}
+.cap{margin-top:22px;min-height:48px;font-size:30px;line-height:1.6;color:var(--navy);font-weight:500}
+
+/* --- 3. 숫자와 그래프(남색 격자): 통계 칸 4개(청록 유리 + 괄호, 숫자 남색 +3 그림자, 분홍 모노 라벨) + 세로 막대(차례로 자람) + 분홍·노랑 꺾은선 --- */
+.stats{margin-top:26px;display:grid;grid-template-columns:repeat(4,1fr);gap:32px}
+.stats .sblock{display:flex;flex-direction:column;gap:6px;padding:22px 28px}
+.sv{font-family:'Tektur',var(--kt),sans-serif;font-weight:900;font-size:64px;line-height:1.1;color:var(--cyan);text-shadow:3px 3px 0 var(--navy)}
+.stats p{font-size:28px;line-height:1.5;color:rgba(255,255,255,.75)}
+.stats p span{color:rgba(255,255,255,.5)}
+.chartbox{flex:1;min-height:0;margin-top:26px;display:flex;flex-direction:column;gap:10px}
+.lg{display:flex;align-items:center;gap:30px;font-size:26px;color:rgba(255,255,255,.75)}
+.k{display:inline-block;width:22px;height:16px;margin-right:10px;vertical-align:middle}
+.k.bn{background:var(--cyan)}.k.ls{background:var(--pink)}.k.lt{background:var(--yellow)}
+.hb{margin-left:auto;border:2px solid var(--yellow);color:var(--yellow);font:400 24px 'Space Mono',var(--kb),monospace;padding:4px 14px}
+.cv{flex:1;min-height:0;width:100%}
+.cv .gl{stroke:rgba(94,220,244,.15);stroke-width:2}
+.cv .base{stroke:rgba(94,220,244,.45);stroke-width:3}
+.cv .ax{font:400 24px 'Space Mono',monospace;fill:rgba(255,255,255,.7)}
+.cv .bn{fill:var(--cyan)}.cv .bsh{fill:var(--navy)}
+.cv .bvl{font:700 26px 'Space Mono',monospace;fill:var(--navy)}
+.cv .bar{transform-box:fill-box;transform-origin:50% 100%;transform:scaleY(0);transition:transform .7s var(--ease);transition-delay:calc(var(--i) * 120ms + 300ms)}
+.visible .cv .bar{transform:none}
+.cv .ln polyline{fill:none;stroke-width:4}
+.cv .ls polyline{stroke:var(--pink)}.cv .ls rect,.cv .ls text{fill:var(--pink)}
+.cv .lt polyline{stroke:var(--yellow)}.cv .lt rect,.cv .lt text{fill:var(--yellow)}
+.cv .pv{font:700 24px 'Space Mono',monospace;paint-order:stroke;stroke:var(--void);stroke-width:6px}
+.src{margin-top:8px;font:400 20px 'Space Mono',var(--kb),monospace;color:rgba(255,255,255,.5)}
+
+/* --- 4. 비교와 표(분홍 격자): 티어 카드 둘(높을 때 = 추천: 남색 + 노랑 8px + 위로) + 기능 카드 목록 / 표 + 인용(+ 인용 선) --- */
+.grid4{flex:1;min-height:0;margin-top:30px;display:grid;grid-template-columns:1.25fr 1fr;grid-template-rows:auto 1fr;gap:40px 48px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:end}
+.tier{background:#fff;box-shadow:6px 6px 0 rgba(15,27,61,.15);padding:24px 28px;display:flex;flex-direction:column;gap:8px}
+.tier h3{margin:6px 0 4px;font-family:'Tektur',var(--kt),sans-serif;font-weight:400;font-size:38px;line-height:1.25;color:var(--navy)}
+.tier.feat{background:var(--navy);color:rgba(255,255,255,.85);box-shadow:8px 8px 0 var(--yellow);transform:translateY(-12px)}
+.tier.feat h3{color:var(--cyan)}
+.tier.feat .chip{background:var(--yellow);color:var(--navy)}
+.lst{display:flex;flex-direction:column;gap:10px;align-self:end}
+.lst .plus::before{color:var(--navy)}
+.tbl{display:flex;flex-direction:column}
+.pill.sm{font-size:24px;padding:6px 16px;margin-bottom:12px}
+.tr{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:12px;padding:12px 4px;border-bottom:2px solid rgba(15,27,61,.3);font-size:29px;line-height:1.4;color:var(--navy)}
+.tr.th{background:var(--navy);color:var(--yellow);font:700 24px 'Space Mono',var(--kb),monospace;padding:10px 12px;border:0}
+.qt{align-self:start;display:flex;flex-direction:column;gap:18px}
+.qt p{font-weight:500;font-size:40px;line-height:1.7;color:var(--navy)}
+.qt span{font:400 24px 'Space Mono',var(--kb),monospace;color:var(--navy)}
+
+/* --- 5. 확인하기(남색 격자, CTA 성격): 통계 칸 모양 퀴즈(보기 = 청록 테두리, 정답 = 추천 티어 카드) | 빈칸(날짜 칩) + 낱말 배지 + 픽셀 지평선 --- */
+.split5{flex:1;min-height:0;margin-top:28px;display:grid;grid-template-columns:1fr 760px;gap:56px;padding-bottom:30px}
+.quiz{display:flex;flex-direction:column}
+.q{font-family:'Tektur',var(--kt),sans-serif;font-weight:400;font-size:48px;line-height:1.3;color:var(--cyan);text-shadow:3px 3px 0 var(--navy)}
+.opts{margin-top:22px;display:flex;flex-direction:column;gap:16px}
+.opt{display:flex;align-items:center;gap:22px;text-align:left;border:2px solid var(--cyan);color:#fff;font:600 32px 'Chakra Petch',var(--kb),sans-serif;padding:10px 20px}
+.key{background:var(--navy);color:var(--yellow);font:700 26px 'Space Mono',monospace;padding:4px 12px;border:2px solid var(--yellow)}
+.opt.right{background:var(--cyan);color:var(--navy);box-shadow:8px 8px 0 var(--yellow);transform:translateY(-12px)}
+.opt.wrong{border-color:var(--pink);color:var(--pink)}
+.opt:disabled:not(.right){opacity:.4}
+.fb{margin-top:16px;min-height:96px;font-weight:500;font-size:30px;line-height:1.6;color:#fff}
+.quiz .btns{margin-top:auto}
+.blk{display:flex;flex-direction:column;gap:18px}
+.bl{font-size:32px;line-height:1.6;color:rgba(255,255,255,.8)}
+.blank{position:relative;min-width:200px;margin-right:12px;font-size:30px;font-weight:700;text-align:center;vertical-align:middle;color:var(--cyan)}
+.blank span{visibility:hidden}
+.blank::after{content:'?';position:absolute;left:0;right:0}
+.blank.open{background:var(--yellow);color:var(--navy)}
+.blank.open span{visibility:visible}
+.blank.open::after{content:none}
+.wl{margin-top:auto}
+
+/* --- 내비: 오른쪽 사각 점 레일 + 아래 가운데 번호 + 오른쪽 아래 키 안내 --- */
+.dk-nav{inset:0;pointer-events:none;z-index:60}
+.dk-dots{position:absolute;right:36px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:16px;pointer-events:auto}
+.dk-dot{width:16px;height:16px;border:2px solid var(--cyan);background:transparent;padding:2px}
+.dk-dot.on{background:var(--cyan);box-shadow:inset 0 0 0 2px var(--void)}
+.dk-count{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(15,27,61,.85);color:var(--cyan);font:400 26px 'Space Mono',monospace;letter-spacing:.15em;padding:8px 20px}
+.hint{position:absolute;right:36px;bottom:30px;font:400 20px 'Space Mono',monospace;letter-spacing:.1em;color:var(--cyan);opacity:.5}
+[data-slide="2"] .dk-dot,[data-slide="4"] .dk-dot{border-color:var(--navy)}
+[data-slide="2"] .dk-dot.on,[data-slide="4"] .dk-dot.on{background:var(--navy);box-shadow:inset 0 0 0 2px var(--lav)}
+[data-slide="2"] .hint,[data-slide="4"] .hint{color:var(--navy)}
+/* --- 6. 디자인 안내(라벤더 격자): 기능 카드(설명) | 통계 칸 모양 시연 3개 --- */
+.split6{flex:1;min-height:0;margin-top:24px;display:grid;grid-template-columns:900px 1fr;gap:56px}
+.g6{display:flex;flex-direction:column;gap:10px;padding:26px 32px}
+.g6 .chip{margin-top:6px;font-size:22px}
+.ab6{font-size:28px;line-height:1.55;color:var(--navy)}
+.ab6 b{font-weight:700}
+.sw6{display:flex;flex-wrap:wrap;gap:10px 24px;font-size:24px;color:var(--navy)}
+.sw6 i{display:inline-block;width:28px;height:28px;margin-right:8px;vertical-align:-7px;border:2px solid var(--navy)}
+.ft6 p{font-size:25px;line-height:1.5;color:var(--navy)}
+.ft6 b{font-weight:700}
+.tip6 .plus{font-size:25px;line-height:1.5;color:var(--navy)}
+.tip6 .plus::before{color:var(--navy)}
+.sig6{display:flex;flex-direction:column;gap:14px;min-height:0}
+.sig6 .pill.sm{margin-bottom:0}
+.d6{background:rgba(15,27,61,.06);border-color:rgba(15,27,61,.25);padding:12px 22px 14px}
+.d6 .dh{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.d6 h3{font-family:'Tektur',var(--kt),sans-serif;font-weight:400;font-size:30px;color:var(--navy)}
+.d6 p{margin-top:4px;font-size:22px;line-height:1.45;color:var(--navy)}
+.pbtn.sm{font-size:20px;padding:8px 16px}
+.pbtn.sm[aria-pressed="true"]{transform:translate(2px,2px);box-shadow:var(--stack-4p)}
+.dr{margin-top:8px;height:64px;display:flex;align-items:center;padding-left:6px}
+.pbtn.demo{display:inline-block}
+.pbtn.demo.play{transform:translate(2px,2px);box-shadow:var(--stack-4)}
+.bars6{margin-top:8px;height:70px;display:flex;align-items:flex-end;gap:14px;border-bottom:4px solid var(--navy)}
+.bars6 i{width:40px;background:var(--cyan);box-shadow:4px 0 0 var(--navy);transform-origin:50% 100%}
+.bars6.play i{animation:eb-grow .7s var(--ease) both;animation-delay:calc(var(--i) * 120ms)}
+@keyframes eb-grow{from{transform:scaleY(0)}to{transform:none}}
+.hero6{font:900 48px/1 'Tektur',sans-serif;color:var(--cyan)}
+.hero6.play{text-shadow:4px 4px 0 var(--yellow),8px 8px 0 var(--navy)}
+[data-slide="6"] .dk-dot{border-color:var(--navy)}
+[data-slide="6"] .dk-dot.on{background:var(--navy);box-shadow:inset 0 0 0 2px var(--lav)}
+[data-slide="6"] .hint{color:var(--navy)}
+
+</style>
+<style>html.in-frame .dk-nav, html.in-frame .dk-controls, html.in-frame .hint { display: none !important; }</style>
+</head>
+<body>
+<div class="deck-viewport">
+  <main class="deck-stage" id="deckStage">
+<section class="slide dark">
+  <i class="star" style="left:97px;top:41px;width:4px;height:4px;background:#5EDCF4;animation-delay:0s"></i><i class="star" style="left:338px;top:204px;width:4px;height:4px;background:#F4D03F;animation-delay:0.43s"></i><i class="star" style="left:579px;top:367px;width:6px;height:6px;background:#F0A6CA;animation-delay:0.86s"></i><i class="star" style="left:820px;top:530px;width:4px;height:4px;background:#5EDCF4;animation-delay:1.29s"></i><i class="star" style="left:1061px;top:693px;width:4px;height:4px;background:#F4D03F;animation-delay:1.72s"></i><i class="star" style="left:1302px;top:856px;width:6px;height:6px;background:#F0A6CA;animation-delay:2.15s"></i><i class="star" style="left:1543px;top:1019px;width:4px;height:4px;background:#5EDCF4;animation-delay:2.58s"></i><i class="star" style="left:1784px;top:142px;width:4px;height:4px;background:#F4D03F;animation-delay:0s"></i><i class="star" style="left:145px;top:305px;width:6px;height:6px;background:#F0A6CA;animation-delay:0.43s"></i><i class="star" style="left:386px;top:468px;width:4px;height:4px;background:#5EDCF4;animation-delay:0.86s"></i><i class="star" style="left:627px;top:631px;width:4px;height:4px;background:#F4D03F;animation-delay:1.29s"></i><i class="star" style="left:868px;top:794px;width:6px;height:6px;background:#F0A6CA;animation-delay:1.72s"></i><i class="star" style="left:1109px;top:957px;width:4px;height:4px;background:#5EDCF4;animation-delay:2.15s"></i><i class="star" style="left:1350px;top:80px;width:4px;height:4px;background:#F4D03F;animation-delay:2.58s"></i><i class="star" style="left:1591px;top:243px;width:6px;height:6px;background:#F0A6CA;animation-delay:0s"></i><i class="star" style="left:1832px;top:406px;width:4px;height:4px;background:#5EDCF4;animation-delay:0.43s"></i><i class="star" style="left:193px;top:569px;width:4px;height:4px;background:#F4D03F;animation-delay:0.86s"></i><i class="star" style="left:434px;top:732px;width:6px;height:6px;background:#F0A6CA;animation-delay:1.29s"></i><i class="star" style="left:675px;top:895px;width:4px;height:4px;background:#5EDCF4;animation-delay:1.72s"></i><i class="star" style="left:916px;top:18px;width:4px;height:4px;background:#F4D03F;animation-delay:2.15s"></i><i class="star" style="left:1157px;top:181px;width:6px;height:6px;background:#F0A6CA;animation-delay:2.58s"></i><i class="star" style="left:1398px;top:344px;width:4px;height:4px;background:#5EDCF4;animation-delay:0s"></i><i class="star" style="left:1639px;top:507px;width:4px;height:4px;background:#F4D03F;animation-delay:0.43s"></i><i class="star" style="left:0px;top:670px;width:6px;height:6px;background:#F0A6CA;animation-delay:0.86s"></i><i class="star" style="left:241px;top:833px;width:4px;height:4px;background:#5EDCF4;animation-delay:1.29s"></i><i class="star" style="left:482px;top:996px;width:4px;height:4px;background:#F4D03F;animation-delay:1.72s"></i><i class="star" style="left:723px;top:119px;width:6px;height:6px;background:#F0A6CA;animation-delay:2.15s"></i><i class="star" style="left:964px;top:282px;width:4px;height:4px;background:#5EDCF4;animation-delay:2.58s"></i><i class="star" style="left:1205px;top:445px;width:4px;height:4px;background:#F4D03F;animation-delay:0s"></i><i class="star" style="left:1446px;top:608px;width:6px;height:6px;background:#F0A6CA;animation-delay:0.43s"></i><i class="star" style="left:1687px;top:771px;width:4px;height:4px;background:#5EDCF4;animation-delay:0.86s"></i><i class="star" style="left:48px;top:934px;width:4px;height:4px;background:#F4D03F;animation-delay:1.29s"></i><i class="star" style="left:289px;top:57px;width:6px;height:6px;background:#F0A6CA;animation-delay:1.72s"></i><i class="star" style="left:530px;top:220px;width:4px;height:4px;background:#5EDCF4;animation-delay:2.15s"></i><i class="pt" style="left:93px;top:131px;background:#5EDCF4;animation-delay:0s"></i><i class="pt" style="left:482px;top:342px;background:#F0A6CA;animation-delay:1.1s"></i><i class="pt" style="left:871px;top:553px;background:#F4D03F;animation-delay:2.2s"></i><i class="pt" style="left:1260px;top:764px;background:#5EDCF4;animation-delay:3.3000000000000003s"></i><i class="pt" style="left:1649px;top:75px;background:#F0A6CA;animation-delay:4.4s"></i><i class="pt" style="left:238px;top:286px;background:#F4D03F;animation-delay:5.5s"></i>
+  <div class="content cover">
+    <span class="pill">초등 과학 · 6학년 2학기 · 1단원 · 3~4차시</span>
+    <p class="unit">계절의 변화<span>SUN, SHADOW & TEMPERATURE</span></p>
+    <p class="eyebrow">학습 목표</p>
+    <div class="hero-wrap"><i class="br tl "></i><i class="br brr "></i><h1 class="hero">하루 동안 <em class="gk">태양 고도</em>,<br><em class="gk">그림자 길이</em>, <em class="gk">기온</em>의 관계</h1></div>
+    <div class="badges"><span class="badge">태양 고도</span><span class="badge">그림자 길이</span><span class="badge">기온</span><span class="badge">00초등학교</span><span class="badge">2026</span></div>
+  </div>
+  <div class="grain"></div><div class="scan"></div><div class="crt"></div>
+</section>
+<section class="slide lav" data-steps="4">
+  <div class="content">
+    <span class="pill">측정 준비</span>
+    <h2 class="hl">태양 고도 측정기 만들기</h2>
+    <div class="split2">
+      <div class="figwrap">
+        <div class="fcard fig"><i class="br tl navy"></i><i class="br brr navy"></i><span class="chip">FIG. 01</span><svg class="gauge" viewBox="0 0 1000 660" role="img" aria-label="태양 고도 측정기: 태양 빛, 수수깡, 실, 태양 고도, 그림자 길이, 자, 각도기">
+  <line class="g-ground" x1="20" x2="980" y1="580" y2="580"/>
+  <rect class="g-board" x="80" y="540" width="860" height="40"/>
+  <g class="g-part" data-s="1"><rect class="g-ruler" x="110" y="524" width="800" height="16"/><line class="g-tick" x1="120" x2="120" y1="524" y2="536"/><line class="g-tick" x1="140" x2="140" y1="524" y2="530"/><line class="g-tick" x1="160" x2="160" y1="524" y2="530"/><line class="g-tick" x1="180" x2="180" y1="524" y2="530"/><line class="g-tick" x1="200" x2="200" y1="524" y2="530"/><line class="g-tick" x1="220" x2="220" y1="524" y2="536"/><line class="g-tick" x1="240" x2="240" y1="524" y2="530"/><line class="g-tick" x1="260" x2="260" y1="524" y2="530"/><line class="g-tick" x1="280" x2="280" y1="524" y2="530"/><line class="g-tick" x1="300" x2="300" y1="524" y2="530"/><line class="g-tick" x1="320" x2="320" y1="524" y2="536"/><line class="g-tick" x1="340" x2="340" y1="524" y2="530"/><line class="g-tick" x1="360" x2="360" y1="524" y2="530"/><line class="g-tick" x1="380" x2="380" y1="524" y2="530"/><line class="g-tick" x1="400" x2="400" y1="524" y2="530"/><line class="g-tick" x1="420" x2="420" y1="524" y2="536"/><line class="g-tick" x1="440" x2="440" y1="524" y2="530"/><line class="g-tick" x1="460" x2="460" y1="524" y2="530"/><line class="g-tick" x1="480" x2="480" y1="524" y2="530"/><line class="g-tick" x1="500" x2="500" y1="524" y2="530"/><line class="g-tick" x1="520" x2="520" y1="524" y2="536"/><line class="g-tick" x1="540" x2="540" y1="524" y2="530"/><line class="g-tick" x1="560" x2="560" y1="524" y2="530"/><line class="g-tick" x1="580" x2="580" y1="524" y2="530"/><line class="g-tick" x1="600" x2="600" y1="524" y2="530"/><line class="g-tick" x1="620" x2="620" y1="524" y2="536"/><line class="g-tick" x1="640" x2="640" y1="524" y2="530"/><line class="g-tick" x1="660" x2="660" y1="524" y2="530"/><line class="g-tick" x1="680" x2="680" y1="524" y2="530"/><line class="g-tick" x1="700" x2="700" y1="524" y2="530"/><line class="g-tick" x1="720" x2="720" y1="524" y2="536"/><line class="g-tick" x1="740" x2="740" y1="524" y2="530"/><line class="g-tick" x1="760" x2="760" y1="524" y2="530"/><line class="g-tick" x1="780" x2="780" y1="524" y2="530"/><line class="g-tick" x1="800" x2="800" y1="524" y2="530"/><line class="g-tick" x1="820" x2="820" y1="524" y2="536"/><line class="g-tick" x1="840" x2="840" y1="524" y2="530"/><line class="g-tick" x1="860" x2="860" y1="524" y2="530"/><line class="g-tick" x1="880" x2="880" y1="524" y2="530"/><line class="g-tick" x1="900" x2="900" y1="524" y2="530"/><text class="g-lb" x="922" y="516" text-anchor="start">자</text></g>
+  <g class="g-meas"><rect class="g-shadow" x="220" y="524" width="446" height="16"/>
+    <path class="g-dim" d="M220 600v24M666 600v24M220 612H666"/><text class="g-lb" x="443" y="652" text-anchor="middle">그림자 길이</text></g>
+  <g class="g-part" data-s="2"><rect class="g-stick" x="196" y="150" width="24" height="374"/><path class="g-mark" d="M220 504h20v20"/>
+    <path class="g-lead" d="M182 330H196"/><text class="g-lb" x="174" y="342" text-anchor="end">수수깡</text></g>
+  <g class="g-part" data-s="4"><path class="g-prot" d="M546 524A120 120 0 0 1 786 524Z"/><path class="g-prot2" d="M588 524A78 78 0 0 1 744 524"/><line class="g-tick" x1="570" y1="524" x2="546" y2="524"/><line class="g-tick" x1="561.6" y1="505.6" x2="547.8" y2="503.2"/><line class="g-tick" x1="566.4" y1="487.7" x2="553.2" y2="483"/><line class="g-tick" x1="582.9" y1="476" x2="562.1" y2="464"/><line class="g-tick" x1="584.8" y1="455.9" x2="574.1" y2="446.9"/><line class="g-tick" x1="597.9" y1="442.8" x2="588.9" y2="432.1"/><line class="g-tick" x1="618" y1="440.9" x2="606" y2="420.1"/><line class="g-tick" x1="629.7" y1="424.4" x2="625" y2="411.2"/><line class="g-tick" x1="647.6" y1="419.6" x2="645.2" y2="405.8"/><line class="g-tick" x1="666" y1="428" x2="666" y2="404"/><line class="g-tick" x1="684.4" y1="419.6" x2="686.8" y2="405.8"/><line class="g-tick" x1="702.3" y1="424.4" x2="707" y2="411.2"/><line class="g-tick" x1="714" y1="440.9" x2="726" y2="420.1"/><line class="g-tick" x1="734.1" y1="442.8" x2="743.1" y2="432.1"/><line class="g-tick" x1="747.2" y1="455.9" x2="757.9" y2="446.9"/><line class="g-tick" x1="749.1" y1="476" x2="769.9" y2="464"/><line class="g-tick" x1="765.6" y1="487.7" x2="778.8" y2="483"/><line class="g-tick" x1="770.4" y1="505.6" x2="784.2" y2="503.2"/><line class="g-tick" x1="762" y1="524" x2="786" y2="524"/><circle class="g-hole" cx="666" cy="524" r="5"/><text class="g-lb" x="800" y="456" text-anchor="start">각도기</text></g>
+  <g class="g-part" data-s="3"><line class="g-string" x1="220" y1="150" x2="666" y2="524"/><text class="g-lb" x="478" y="344" text-anchor="start">실</text></g>
+  <g class="g-meas"><path class="g-angle" d="M616 524A50 50 0 0 1 627.7 491.9"/><path class="g-lead" d="M542 498L615 506.9"/><text class="g-lb" x="536" y="508" text-anchor="end">태양 고도</text>
+    <line class="g-ray" x1="74.5" y1="27.9" x2="187.8" y2="123"/><polygon class="g-rayh" points="209.3,141 179.5,133 196.2,113"/><text class="g-lb" x="150" y="60" text-anchor="start">태양 빛</text></g>
+</svg></div>
+        <div class="qline-row"><i class="qline"></i><p>막대기의 그림자와 실이 이루는 각 = 태양 고도</p></div>
+      </div>
+      <div class="side">
+        <p class="def"><b>태양 고도</b> = 태양이 지표면과 이루는 각</p>
+        <div class="tl"><div class="rail"></div>
+          <div class="ev" data-s="1"><i class="node"></i><span class="chip">STEP 01</span><h3>자 붙이기</h3><p>우드록 한쪽에 양면테이프로 자를 붙여요</p></div><div class="ev" data-s="2"><i class="node"></i><span class="chip">STEP 02</span><h3>수수깡 꽂기</h3><p>수수깡을 10cm 정도 잘라 자의 '0' 위치에 수직으로 꽂아요</p></div><div class="ev" data-s="3"><i class="node"></i><span class="chip">STEP 03</span><h3>실 묶기</h3><p>수수깡 끝에 실을 묶어요</p></div><div class="ev" data-s="4"><i class="node"></i><span class="chip">STEP 04</span><h3>각도기 끼우기</h3><p>실의 다른 끝을 각도기 가운데 구멍에 끼워요</p></div>
+        </div>
+        <div class="btns"><button class="pbtn" data-act="step">다음 단계 ▶</button><button class="pbtn pink" data-act="reset">처음부터</button></div>
+        <p class="cap" data-caps="[&quot;버튼을 눌러 순서대로 만들어 보세요&quot;,&quot;STEP 01 — 자 붙이기&quot;,&quot;STEP 02 — 수수깡 꽂기&quot;,&quot;STEP 03 — 실 묶기&quot;,&quot;STEP 04 — 각도기 끼우기&quot;]">버튼을 눌러 순서대로 만들어 보세요</p>
+      </div>
+    </div>
+  </div>
+  <div class="grain"></div><div class="scan"></div>
+</section>
+<section class="slide dark">
+  <i class="star" style="left:291px;top:123px;width:4px;height:4px;background:#5EDCF4;animation-delay:0s"></i><i class="star" style="left:532px;top:286px;width:4px;height:4px;background:#F4D03F;animation-delay:0.43s"></i><i class="star" style="left:773px;top:449px;width:6px;height:6px;background:#F0A6CA;animation-delay:0.86s"></i><i class="star" style="left:1014px;top:612px;width:4px;height:4px;background:#5EDCF4;animation-delay:1.29s"></i><i class="star" style="left:1255px;top:775px;width:4px;height:4px;background:#F4D03F;animation-delay:1.72s"></i><i class="star" style="left:1496px;top:938px;width:6px;height:6px;background:#F0A6CA;animation-delay:2.15s"></i><i class="star" style="left:1737px;top:61px;width:4px;height:4px;background:#5EDCF4;animation-delay:2.58s"></i><i class="star" style="left:98px;top:224px;width:4px;height:4px;background:#F4D03F;animation-delay:0s"></i><i class="star" style="left:339px;top:387px;width:6px;height:6px;background:#F0A6CA;animation-delay:0.43s"></i><i class="star" style="left:580px;top:550px;width:4px;height:4px;background:#5EDCF4;animation-delay:0.86s"></i><i class="star" style="left:821px;top:713px;width:4px;height:4px;background:#F4D03F;animation-delay:1.29s"></i><i class="star" style="left:1062px;top:876px;width:6px;height:6px;background:#F0A6CA;animation-delay:1.72s"></i><i class="star" style="left:1303px;top:1039px;width:4px;height:4px;background:#5EDCF4;animation-delay:2.15s"></i><i class="star" style="left:1544px;top:162px;width:4px;height:4px;background:#F4D03F;animation-delay:2.58s"></i><i class="star" style="left:1785px;top:325px;width:6px;height:6px;background:#F0A6CA;animation-delay:0s"></i><i class="star" style="left:146px;top:488px;width:4px;height:4px;background:#5EDCF4;animation-delay:0.43s"></i><i class="star" style="left:387px;top:651px;width:4px;height:4px;background:#F4D03F;animation-delay:0.86s"></i><i class="star" style="left:628px;top:814px;width:6px;height:6px;background:#F0A6CA;animation-delay:1.29s"></i><i class="star" style="left:869px;top:977px;width:4px;height:4px;background:#5EDCF4;animation-delay:1.72s"></i><i class="star" style="left:1110px;top:100px;width:4px;height:4px;background:#F4D03F;animation-delay:2.15s"></i><i class="star" style="left:1351px;top:263px;width:6px;height:6px;background:#F0A6CA;animation-delay:2.58s"></i><i class="star" style="left:1592px;top:426px;width:4px;height:4px;background:#5EDCF4;animation-delay:0s"></i>
+  <div class="content">
+    <span class="pill">측정 결과</span>
+    <h2 class="hl cy">하루 동안 무엇이 어떻게 변할까요?</h2>
+    <div class="stats"><div class="sblock"><i class="br tl "></i><i class="br brr "></i><span class="sk">남중 시각</span><b class="sv">12:30</b><p>태양 고도가 가장 높아요 <span>무렵 · 남중</span></p></div><div class="sblock"><i class="br tl "></i><i class="br brr "></i><span class="sk">남중 방향</span><b class="sv">정남</b><p>남중할 때 태양의 위치 <span>쪽</span></p></div><div class="sblock"><i class="br tl "></i><i class="br brr "></i><span class="sk">최고 기온</span><b class="sv">14:30</b><p>기온이 가장 높아요 <span>무렵</span></p></div><div class="sblock"><i class="br tl "></i><i class="br brr "></i><span class="sk">가장 긴 그림자</span><b class="sv">9:30</b><p>그림자가 가장 길어요 <span>· 15:30</span></p></div></div>
+    <div class="chartbox">
+      <div class="lg"><span class="chip">측정 시각별 태양 고도, 그림자 길이, 기온</span><span><i class="k bn"></i>태양 고도(°)</span><span><i class="k ls"></i>그림자 길이(cm)</span><span><i class="k lt"></i>기온(℃)</span><span class="hb">예시 값</span></div>
+      <svg class="cv" viewBox="0 0 1640 400"><line x1="90" x2="1600" y1="340" y2="340" class="gl"/><text x="74" y="348" class="ax" text-anchor="end">0°</text><line x1="90" x2="1600" y1="262.5" y2="262.5" class="gl"/><text x="74" y="270.5" class="ax" text-anchor="end">20°</text><line x1="90" x2="1600" y1="185" y2="185" class="gl"/><text x="74" y="193" class="ax" text-anchor="end">40°</text><line x1="90" x2="1600" y1="107.5" y2="107.5" class="gl"/><text x="74" y="115.5" class="ax" text-anchor="end">60°</text><line x1="90" x2="1600" y1="30" y2="30" class="gl"/><text x="74" y="38" class="ax" text-anchor="end">80°</text><g class="bar" style="--i:0"><rect x="153.85714285714286" y="192.75" width="88" height="147.25" class="bsh"/><rect x="149.85714285714286" y="188.75" width="88" height="151.25" class="bn"/><text x="193.85714285714286" y="226.75" class="bvl" text-anchor="middle">38</text></g><g class="bar" style="--i:1"><rect x="369.57142857142856" y="154" width="88" height="186" class="bsh"/><rect x="365.57142857142856" y="150" width="88" height="190" class="bn"/><text x="409.57142857142856" y="188" class="bvl" text-anchor="middle">48</text></g><g class="bar" style="--i:2"><rect x="585.2857142857143" y="126.875" width="88" height="213.125" class="bsh"/><rect x="581.2857142857143" y="122.875" width="88" height="217.125" class="bn"/><text x="625.2857142857143" y="160.875" class="bvl" text-anchor="middle">55</text></g><g class="bar" style="--i:3"><rect x="801" y="119.125" width="88" height="220.875" class="bsh"/><rect x="797" y="115.125" width="88" height="224.875" class="bn"/><text x="841" y="153.125" class="bvl" text-anchor="middle">57</text></g><g class="bar" style="--i:4"><rect x="1016.7142857142858" y="130.75" width="88" height="209.25" class="bsh"/><rect x="1012.7142857142858" y="126.75" width="88" height="213.25" class="bn"/><text x="1056.7142857142858" y="164.75" class="bvl" text-anchor="middle">54</text></g><g class="bar" style="--i:5"><rect x="1232.4285714285713" y="157.875" width="88" height="182.125" class="bsh"/><rect x="1228.4285714285713" y="153.875" width="88" height="186.125" class="bn"/><text x="1272.4285714285713" y="191.875" class="bvl" text-anchor="middle">47</text></g><g class="bar" style="--i:6"><rect x="1448.142857142857" y="196.625" width="88" height="143.375" class="bsh"/><rect x="1444.142857142857" y="192.625" width="88" height="147.375" class="bn"/><text x="1488.142857142857" y="230.625" class="bvl" text-anchor="middle">37</text></g><g class="ln ls"><polyline points="197.85714285714286,240.025 413.57142857142856,269.475 629.2857142857143,285.75 845,290.4 1060.7142857142858,284.2 1276.4285714285713,267.15 1492.142857142857,236.15"/><rect x="189.85714285714286" y="232.025" width="16" height="16"/><text x="253.85714285714286" y="249.025" class="pv">12.9</text><rect x="405.57142857142856" y="261.475" width="16" height="16"/><text x="469.57142857142856" y="278.475" class="pv">9.1</text><rect x="621.2857142857143" y="277.75" width="16" height="16"/><text x="685.2857142857143" y="294.75" class="pv">7</text><rect x="837" y="282.4" width="16" height="16"/><text x="901" y="299.4" class="pv">6.4</text><rect x="1052.7142857142858" y="276.2" width="16" height="16"/><text x="1116.7142857142858" y="293.2" class="pv">7.2</text><rect x="1268.4285714285713" y="259.15" width="16" height="16"/><text x="1332.4285714285713" y="276.15" class="pv">9.4</text><rect x="1484.142857142857" y="228.15" width="16" height="16"/><text x="1548.142857142857" y="245.15" class="pv">13.4</text></g><g class="ln lt"><polyline points="197.85714285714286,154 413.57142857142856,126.1 629.2857142857143,104.4 845,87.35 1060.7142857142858,76.5 1276.4285714285713,70.30000000000001 1492.142857142857,78.05000000000001"/><rect x="189.85714285714286" y="146" width="16" height="16"/><text x="197.85714285714286" y="136" class="pv" text-anchor="middle">22</text><rect x="405.57142857142856" y="118.1" width="16" height="16"/><text x="413.57142857142856" y="108.1" class="pv" text-anchor="middle">23.8</text><rect x="621.2857142857143" y="96.4" width="16" height="16"/><text x="629.2857142857143" y="86.4" class="pv" text-anchor="middle">25.2</text><rect x="837" y="79.35" width="16" height="16"/><text x="845" y="69.35" class="pv" text-anchor="middle">26.3</text><rect x="1052.7142857142858" y="68.5" width="16" height="16"/><text x="1060.7142857142858" y="58.5" class="pv" text-anchor="middle">27</text><rect x="1268.4285714285713" y="62.30000000000001" width="16" height="16"/><text x="1276.4285714285713" y="52.30000000000001" class="pv" text-anchor="middle">27.4</text><rect x="1484.142857142857" y="70.05000000000001" width="16" height="16"/><text x="1492.142857142857" y="60.05000000000001" class="pv" text-anchor="middle">26.9</text></g><line x1="90" x2="1600" y1="340" y2="340" class="base"/><text x="197.85714285714286" y="384" class="ax" text-anchor="middle">9:30</text><text x="413.57142857142856" y="384" class="ax" text-anchor="middle">10:30</text><text x="629.2857142857143" y="384" class="ax" text-anchor="middle">11:30</text><text x="845" y="384" class="ax" text-anchor="middle">12:30</text><text x="1060.7142857142858" y="384" class="ax" text-anchor="middle">13:30</text><text x="1276.4285714285713" y="384" class="ax" text-anchor="middle">14:30</text><text x="1492.142857142857" y="384" class="ax" text-anchor="middle">15:30</text></svg>
+    </div>
+    <p class="src">예시 값 — 태양 고도·그림자(10cm 막대)는 9월 중순 북위 36° 기준 계산, 기온은 교과서 그래프 모양을 따른 값</p>
+  </div>
+  <div class="grain"></div><div class="scan"></div><div class="crt"></div>
+</section>
+<section class="slide pinkg">
+  <div class="content">
+    <span class="pill">관계 정리</span>
+    <h2 class="hl">태양 고도가 바뀌면 무엇이 달라질까요?</h2>
+    <div class="grid4">
+      <div class="cmp"><div class="tier feat"><span class="chip">HIGH</span><h3>태양 고도가 높을 때</h3><p class="plus">그림자 길이는 짧아져요</p><p class="plus">기온은 높아져요</p></div><div class="tier"><span class="chip">LOW</span><h3>태양 고도가 낮을 때</h3><p class="plus">그림자 길이는 길어져요</p><p class="plus">기온은 낮아져요</p></div></div>
+      <div class="fcard lst"><i class="br tl navy"></i><i class="br brr navy"></i><span class="chip">남중</span><p class="plus">태양이 정남쪽에 있을 때 '남중했다'고 해요</p><p class="plus">이때의 태양 고도를 남중 고도라고 해요</p></div>
+      <div class="tbl"><span class="pill sm">시각별 변화</span>
+        <div class="tr th"><span>시각</span><span>태양 고도</span><span>그림자 길이</span><span>기온</span></div>
+        <div class="tr"><span>오전 9:30</span><span>낮아요</span><span>길어요</span><span>낮아요</span></div><div class="tr"><span>낮 12:30</span><span>가장 높아요</span><span>가장 짧아요</span><span>높아지는 중</span></div><div class="tr"><span>오후 14:30</span><span>낮아지는 중</span><span>길어지는 중</span><span>가장 높아요</span></div>
+      </div>
+      <blockquote class="qt"><p>태양 고도가 가장 높은 시각과 기온이 가장 높은 시각에는 차이가 있어요.</p><i class="qline"></i><span>오늘의 정리</span></blockquote>
+    </div>
+  </div>
+  <p class="nr">표 규칙 없음 → 라벨 알약 머리 + 2px 선 행으로 표현</p>
+  <div class="grain"></div><div class="scan"></div>
+</section>
+<section class="slide dark">
+  <i class="star" style="left:485px;top:205px;width:4px;height:4px;background:#5EDCF4;animation-delay:0s"></i><i class="star" style="left:726px;top:368px;width:4px;height:4px;background:#F4D03F;animation-delay:0.43s"></i><i class="star" style="left:967px;top:531px;width:6px;height:6px;background:#F0A6CA;animation-delay:0.86s"></i><i class="star" style="left:1208px;top:694px;width:4px;height:4px;background:#5EDCF4;animation-delay:1.29s"></i><i class="star" style="left:1449px;top:857px;width:4px;height:4px;background:#F4D03F;animation-delay:1.72s"></i><i class="star" style="left:1690px;top:1020px;width:6px;height:6px;background:#F0A6CA;animation-delay:2.15s"></i><i class="star" style="left:51px;top:143px;width:4px;height:4px;background:#5EDCF4;animation-delay:2.58s"></i><i class="star" style="left:292px;top:306px;width:4px;height:4px;background:#F4D03F;animation-delay:0s"></i><i class="star" style="left:533px;top:469px;width:6px;height:6px;background:#F0A6CA;animation-delay:0.43s"></i><i class="star" style="left:774px;top:632px;width:4px;height:4px;background:#5EDCF4;animation-delay:0.86s"></i><i class="star" style="left:1015px;top:795px;width:4px;height:4px;background:#F4D03F;animation-delay:1.29s"></i><i class="star" style="left:1256px;top:958px;width:6px;height:6px;background:#F0A6CA;animation-delay:1.72s"></i><i class="star" style="left:1497px;top:81px;width:4px;height:4px;background:#5EDCF4;animation-delay:2.15s"></i><i class="star" style="left:1738px;top:244px;width:4px;height:4px;background:#F4D03F;animation-delay:2.58s"></i><i class="star" style="left:99px;top:407px;width:6px;height:6px;background:#F0A6CA;animation-delay:0s"></i><i class="star" style="left:340px;top:570px;width:4px;height:4px;background:#5EDCF4;animation-delay:0.43s"></i><i class="star" style="left:581px;top:733px;width:4px;height:4px;background:#F4D03F;animation-delay:0.86s"></i><i class="star" style="left:822px;top:896px;width:6px;height:6px;background:#F0A6CA;animation-delay:1.29s"></i><i class="star" style="left:1063px;top:19px;width:4px;height:4px;background:#5EDCF4;animation-delay:1.72s"></i><i class="star" style="left:1304px;top:182px;width:4px;height:4px;background:#F4D03F;animation-delay:2.15s"></i><i class="star" style="left:1545px;top:345px;width:6px;height:6px;background:#F0A6CA;animation-delay:2.58s"></i><i class="star" style="left:1786px;top:508px;width:4px;height:4px;background:#5EDCF4;animation-delay:0s"></i><i class="star" style="left:147px;top:671px;width:4px;height:4px;background:#F4D03F;animation-delay:0.43s"></i><i class="star" style="left:388px;top:834px;width:6px;height:6px;background:#F0A6CA;animation-delay:0.86s"></i><i class="star" style="left:629px;top:997px;width:4px;height:4px;background:#5EDCF4;animation-delay:1.29s"></i><i class="star" style="left:870px;top:120px;width:4px;height:4px;background:#F4D03F;animation-delay:1.72s"></i><i class="pt" style="left:305px;top:415px;background:#5EDCF4;animation-delay:0s"></i><i class="pt" style="left:694px;top:626px;background:#F0A6CA;animation-delay:1.1s"></i><i class="pt" style="left:1083px;top:837px;background:#F4D03F;animation-delay:2.2s"></i><i class="pt" style="left:1472px;top:148px;background:#5EDCF4;animation-delay:3.3000000000000003s"></i><i class="pt" style="left:61px;top:359px;background:#F0A6CA;animation-delay:4.4s"></i>
+  <div class="land"><i style="left:0px;width:60px;height:36px"></i><i style="left:60px;width:80px;height:60px"></i><i style="left:140px;width:100px;height:84px"></i><i style="left:240px;width:60px;height:48px"></i><i style="left:300px;width:80px;height:108px"></i><i style="left:380px;width:100px;height:72px"></i><i style="left:480px;width:60px;height:132px"></i><i style="left:540px;width:80px;height:60px"></i><i style="left:620px;width:100px;height:96px"></i><i style="left:720px;width:60px;height:48px"></i><i style="left:780px;width:80px;height:144px"></i><i style="left:860px;width:100px;height:84px"></i><i style="left:960px;width:60px;height:60px"></i><i style="left:1020px;width:80px;height:108px"></i><i style="left:1100px;width:100px;height:72px"></i><i style="left:1200px;width:60px;height:36px"></i><i style="left:1260px;width:80px;height:84px"></i><i style="left:1340px;width:100px;height:120px"></i><i style="left:1440px;width:60px;height:60px"></i><i style="left:1500px;width:80px;height:48px"></i></div>
+  <div class="content">
+    <span class="pill">확인하기</span>
+    <h2 class="hl cy">배운 내용을 확인해 볼까요?</h2>
+    <div class="split5">
+      <div class="sblock quiz" data-quiz data-answer="1" data-right="정답! 태양 고도가 가장 높을 때(남중) 그림자가 가장 짧아요" data-wrong="다시 생각해 볼까요? 태양 고도와 그림자 길이의 관계를 떠올려 보세요"><i class="br tl "></i><i class="br brr "></i>
+        <h3 class="q">하루 중 그림자 길이가 가장 짧을 때는?</h3>
+        <div class="opts"><button class="opt" data-opt="0"><span class="key">A</span>오전 9시 30분</button><button class="opt" data-opt="1"><span class="key">B</span>낮 12시 30분 무렵</button><button class="opt" data-opt="2"><span class="key">C</span>오후 3시 30분</button></div>
+        <p class="fb" data-fb></p>
+        <div class="btns"><button class="pbtn pink" data-act="retry">다시 풀기 ↺</button></div>
+      </div>
+      <div class="sblock blk"><i class="br tl pk"></i><i class="br brr pk"></i>
+        <span class="sk">빈칸을 눌러 확인해요</span>
+        <p class="bl"><button class="chip blank" data-blank aria-pressed="false"><span>태양 고도</span></button>는 점점 높아졌다가 다시 낮아진다</p><p class="bl"><button class="chip blank" data-blank aria-pressed="false"><span>그림자 길이</span></button>는 점점 짧아졌다가 다시 길어진다</p><p class="bl"><button class="chip blank" data-blank aria-pressed="false"><span>기온</span></button>은 점점 높아졌다가 다시 낮아진다</p>
+        <span class="sk wl">오늘의 낱말</span>
+        <div class="badges"><span class="badge">태양 고도</span><span class="badge">남중 고도</span><span class="badge">그림자 길이</span><span class="badge">기온</span></div>
+      </div>
+    </div>
+  </div>
+  <p class="nr">퀴즈 보기 규칙 없음 → 청록 테두리 칸으로 표현 · 빈칸 규칙 없음 → 날짜 칩으로 표현</p>
+  <div class="grain"></div><div class="scan"></div><div class="crt"></div>
+</section>
+<section class="slide lav">
+  <div class="content">
+    <span class="pill">디자인 안내</span>
+    <h2 class="hl">이 디자인 사용 설명서</h2>
+    <div class="split6">
+      <div class="fcard g6"><i class="br tl navy"></i><i class="br brr navy"></i>
+        <span class="chip">한눈에</span><p class="ab6">8비트 게임 화면처럼 <b>4px 픽셀 단위</b>로 그립니다. 모서리는 각지고, 그림자는 흐림 없이 <b>계단처럼 겹쳐</b> 찍어요. 남색 격자 장과 라벤더·분홍 격자 장을 번갈아 씁니다.</p>
+        <span class="chip">색</span><div class="sw6"><span><i style="background:#0A0E27"></i>밤 남색</span><span><i style="background:#0F1B3D"></i>남색</span><span><i style="background:#5EDCF4"></i>청록</span><span><i style="background:#F0A6CA"></i>분홍</span><span><i style="background:#F4D03F"></i>노랑</span><span><i style="background:#E2D5F2"></i>라벤더</span></div>
+        <span class="chip">글꼴</span><div class="ft6"><p><b>제목·숫자</b> Tektur → Mona12 Bold</p><p><b>본문</b> Chakra Petch → Orbit</p><p><b>라벨·값</b> Space Mono</p></div>
+        <span class="chip">이렇게 쓰면 좋아요</span><div class="tip6"><p class="plus">게임처럼 단계를 깨 나가는 수업 — 퀴즈, 미션, 레벨 업</p><p class="plus">네온색(청록·분홍·노랑)은 제목·숫자에만, 본문은 남색·흰색</p><p class="plus">추천 카드 하나만 노랑 그림자로 띄워 강조</p></div>
+      </div>
+      <div class="sig6">
+        <span class="pill sm">대표 장치 — 눌러 보세요</span>
+        <div class="sblock d6"><i class="br tl navy"></i><i class="br brr navy"></i><div class="dh"><h3>픽셀 버튼 누르기</h3><button class="pbtn pink sm" data-demo="#eb-btn" data-mode="toggle" aria-pressed="false">켜기 / 끄기</button></div><p>누르면 2px 아래로 내려가고 계단 그림자가 6단 → 4단으로 줄어요.</p><div class="dr"><span class="pbtn demo" id="eb-btn">START ▶</span></div></div>
+        <div class="sblock d6"><i class="br tl navy"></i><i class="br brr navy"></i><div class="dh"><h3>막대가 차례로 자람</h3><button class="pbtn pink sm" data-demo="#eb-bars">다시 보기</button></div><p>그래프 장에 들어오면 막대가 120ms 간격으로 아래에서 자라요.</p><div class="bars6" id="eb-bars"><i style="--i:0;height:38px"></i><i style="--i:1;height:48px"></i><i style="--i:2;height:55px"></i><i style="--i:3;height:57px"></i><i style="--i:4;height:54px"></i><i style="--i:5;height:47px"></i><i style="--i:6;height:37px"></i></div></div>
+        <div class="sblock d6"><i class="br tl navy"></i><i class="br brr navy"></i><div class="dh"><h3>픽셀 히어로 글자</h3><button class="pbtn pink sm" data-demo="#eb-hero" data-mode="toggle" aria-pressed="false">켜기 / 끄기</button></div><p>노랑 +4px → 남색 +8px 두 겹 그림자로 글자가 튀어나와 보여요.</p><div class="dr"><b class="hero6" id="eb-hero">LEVEL 06</b></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="grain"></div><div class="scan"></div>
+</section>
+<nav class="dk-nav"><span class="dk-dots"><button class="dk-dot" aria-label="1장"></button><button class="dk-dot" aria-label="2장"></button><button class="dk-dot" aria-label="3장"></button><button class="dk-dot" aria-label="4장"></button><button class="dk-dot" aria-label="5장"></button><button class="dk-dot" aria-label="6장"></button></span><span class="dk-count" data-pad></span><span class="hint">USE KEYS ↑ ↓</span></nav>
+  </main>
+</div>
+
+<script>
+window.DECK_CFG = {"type":"y","dur":800,"ease":"cubic-bezier(0.22, 1, 0.36, 1)","wheel":true};
+
+/* === DECK ENGINE (slide-refs 공용, 덱 HTML에 그대로 인라인됨) ===
+   window.DECK_CFG = { type: 'x' | 'y' | 'fade' | 'shift' | 'rise', dur: ms, ease: css, dist: px, wheel: bool }
+   window.DECK_FX  = { enter(slide, i), step(slide, k), answer(quiz, ok, btn) }  // 템플릿별 효과 훅(선택)
+   - 넘김: → ↓ Space PageDown Enter = 다음(단계가 남았으면 단계 먼저), ← ↑ PageUp = 이전, Home/End
+   - 내비: .dk-dot(점) .dk-count(번호, data-pad면 01 형식) .dk-prev .dk-next
+   - 단계: <section data-steps="4"> 안의 [data-s="k"] 요소가 k단계부터 .on, 현재 단계는 .now
+           [data-caps='["...",...]'] 요소의 글이 단계마다 바뀜, 버튼 [data-act="step"] [data-act="reset"]
+   - 퀴즈: [data-quiz data-answer data-right data-wrong] 안의 버튼 [data-opt="i"], 결과 글 [data-fb], 다시 풀기 [data-act="retry"]
+   - 빈칸: [data-blank] 를 누르면 .open (답 보이기/숨기기)
+   - 시연(6장 디자인 안내): 버튼 [data-demo="선택자"] 를 누르면 같은 장 안의 그 요소에 .play
+       data-mode="toggle" 이면 .play 켜기/끄기(aria-pressed), 아니면 .play를 뺐다 다시 붙여 애니메이션을 처음부터 다시 재생 */
+/* 소개 발표(intro/talk.html)에 넣을 때: 주소에 ?talk=1&name=<디자인 이름>
+   - 넘김 키는 부모 창으로 보내고(postMessage) 이 덱은 넘기지 않음, 휠·터치 넘김 끔
+   - 현재 장의 '디자인 안내' 글을 디자인 이름으로 바꿈
+   부모 창(talk-engine.js로 쓰는 같은 파일)은 {deckKey}를 받으면 그 키를 누른 것처럼 처리 */
+(function () {
+  var cfg = window.DECK_CFG || { type: 'fade', dur: 400, ease: 'ease' };
+  var fx = window.DECK_FX || {};
+  var stage = document.getElementById('deckStage');
+  var slides = [].slice.call(stage.querySelectorAll('.slide'));
+  var cur = 0, busy = false;
+  var embed = /[?&]talk=1/.test(location.search), embedName = decodeURIComponent((location.search.match(/[?&]name=([^&]*)/) || [, ''])[1]);
+  function each(root, sel, fn) { [].forEach.call(root.querySelectorAll(sel), fn); }
+  if (window.top !== window) document.documentElement.classList.add('in-frame');
+
+  /* --- 무대 맞춤: 1920×1080을 통째로 축소/확대 --- */
+  function fit() {
+    var f = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = 'translate(' + (innerWidth - 1920 * f) / 2 + 'px,' + (innerHeight - 1080 * f) / 2 + 'px) scale(' + f + ')';
+  }
+  fit(); addEventListener('resize', fit);
+
+  /* --- 내비 표시 --- */
+  var dots = [].slice.call(document.querySelectorAll('.dk-dot'));
+  var count = document.querySelector('.dk-count');
+  var prev = document.querySelector('.dk-prev'), next = document.querySelector('.dk-next');
+  function pad(n) { return count && count.hasAttribute('data-pad') && n < 10 ? '0' + n : '' + n; }
+  function ui() {
+    dots.forEach(function (d, i) { d.classList.toggle('on', i === cur); d.setAttribute('aria-current', i === cur ? 'true' : 'false'); });
+    if (count) count.textContent = pad(cur + 1) + ' / ' + pad(slides.length);
+    if (prev) prev.disabled = cur === 0;
+    if (next) next.disabled = cur === slides.length - 1;
+    document.documentElement.setAttribute('data-slide', cur + 1);
+  }
+
+  /* --- 슬라이드 등장(요소 애니메이션 다시 재생) --- */
+  function enter(s) {
+    s.classList.remove('visible'); void s.offsetWidth; s.classList.add('visible');
+    if (fx.enter) fx.enter(s, slides.indexOf(s));
+  }
+
+  /* --- 넘김: 템플릿 명세의 방식(x 가로 밀기 / y 세로 밀기 / fade 교차 페이드) --- */
+  function go(n) {
+    if (busy || n === cur || n < 0 || n >= slides.length) return;
+    var a = slides[cur], b = slides[n], dir = n > cur ? 1 : -1;
+    // shift: 투명도 + 짧은 가로 이동(cfg.dist px) — 예: blue-professional 40px
+    var tf = cfg.type === 'x' ? function (v) { return 'translateX(' + v * 100 + '%)'; }
+      : cfg.type === 'y' ? function (v) { return 'translateY(' + v * 100 + '%)'; }
+      : cfg.type === 'shift' ? function (v) { return 'translateX(' + v * (cfg.dist || 40) + 'px)'; } : null;
+    var fade = !tf || cfg.type === 'shift' || cfg.type === 'rise';
+    busy = true;
+    b.style.transition = 'none';
+    b.style.transform = tf ? tf(dir) : '';
+    b.style.opacity = fade ? '0' : '1';
+    b.classList.remove('visible'); b.classList.add('active');
+    void b.offsetWidth;
+    var tr = 'transform ' + cfg.dur + 'ms ' + cfg.ease + ', opacity ' + cfg.dur + 'ms ' + cfg.ease;
+    a.style.transition = tr; b.style.transition = tr;
+    // rise: 새 장이 아래(cfg.dist px)에서 0.98배로 떠오르며 나타나고, 이전 장은 그냥 사라짐 — 예: bold-poster
+    if (cfg.type === 'rise') { b.style.transition = 'none'; b.style.transform = 'translateY(' + (cfg.dist || 30) + 'px) scale(.98)'; void b.offsetWidth; b.style.transition = tr; b.style.transform = 'none'; }
+    if (tf) { a.style.transform = tf(-dir); b.style.transform = 'translate(0,0)'; }
+    if (fade) { a.style.opacity = '0'; b.style.opacity = '1'; }
+    cur = n; ui();
+    setTimeout(function () { enter(b); }, tf ? cfg.dur * 0.35 : cfg.dur * 0.5);
+    setTimeout(function () {
+      a.classList.remove('active', 'visible');
+      [a, b].forEach(function (s) { s.style.transition = ''; s.style.transform = ''; s.style.opacity = ''; });
+      busy = false;
+    }, cfg.dur + 40);
+  }
+
+  /* --- 단계 버튼 --- */
+  function maxStep(s) { return +(s.getAttribute('data-steps') || 0); }
+  function setStep(s, k) {
+    var max = maxStep(s); k = Math.max(0, Math.min(max, k));
+    s.setAttribute('data-step', k);
+    each(s, '[data-s]', function (e) { var v = +e.getAttribute('data-s'); e.classList.toggle('on', k > 0 && v <= k); e.classList.toggle('now', v === k); });
+    var cap = s.querySelector('[data-caps]');
+    if (cap) { cap.textContent = JSON.parse(cap.getAttribute('data-caps'))[k]; cap.classList.remove('flash'); void cap.offsetWidth; cap.classList.add('flash'); }
+    each(s, '[data-act="step"]', function (b) { b.disabled = k >= max; });
+    each(s, '[data-act="reset"]', function (b) { b.disabled = k === 0; });
+    if (fx.step) fx.step(s, k);
+  }
+  slides.forEach(function (s) { if (maxStep(s)) setStep(s, 0); });
+
+  /* --- 퀴즈 --- */
+  each(stage, '[data-quiz]', function (q) {
+    var ans = +q.getAttribute('data-answer'), fb = q.querySelector('[data-fb]');
+    each(q, '[data-opt]', function (b) {
+      b.addEventListener('click', function () {
+        var ok = +b.getAttribute('data-opt') === ans;
+        b.classList.remove('right', 'wrong'); void b.offsetWidth; b.classList.add(ok ? 'right' : 'wrong');
+        q.classList.remove('solved', 'tried'); void q.offsetWidth; q.classList.add(ok ? 'solved' : 'tried');
+        if (fb) fb.textContent = q.getAttribute(ok ? 'data-right' : 'data-wrong');
+        if (ok) each(q, '[data-opt]', function (x) { x.disabled = true; });
+        if (fx.answer) fx.answer(q, ok, b);
+      });
+    });
+  });
+
+  /* --- 클릭·키보드·휠·터치 --- */
+  stage.addEventListener('click', function (e) {
+    var bl = e.target.closest ? e.target.closest('[data-blank]') : null;
+    if (bl) { bl.classList.toggle('open'); bl.setAttribute('aria-pressed', bl.classList.contains('open')); return; }
+    var dm = e.target.closest ? e.target.closest('[data-demo]') : null;
+    if (dm) {
+      var tg = dm.closest('.slide').querySelector(dm.getAttribute('data-demo'));
+      if (tg && dm.getAttribute('data-mode') === 'toggle') dm.setAttribute('aria-pressed', tg.classList.toggle('play'));
+      else if (tg) { tg.classList.remove('play'); void tg.offsetWidth; tg.classList.add('play'); }
+      return;
+    }
+    var b = e.target.closest ? e.target.closest('[data-act]') : null; if (!b) return;
+    var s = b.closest('.slide'), k = +(s.getAttribute('data-step') || 0);
+    if (b.getAttribute('data-act') === 'step') setStep(s, k + 1);
+    if (b.getAttribute('data-act') === 'reset') setStep(s, 0);
+    if (b.getAttribute('data-act') === 'retry') each(s, '[data-quiz]', function (q) {
+      q.classList.remove('solved', 'tried');
+      each(q, '[data-opt]', function (x) { x.disabled = false; x.classList.remove('right', 'wrong'); });
+      var fb = q.querySelector('[data-fb]'); if (fb) fb.textContent = '';
+    });
+  });
+  dots.forEach(function (d, i) { d.addEventListener('click', function () { go(i); }); });
+  if (prev) prev.addEventListener('click', function () { go(cur - 1); });
+  if (next) next.addEventListener('click', function () { go(cur + 1); });
+  addEventListener('keydown', function (e) {
+    var t = e.target; if (t && t.closest && t.closest('button,a') && (e.key === ' ' || e.key === 'Enter')) return;
+    if (embed) {
+      if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter', 'ArrowLeft', 'ArrowUp', 'PageUp', 'Home', 'End'].indexOf(e.key) >= 0) { e.preventDefault(); parent.postMessage({ deckKey: e.key }, '*'); }
+      return;
+    }
+    var s = slides[cur], k = +(s.getAttribute('data-step') || 0), max = maxStep(s);
+    if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter'].indexOf(e.key) >= 0) { e.preventDefault(); if (max && k < max) setStep(s, k + 1); else go(cur + 1); }
+    else if (['ArrowLeft', 'ArrowUp', 'PageUp'].indexOf(e.key) >= 0) { e.preventDefault(); go(cur - 1); }
+    else if (e.key === 'Home') go(0);
+    else if (e.key === 'End') go(slides.length - 1);
+  });
+  if (cfg.wheel && !embed) {
+    var lock = 0;
+    addEventListener('wheel', function (e) {
+      if (Date.now() < lock || Math.abs(e.deltaY) < 30) return;
+      lock = Date.now() + cfg.dur + 200; go(cur + (e.deltaY > 0 ? 1 : -1));
+    }, { passive: true });
+  }
+  var tx = null, ty = null;
+  addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+  addEventListener('touchend', function (e) {
+    if (tx === null || embed) return;
+    var dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty, v = cfg.type === 'y' ? dy : dx;
+    if (Math.abs(v) > 50) go(cur + (v < 0 ? 1 : -1)); tx = ty = null;
+  }, { passive: true });
+
+  /* --- 시작: 주소 끝 #2 처럼 장 지정 가능 --- */
+  var h = parseInt((location.hash || '').slice(1), 10);
+  if (h >= 1 && h <= slides.length) cur = h - 1;
+  addEventListener('hashchange', function () { var n = parseInt(location.hash.slice(1), 10); if (n >= 1) go(n - 1); });
+  slides.forEach(function (s, i) { s.classList.toggle('active', i === cur); });
+  ui();
+  if (embed && embedName) {
+    var tw = document.createTreeWalker(slides[cur], NodeFilter.SHOW_TEXT), nd;
+    while ((nd = tw.nextNode())) if (nd.nodeValue.indexOf('디자인 안내') >= 0) nd.nodeValue = nd.nodeValue.replace('디자인 안내', embedName);
+  }
+  // 부모(발표)가 보낸 키 처리
+  addEventListener('message', function (e) { if (e.data && e.data.deckKey) dispatchEvent(new KeyboardEvent('keydown', { key: e.data.deckKey })); });
+  // 첫 장 등장: 화면이 그려진 뒤 시작(창이 가려져 rAF가 멈춰도 타이머로 시작)
+  var started = false;
+  function start() { if (!started) { started = true; enter(slides[cur]); } }
+  requestAnimationFrame(function () { requestAnimationFrame(start); });
+  setTimeout(start, 120);
+})();
+
+</script>
+</body>
+</html>

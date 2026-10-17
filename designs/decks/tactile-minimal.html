@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko" data-template="tactile-minimal">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TACTILE PRODUCT MINIMAL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;900&display=swap">
+<style>
+/* === KOREAN FONTS === */
+@font-face{font-family:'Pretendard';font-display:swap;src:url("fonts/Pretendard-Regular.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/pretendard/Pretendard-Regular.woff2") format("woff2");font-weight:400}
+@font-face{font-family:'Pretendard';font-display:swap;src:url("fonts/Pretendard-Bold.ttf"),url("https://maker-ssam.github.io/korean-ofl-fonts/fonts/pretendard/Pretendard-Bold.woff2") format("woff2");font-weight:700}
+:root {
+  --stage-bg: #F6F7F4;
+  --slide-bg: #F6F7F4;
+  --font-title: 'Outfit', 'Pretendard', sans-serif;
+  --font-body: 'Pretendard', sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--stage-bg, #000); font-family:var(--font-body); }
+.deck-viewport { position:fixed; inset:0; overflow:hidden; background:var(--stage-bg, #000); }
+.deck-stage { position:absolute; left:0; top:0; width:1920px; height:1080px; overflow:hidden; transform-origin:0 0; background:var(--slide-bg, #fff); }
+.slide { position:absolute; inset:0; width:1920px; height:1080px; overflow:hidden; display:block; visibility:visible; opacity:1; background:var(--slide-bg, #fff); }
+html.in-frame .dk-nav, html.in-frame .dk-controls, html.in-frame .hint { display:none !important; }
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+  <div class="deck-stage" id="deckStage">
+    <section class="slide s1 active visible" style="font-family:var(--font-title);">
+      
+      <div style="position:absolute; left:120px; top:120px; display:flex; gap:16px;">
+        <span style="border:1px solid #747974; background:#fff; padding:8px 24px; border-radius:6px; font-size:22px; font-weight:800; color:#334155; box-shadow:0 2px 4px rgba(0,0,0,0.06);">PRODUCT HARDWARE UI</span>
+        <span style="border:1px solid #747974; background:#fff; padding:8px 24px; border-radius:6px; font-size:22px; font-weight:800; color:#0284c7; box-shadow:0 2px 4px rgba(0,0,0,0.06);">TACTILE CONTROLS</span>
+      </div>
+      <div style="position:absolute; left:120px; top:280px; z-index:2;">
+        <h1 style="font-size:128px; font-weight:900; line-height:0.95; letter-spacing:-0.04em; color:#1e293b; margin:0;">TACTILE PRODUCT<br>MINIMAL</h1>
+        <p style="font-size:38px; font-weight:700; color:#0284c7; margin:30px 0 0 0;">정밀 기기 인터페이스의 금속성 텍스처와 정교한 마감</p>
+      </div>
+      <div style="position:absolute; right:150px; top:240px; width:380px; border:1px solid #747974; background:linear-gradient(180deg,#ffffff,#f1f3ee); border-radius:10px; padding:32px; box-shadow:0 8px 18px rgba(0,0,0,0.08);">
+        <span style="font-size:30px; font-weight:900; color:#1e293b;">MATTE FINISH</span>
+        <p style="font-size:22px; color:#475569; margin:14px 0 0 0; line-height:1.5;">정밀 가공된 알루미늄과 다이얼 버튼을 연상시키는 섬세한 디테일</p>
+      </div>
+      <div style="position:absolute; left:120px; right:120px; bottom:90px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #cbd5e1; padding-top:20px;">
+        <span style="font-size:22px; font-weight:700; color:#64748b;">#475569 · #0284C7 · #D97706</span>
+        <span style="font-size:24px; font-weight:900; color:#1e293b;">LOCAL PPT · CORE DESIGN 10</span>
+      </div>
+        
+    </section>
+  </div>
+</div>
+<script>
+(function() {
+  var stage = document.getElementById('deckStage');
+  if (window.top !== window) document.documentElement.classList.add('in-frame');
+  function fit() {
+    var f = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = 'translate(' + (innerWidth - 1920 * f) / 2 + 'px,' + (innerHeight - 1080 * f) / 2 + 'px) scale(' + f + ')';
+  }
+  fit();
+  addEventListener('resize', fit);
+})();
+</script>
+</body>
+</html>
