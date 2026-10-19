@@ -2815,20 +2815,7 @@ body.is-present-mode #presentationStage {
   color: #F3F4F6;
 }
 
-#presentationStage[data-design="cyber"],
-.presentation-stage[data-design="cyber"] {
-  background-color: #0a0b10;
-  background-image:
-    linear-gradient(rgba(0, 243, 255, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 0, 85, 0.08) 1px, transparent 1px);
-  background-size: 32px 32px;
-  color: #00f3ff;
-  border-color: #00f3ff;
-  box-shadow: 0 0 16px rgba(0, 243, 255, 0.35);
-}
-#presentationStage[data-design="cyber"] .canvas-text {
-  color: #ffffff;
-}
+
 
 #presentationStage[data-design="skeuo"],
 .presentation-stage[data-design="skeuo"] {
@@ -2859,6 +2846,238 @@ body.is-present-mode #presentationStage {
   border: 3px solid #000000;
   box-shadow: 8px 8px 0 #000000;
   color: #000000;
+}
+
+/* --- editorial-tri-tone: 블러시 핑크 바탕, 반투명 알약 태그 감성 --- */
+#presentationStage[data-design="editorial-tri-tone"],
+.presentation-stage[data-design="editorial-tri-tone"] {
+  background-color: #F2B6C6;
+  background-image: linear-gradient(180deg, rgba(242,182,198,0) 0%, rgba(122,31,53,0.04) 100%);
+}
+
+/* --- emerald-editorial: 에메랄드 그린 매거진 바탕 --- */
+#presentationStage[data-design="emerald-editorial"],
+.presentation-stage[data-design="emerald-editorial"] {
+  background-color: #3CD896;
+  background-image: radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.12) 0%, transparent 70%);
+  color: #0F1A5C;
+  border-color: #0F1A5C;
+}
+#presentationStage[data-design="emerald-editorial"] .canvas-text { color: #0F1A5C; }
+
+/* --- grove: 딥 포레스트 그린, 양피지 세리프 --- */
+#presentationStage[data-design="grove"],
+.presentation-stage[data-design="grove"] {
+  background-color: #192B1B;
+  background-image: radial-gradient(ellipse at 50% 50%, rgba(200,192,172,0.06) 0%, transparent 60%);
+  color: #E8EDE6;
+  border-color: #C5A880;
+  box-shadow: 8px 8px 0 #0E1A10;
+}
+#presentationStage[data-design="grove"] .canvas-text { color: #E8EDE6; }
+
+/* --- signal: 네이비 캔버스, 웜 레드 포인트 --- */
+#presentationStage[data-design="signal"],
+.presentation-stage[data-design="signal"] {
+  background-color: #1C2644;
+  background-image: linear-gradient(180deg, #1C2644 0%, #161E38 100%);
+  color: #F5F3EF;
+  border-color: #E8503A;
+  box-shadow: 8px 8px 0 #0F1629;
+}
+#presentationStage[data-design="signal"] .canvas-text { color: #F5F3EF; }
+
+/* --- soft-editorial: 크림 페이퍼, 에스프레소 브라운 --- */
+#presentationStage[data-design="soft-editorial"],
+.presentation-stage[data-design="soft-editorial"] {
+  background-color: #F2EEDF;
+  background-image: radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.3) 0%, transparent 60%);
+}
+
+/* --- vellum: 딥 페리윙클 블루 캔버스 --- */
+#presentationStage[data-design="vellum"],
+.presentation-stage[data-design="vellum"] {
+  background-color: #2A3870;
+  background-image: radial-gradient(ellipse at 50% 40%, rgba(240,237,230,0.05) 0%, transparent 60%);
+  color: #F0EDE6;
+  border-color: #E07A5F;
+  box-shadow: 8px 8px 0 #1A254A;
+}
+#presentationStage[data-design="vellum"] .canvas-text { color: #F0EDE6; }
+
+/* --- blue-professional: 웜 크림, 코발트 블루 포인트 --- */
+#presentationStage[data-design="blue-professional"],
+.presentation-stage[data-design="blue-professional"] {
+  background-color: #FDFAE7;
+  background-image: linear-gradient(180deg, rgba(253,250,231,0) 0%, rgba(30,43,250,0.03) 100%);
+  border-color: #1E2BFA;
+}
+
+/* --- cartesian: 사암색 바탕, 건축 도면 격자선 --- */
+#presentationStage[data-design="cartesian"],
+.presentation-stage[data-design="cartesian"] {
+  background-color: #EDE8E0;
+  background-image:
+    linear-gradient(rgba(90,90,90,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(90,90,90,0.06) 1px, transparent 1px);
+  background-size: 40px 40px;
+  border-color: #5A5A5A;
+}
+
+/* --- neo-grid-bold: 12열 격자, 네온 옐로우 악센트 --- */
+#presentationStage[data-design="neo-grid-bold"],
+.presentation-stage[data-design="neo-grid-bold"] {
+  background-color: #ECECE8;
+  background-image:
+    linear-gradient(rgba(10,10,10,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(10,10,10,0.06) 1px, transparent 1px);
+  background-size: calc(100% / 12) calc(100% / 8);
+  border-color: #0A0A0A;
+}
+
+/* --- retro-zine: 카키 리소그래프 소책자 --- */
+#presentationStage[data-design="retro-zine"],
+.presentation-stage[data-design="retro-zine"] {
+  background-color: #C8B99A;
+  background-image: radial-gradient(circle at 1px 1px, rgba(0,0,0,0.04) 1px, transparent 1.5px);
+  background-size: 8px 8px;
+  border-color: #1A1A1A;
+}
+
+/* --- long-table: 크림 종이, 테라코타 잉크 --- */
+#presentationStage[data-design="long-table"],
+.presentation-stage[data-design="long-table"] {
+  background-color: #FAF1E2;
+  background-image: radial-gradient(circle at 1px 1px, rgba(181,61,42,0.04) 1px, transparent 1.5px);
+  background-size: 10px 10px;
+  border-color: #B53D2A;
+}
+
+/* --- stencil-tablet: 뼈색 바탕, 스트리트 스텐실 --- */
+#presentationStage[data-design="stencil-tablet"],
+.presentation-stage[data-design="stencil-tablet"] {
+  background-color: #E2DCC9;
+  background-image:
+    linear-gradient(rgba(10,10,10,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(10,10,10,0.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+  border-color: #D94E34;
+}
+
+/* --- coral: 코랄 핑크 매거진, 45° 빗금 --- */
+#presentationStage[data-design="coral"],
+.presentation-stage[data-design="coral"] {
+  background-color: #F5F0E8;
+  background-image: repeating-linear-gradient(45deg, transparent 0 10px, rgba(232,93,93,0.04) 10px 12px);
+}
+
+/* --- creative-mode: 크림 바탕, 4px 잉크 테두리 --- */
+#presentationStage[data-design="creative-mode"],
+.presentation-stage[data-design="creative-mode"] {
+  background-color: #EFE9D9;
+  border: 4px solid #111215;
+  box-shadow: 8px 8px 0 #111215;
+}
+
+/* --- daisy-days: 크림 캔버스, 데이지 플라워 감성 --- */
+#presentationStage[data-design="daisy-days"],
+.presentation-stage[data-design="daisy-days"] {
+  background-color: #F5F0E6;
+  border: 3px solid #1A1A1A;
+  box-shadow: 6px 6px 0 #1A1A1A;
+  border-radius: 10px;
+}
+
+/* --- mat: 다크 포레스트 그린, 가죽/펠트 질감 --- */
+#presentationStage[data-design="mat"],
+.presentation-stage[data-design="mat"] {
+  background-color: #232E26;
+  background-image: radial-gradient(ellipse at 85% 80%, rgba(200,150,102,0.08) 0%, transparent 50%);
+  color: #EDE6D0;
+  border-color: #C89666;
+}
+#presentationStage[data-design="mat"] .canvas-text { color: #EDE6D0; }
+
+/* --- playful: 피치 클레이 캔버스 --- */
+#presentationStage[data-design="playful"],
+.presentation-stage[data-design="playful"] {
+  background-color: #F0C8A0;
+  border: 3px solid #1A1A1A;
+  box-shadow: 8px 8px 16px rgba(0,0,0,0.12), -4px -4px 12px rgba(255,255,255,0.3);
+  border-radius: 12px;
+}
+
+/* --- capsule: 크림 바탕, 알약 팝 감성 --- */
+#presentationStage[data-design="capsule"],
+.presentation-stage[data-design="capsule"] {
+  background-color: #F5F5F0;
+  border: 2px solid #1A1A1A;
+  box-shadow: 6px 6px 0 #1A1A1A;
+  border-radius: 24px;
+}
+
+/* --- sakura-chroma: 크림 페이퍼, 하프톤 점 질감 --- */
+#presentationStage[data-design="sakura-chroma"],
+.presentation-stage[data-design="sakura-chroma"] {
+  background-color: #F1E6CB;
+  background-image: radial-gradient(circle at 1px 1px, rgba(58,37,22,0.06) 1px, transparent 1.6px);
+  background-size: 8px 8px;
+  border-color: #3A2516;
+}
+
+/* --- pink-script: 따뜻한 검정, 핑크 네온 글로우 --- */
+#presentationStage[data-design="pink-script"],
+.presentation-stage[data-design="pink-script"] {
+  background-color: #060507;
+  background-image: radial-gradient(ellipse 90% 70% at 25% 25%, rgba(237,61,140,0.06) 0%, transparent 55%);
+  color: #E0D8E8;
+  border-color: #ED3D8C;
+}
+#presentationStage[data-design="pink-script"] .canvas-text { color: #E0D8E8; }
+
+/* =========================================================
+   DARK THEME ENHANCEMENTS (다크 배경 디자인 공통 보강)
+   ========================================================= */
+#presentationStage.is-dark-theme .node {
+  border-color: var(--ink, #f8fafc);
+  color: var(--ink, #f8fafc);
+}
+#presentationStage.is-dark-theme .bullet-item {
+  color: var(--ink, #f8fafc);
+}
+#presentationStage.is-dark-theme .structured-card {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.12);
+  color: var(--ink, #f8fafc);
+}
+#presentationStage.is-dark-theme .structured-card-title,
+#presentationStage.is-dark-theme .structured-card-desc {
+  color: var(--ink, #f8fafc);
+}
+#presentationStage.is-dark-theme .table-cell {
+  border-color: rgba(255,255,255,0.12);
+  color: var(--ink, #f8fafc);
+}
+#presentationStage.is-dark-theme .table-header-cell {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.15);
+  color: var(--ink, #f8fafc);
+}
+#presentationStage.is-dark-theme .chart-label,
+#presentationStage.is-dark-theme .chart-axis-label,
+#presentationStage.is-dark-theme .chart-value-label {
+  color: var(--ink, #f8fafc);
+}
+#presentationStage.is-dark-theme .side-accent-card {
+  border-color: rgba(255,255,255,0.12);
+  color: var(--ink, #f8fafc);
+}
+#presentationStage.is-dark-theme .comparison-panel {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+}
+#presentationStage.is-dark-theme .connection {
+  background: var(--content-accent, #f8fafc);
 }
 
 /* =========================================================

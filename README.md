@@ -54,7 +54,7 @@ AI 생성은 `index.html` 파일을 직접 열지 않고 `node server.js` 실행
 - 상단 페이지 목록에서 현재 작업 중인 페이지 탭(.is-current)에 선명한 고대비 블루 배경색 및 입체 스타일을 적용하여 다른 페이지와 한눈에 구분
 - 표지에 도형 없는 텍스트 항목 추가 및 `Tab`/`Shift+Tab` 위계 조정
 - 하나의 프레젠테이션에 하나의 디자인 적용
-- 기존 5종과 Swiss Grid Modern, Functional Bauhaus, Soft Layered Minimal, Controlled Neo-Brutalism, Tactile Product Minimal을 포함한 10종 디자인 제공
+- 코어 디자인 10종과 에디토리얼·비즈니스·레트로·볼드·크리에이티브 그룹을 포함한 44종 디자인 제공
 - 개조식, 마인드맵, 개체형 본문 템플릿 제공
 - 개체형 하위 레이아웃
   - 카드형 그리드 2×2
@@ -1196,4 +1196,25 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - `scratch/test_all_signatures_verified.js` 전수 검증: 44개 테마 총 181개 시그니처 컴포넌트 필수 속성 및 CSS 클래스 100% 매칭 검증 완료 (오류 0건).
   - `node -c app.js; node -c designs/options.js; node -c server.js` 구문 및 정적 무결성 100% 통과 (Exit code: 0).
 
-
+## [2026-10-19 21:58] 업데이트 이력 (Commit ID: 02ed50c)
+- **수정 내용**:
+  - `app.js`:
+    - **마인드맵 다계층 수직 분기 및 자식 노드 겹침 현상 해결 (`layoutMindmapTree`, `positionNewMindmapNode`)**:
+      - 16:9 슬라이드 화면 비율과 상/하단 여백(450px 반경)을 감안하여 3~4단계 계층 수직 분기 시에도 화면을 벗어나지 않도록 단계별 가시 간격(`gapPx`)을 최적화(`60px`, `44px`, `34px`, `26px`, `20px`).
+      - 형제(sibling) 자식이 2개 이상일 때 부모의 진행 축 방향(수직/수평)에 맞춰 횡방향(Tangent) 최소 분리 간격(`cWidthPx + 24px` 또는 `cHeightPx + 20px`) 및 방사 간격을 확보하여 형제 노드 및 상위 부모 개체와의 겹침 방지.
+      - `addItem` 및 `deleteSelectedObjects` 시 `positionNewMindmapNode`의 고정 반지름 계산 문제를 해결하고 `layoutMindmapTree(page)`와 `saveMindmapSnapshotIfActive(page)`를 연동하여 동적 노드 추가/삭제 시에도 전체 트리가 항상 균형 있게 정렬되도록 일원화.
+    - **마인드맵 노드 충돌 분리 알고리즘 개선 (`resolveNodeOverlaps`)**:
+      - 상단 Y 경계가 `clamp(18, y, ...)`로 제한되어 3~4단계 상단(12시 방향) 노드들이 Y=18% 영역으로 강제 압축되던 결함을 `clamp(2, y, 98 - h)`로 정상화.
+      - 부모-자식 노드 간의 충돌 시 자식이 부모의 가지 진행 방향(외곽)으로 안전하게 밀려나도록 분리 로직 보강.
+      - 마인드맵 복귀 시(`applyMindmapTemplatePreservingContent`) 스냅샷 복원 직후 `resolveNodeOverlaps(page)`를 실행하여 과거 세션의 잔류 겹침 좌표 자동 복구.
+    - **마인드맵에서 타 템플릿 전환 시 슬라이드 제목 중앙 잔류 현상 해결 (`restoreSnapshotTitle`)**:
+      - 마인드맵의 `mind-root` 노드(중앙 좌표 `x: 41, y: 44, w: 18, h: 12`)에서 복사된 좌표가 카드 레이아웃/다이어그램/차트의 신규 `page-title`에 덮어씌워지던 문제를 차단.
+      - 이전 템플릿이 마인드맵(`root || role === "mind-root" || role !== "page-title"`)인 경우 슬라이드 상단 기본 제목 위치(`x: 7, y: 7, w: 86, h: 16`, 좌측 정렬)를 확실히 부여하고, 제목 Y 좌표가 20%를 초과할 경우 상단으로 복원하는 안전 가드 추가.
+      - 개조식 전환(`applyBulletTemplatePreservingContent`) 시에도 좌측 정렬 보장.
+  - `index.html`:
+    - 좌측 패널 안내 문구의 테마 개수 표기를 10종에서 44종으로 최신화.
+  - `style.css`:
+    - 신규 테마군 배경 스타일(그라디언트, 격자선, 테두리, 그림자 등) 및 다크 테마 디자인 캔버스 요소 가독성 공통 보강.
+- **검증 결과**:
+  - `node --check app.js`: 구문 및 정적 무결성 100% 통과 (Exit code: 0).
+  - 마인드맵 단일 가지 수직 배치(Root -> L2 -> L3 -> L4), 12시 방향 3형제 노드 AABB 충돌 검사, 마인드맵 -> 카드형(2열) 및 개조식 전환 후 제목 위치 정밀 계산 검증 100% 통과 (오차 0건).

@@ -580,35 +580,11 @@ function createMindNode(text, parentId, mindLevel) {
 }
 
 function positionNewMindmapNode(page, parent, node) {
-  const specs = {
-    2: { radiusX: 23, radiusY: 19, w: 15, h: 11 },
-    3: { radiusX: 33, radiusY: 27, w: 12.5, h: 9.5 },
-    4: { radiusX: 41, radiusY: 34, w: 10.5, h: 8 },
-    5: { radiusX: 47, radiusY: 39, w: 8.5, h: 6.5 },
-    6: { radiusX: 52, radiusY: 43, w: 7.5, h: 5.5 }
-  };
-  const level = Math.min(6, parent.mindLevel + 1);
-  const spec = specs[level] || specs[6];
-  const siblings = page.objects.filter((object) => object.role === "mind-node" && object.parentId === parent.id);
-  const offsets = parent.root
-    ? [-Math.PI / 2, Math.PI / 2, -Math.PI / 4, Math.PI / 4, -3 * Math.PI / 4, 3 * Math.PI / 4, 0, Math.PI]
-    : [0, .9, -.9, 1.8, -1.8, 2.5, -2.5, Math.PI];
-  const parentAngle = Number.isFinite(parent.mindAngle) ? parent.mindAngle : 0;
-  const usedAngles = siblings.map((sibling) => Number.isFinite(sibling.mindAngle) ? sibling.mindAngle : 0);
-  const angularDistance = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
-  const angle = offsets
-    .map((offset) => parent.root ? offset : parentAngle + offset)
-    .sort((a, b) => Math.min(...usedAngles.map((used) => angularDistance(b, used))) - Math.min(...usedAngles.map((used) => angularDistance(a, used))))[0];
-  const centerX = 50;
-  const centerY = 52;
-  Object.assign(node, {
-    mindLevel: level,
-    mindAngle: angle,
-    x: centerX + Math.cos(angle) * spec.radiusX - spec.w / 2,
-    y: centerY + Math.sin(angle) * spec.radiusY - spec.h / 2,
-    w: spec.w,
-    h: spec.h
-  });
+  if (!page.objects.includes(node)) {
+    page.objects.push(node);
+  }
+  layoutMindmapTree(page);
+  saveMindmapSnapshotIfActive(page);
 }
 
 function resolveNodeOverlaps(page) {
@@ -617,7 +593,7 @@ function resolveNodeOverlaps(page) {
 
   const margin = 1.8;
 
-  for (let iter = 0; iter < 12; iter++) {
+  for (let iter = 0; iter < 15; iter++) {
     let shifted = false;
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
@@ -639,33 +615,92 @@ function resolveNodeOverlaps(page) {
 
         if (overlapX > 0 && overlapY > 0) {
           shifted = true;
-          if (overlapX < overlapY) {
-            const dx = overlapX / 2;
-            if (a.x < b.x) {
-              if (!a.root) a.x -= dx;
-              if (!b.root) b.x += dx;
+
+          // 부모-자식 관계인 경우 자식이 부모의 가지 진행 방향(외곽)으로 밀려나도록 분리
+          const aIsParentOfB = b.parentId === a.id;
+          const bIsParentOfA = a.parentId === b.id;
+
+          if (aIsParentOfB || bIsParentOfA) {
+            const parent = aIsParentOfB ? a : b;
+            const child = aIsParentOfB ? b : a;
+            const childAngle = Number.isFinite(child.mindAngle)
+              ? child.mindAngle
+              : (Number.isFinite(parent.mindAngle) ? parent.mindAngle : 0);
+            const cosA = Math.cos(childAngle);
+            const sinA = Math.sin(childAngle);
+
+            if (Math.abs(sinA) >= Math.abs(cosA)) {
+              if (sinA <= 0) {
+                const prevY = child.y;
+                child.y = clamp(2, child.y - overlapY, 98 - child.h);
+                const actualShift = prevY - child.y;
+                const remaining = overlapY - actualShift;
+                if (remaining > 0 && !parent.root) {
+                  parent.y = clamp(2, parent.y + remaining, 98 - parent.h);
+                }
+              } else {
+                const prevY = child.y;
+                child.y = clamp(2, child.y + overlapY, 98 - child.h);
+                const actualShift = child.y - prevY;
+                const remaining = overlapY - actualShift;
+                if (remaining > 0 && !parent.root) {
+                  parent.y = clamp(2, parent.y - remaining, 98 - parent.h);
+                }
+              }
             } else {
-              if (!a.root) a.x += dx;
-              if (!b.root) b.x -= dx;
+              if (cosA <= 0) {
+                const prevX = child.x;
+                child.x = clamp(2, child.x - overlapX, 98 - child.w);
+                const actualShift = prevX - child.x;
+                const remaining = overlapX - actualShift;
+                if (remaining > 0 && !parent.root) {
+                  parent.x = clamp(2, parent.x + remaining, 98 - parent.w);
+                }
+              } else {
+                const prevX = child.x;
+                child.x = clamp(2, child.x + overlapX, 98 - child.w);
+                const actualShift = child.x - prevX;
+                const remaining = overlapX - actualShift;
+                if (remaining > 0 && !parent.root) {
+                  parent.x = clamp(2, parent.x - remaining, 98 - parent.w);
+                }
+              }
+            }
+          } else if (overlapX < overlapY) {
+            const dx = overlapX / 2;
+            if (a.root) {
+              b.x += b.x < a.x ? -overlapX : overlapX;
+            } else if (b.root) {
+              a.x += a.x < b.x ? -overlapX : overlapX;
+            } else if (a.x < b.x) {
+              a.x -= dx;
+              b.x += dx;
+            } else {
+              a.x += dx;
+              b.x -= dx;
             }
           } else {
             const dy = overlapY / 2;
-            if (a.y < b.y) {
-              if (!a.root) a.y -= dy;
-              if (!b.root) b.y += dy;
+            if (a.root) {
+              b.y += b.y < a.y ? -overlapY : overlapY;
+            } else if (b.root) {
+              a.y += a.y < b.y ? -overlapY : overlapY;
+            } else if (a.y < b.y) {
+              a.y -= dy;
+              b.y += dy;
             } else {
-              if (!a.root) a.y += dy;
-              if (!b.root) b.y -= dy;
+              a.y += dy;
+              b.y -= dy;
             }
           }
 
           if (!a.root) {
             a.x = clamp(2, a.x, 98 - a.w);
-            a.y = clamp(18, a.y, 90 - a.h);
+            a.y = clamp(2, a.y, 98 - a.h);
           }
           if (!b.root) {
             b.x = clamp(2, b.x, 98 - b.w);
-            b.y = clamp(18, b.y, 90 - b.h);
+            b.y = clamp(2, b.y, 98 - b.h);
           }
         }
       }
@@ -700,14 +735,13 @@ function layoutMindmapTree(page) {
   });
 
   // 레벨별 노드 크기 및 선의 가시적 길이(gapPx)
-  // 부모와 자식 외곽선 사이의 실제 시각적 연결선 길이(visible line length)를 모든 각도에서 동일하게 유지하기 위해
-  // 사각형 바운딩 박스 교차 거리를 정밀 계산
+  // 슬라이드 화면 비율(16:9) 및 다계층(3~4단계) 수직 분기 시 화면 상/하단 경계 여유를 고려하여 최적화
   const specs = {
-    2: { w: 15, h: 9, gapPx: 80 },
-    3: { w: 13, h: 8, gapPx: 58 },
-    4: { w: 11, h: 7, gapPx: 46 },
-    5: { w: 9.5, h: 6, gapPx: 38 },
-    6: { w: 8.5, h: 5.5, gapPx: 32 }
+    2: { w: 15, h: 9, gapPx: 60 },
+    3: { w: 13, h: 8, gapPx: 44 },
+    4: { w: 11, h: 7, gapPx: 34 },
+    5: { w: 9.5, h: 6, gapPx: 26 },
+    6: { w: 8.5, h: 5.5, gapPx: 20 }
   };
 
   const getRectRayDistance = (wPx, hPx, cosA, sinA) => {
@@ -723,6 +757,8 @@ function layoutMindmapTree(page) {
   const positionChildren = (parent) => {
     const children = childrenByParent.get(parent.id) || [];
     const n = children.length;
+    if (!n) return;
+
     const pCenterX = Number(parent.x) + Number(parent.w) / 2;
     const pCenterY = Number(parent.y) + Number(parent.h) / 2;
     const pWidthPx = (Number(parent.w) / 100) * 1600;
@@ -732,8 +768,15 @@ function layoutMindmapTree(page) {
       const level = Math.min(6, Math.max(2, node.mindLevel || (parent.mindLevel + 1)));
       const spec = specs[level] || specs[6];
 
-      let angle;
+      node.mindLevel = level;
+      node.w = spec.w;
+      node.h = spec.h;
+
+      const cWidthPx = (spec.w / 100) * 1600;
+      const cHeightPx = (spec.h / 100) * 900;
+
       if (parent.root) {
+        let angle;
         if (n === 1) {
           angle = 0;
         } else if (n === 2) {
@@ -744,33 +787,68 @@ function layoutMindmapTree(page) {
           // 수직 양측 대칭(Bilateral Symmetry)을 위해 12시 정점(-90도)부터 시계 방향 배치
           angle = -Math.PI / 2 + (2 * Math.PI * index) / n;
         }
+        node.mindAngle = angle;
+
+        const cosA = Math.cos(angle);
+        const sinA = Math.sin(angle);
+        const dParentPx = getRectRayDistance(pWidthPx, pHeightPx, cosA, sinA);
+        const dChildPx = getRectRayDistance(cWidthPx, cHeightPx, cosA, sinA);
+        const totalDistancePx = dParentPx + spec.gapPx + dChildPx;
+
+        const dxPct = (totalDistancePx * cosA / 1600) * 100;
+        const dyPct = (totalDistancePx * sinA / 900) * 100;
+
+        const nodeCenterX = pCenterX + dxPct;
+        const nodeCenterY = pCenterY + dyPct;
+
+        node.x = clamp(2, nodeCenterX - spec.w / 2, 98 - spec.w);
+        node.y = clamp(2, nodeCenterY - spec.h / 2, 98 - spec.h);
       } else {
-        const fanSpan = level >= 4 ? 0.35 : level === 3 ? 0.5 : 0.6;
-        angle = parent.mindAngle + (index - (n - 1) / 2) * fanSpan;
+        // 비-루트 부모 노드의 자식 배치:
+        // 부모의 진행 각도 방향으로 확실한 거리를 두어 이전 개체와 절대 겹치지 않도록 배치
+        const parentAngle = Number.isFinite(parent.mindAngle) ? parent.mindAngle : 0;
+        const cosP = Math.cos(parentAngle);
+        const sinP = Math.sin(parentAngle);
+        const isMostlyVertical = Math.abs(sinP) >= Math.abs(cosP);
+
+        const fanSpan = n === 1 ? 0 : (level >= 4 ? 0.45 : level === 3 ? 0.6 : 0.7);
+        const angle = n === 1 ? parentAngle : parentAngle + (index - (n - 1) / 2) * (fanSpan / Math.max(1, (n - 1) * 0.7));
+        node.mindAngle = angle;
+
+        const cosA = Math.cos(angle);
+        const sinA = Math.sin(angle);
+        const dParentPx = getRectRayDistance(pWidthPx, pHeightPx, cosA, sinA);
+        const dChildPx = getRectRayDistance(cWidthPx, cHeightPx, cosA, sinA);
+
+        // 형제 노드가 2개 이상일 때 충돌 방지를 위한 방사 거리 확장
+        const siblingSpreadGap = n > 1 ? Math.abs(index - (n - 1) / 2) * 16 : 0;
+        const totalDistancePx = dParentPx + spec.gapPx + dChildPx + siblingSpreadGap;
+
+        let dxPx = totalDistancePx * cosA;
+        let dyPx = totalDistancePx * sinA;
+
+        // 형제 노드 간의 횡방향(tangent) 오프셋 보장
+        if (n > 1) {
+          const siblingOffsetIdx = index - (n - 1) / 2;
+          if (isMostlyVertical) {
+            const minPerpSep = cWidthPx + 24;
+            dxPx = siblingOffsetIdx * minPerpSep;
+          } else {
+            const minPerpSep = cHeightPx + 20;
+            dyPx = siblingOffsetIdx * minPerpSep;
+          }
+        }
+
+        const dxPct = (dxPx / 1600) * 100;
+        const dyPct = (dyPx / 900) * 100;
+
+        const nodeCenterX = pCenterX + dxPct;
+        const nodeCenterY = pCenterY + dyPct;
+
+        node.x = clamp(2, nodeCenterX - spec.w / 2, 98 - spec.w);
+        node.y = clamp(2, nodeCenterY - spec.h / 2, 98 - spec.h);
       }
 
-      node.mindLevel = level;
-      node.mindAngle = angle;
-      node.w = spec.w;
-      node.h = spec.h;
-
-      const cosA = Math.cos(angle);
-      const sinA = Math.sin(angle);
-      const cWidthPx = (spec.w / 100) * 1600;
-      const cHeightPx = (spec.h / 100) * 900;
-
-      const dParentPx = getRectRayDistance(pWidthPx, pHeightPx, cosA, sinA);
-      const dChildPx = getRectRayDistance(cWidthPx, cHeightPx, cosA, sinA);
-      const totalDistancePx = dParentPx + spec.gapPx + dChildPx;
-
-      const dxPct = (totalDistancePx * cosA / 1600) * 100;
-      const dyPct = (totalDistancePx * sinA / 900) * 100;
-
-      const nodeCenterX = pCenterX + dxPct;
-      const nodeCenterY = pCenterY + dyPct;
-
-      node.x = clamp(2, nodeCenterX - spec.w / 2, 98 - spec.w);
-      node.y = clamp(2, nodeCenterY - spec.h / 2, 98 - spec.h);
       positionChildren(node);
     });
   };
@@ -1133,6 +1211,7 @@ function applyBulletTemplatePreservingContent(page) {
 
   const title = createTextObject("page-title", titleText, 8, 7, 84, 12, { textAlign: "left" });
   if (snapshotContent.title) copyRelayoutTextProperties(title, snapshotContent.title);
+  if (snapshotContent.title?.root || snapshotContent.title?.role === "mind-root") title.textAlign = "left";
 
   const flattenedBlocks = [];
   snapshotContent.blocks.forEach((block) => {
@@ -1241,7 +1320,7 @@ function applyMindmapTemplatePreservingContent(page) {
         });
 
         page.objects = [root, ...restoredNodes, ...images];
-        // layoutMindmapTree를 호출하지 않음으로써 기존 마인드맵 배열/위치를 1픽셀도 흐트러뜨리지 않고 복원
+        resolveNodeOverlaps(page);
         return;
       }
 
@@ -1270,6 +1349,7 @@ function applyMindmapTemplatePreservingContent(page) {
         });
 
         page.objects = [root, ...restoredNodes, ...images];
+        resolveNodeOverlaps(page);
         return;
       }
 
@@ -1397,13 +1477,35 @@ function applyMindmapTemplatePreservingContent(page) {
 
 function restoreSnapshotTitle(page, snapshotContent) {
   const title = page.objects.find((object) => object.role === "page-title");
-  if (title && snapshotContent.title) {
-    copyRelayoutTextProperties(title, snapshotContent.title);
-    if (snapshotContent.title.html) title.html = snapshotContent.title.html;
+  if (!title || !snapshotContent.title) return;
+
+  const isFromMindmap = Boolean(
+    snapshotContent.title.root ||
+    snapshotContent.title.role === "mind-root" ||
+    snapshotContent.title.role !== "page-title"
+  );
+
+  copyRelayoutTextProperties(title, snapshotContent.title);
+  if (snapshotContent.title.html) title.html = snapshotContent.title.html;
+
+  if (!isFromMindmap) {
     if (snapshotContent.title.x !== undefined) title.x = snapshotContent.title.x;
     if (snapshotContent.title.y !== undefined) title.y = snapshotContent.title.y;
     if (snapshotContent.title.w !== undefined) title.w = snapshotContent.title.w;
     if (snapshotContent.title.h !== undefined) title.h = snapshotContent.title.h;
+  } else {
+    // 마인드맵에서 전환된 경우 슬라이드 상단 기본 제목 위치(x: 7, y: 7, w: 86, h: 16) 및 좌측 정렬 보장
+    title.x = 7;
+    title.y = 7;
+    title.w = 86;
+    title.h = 16;
+    title.textAlign = "left";
+  }
+
+  // 안전 가드: 어떤 경로로든 page-title이 슬라이드 중앙이나 하단으로 밀려 본문 개체와 겹치지 않도록 방지
+  if (title.y > 20 || title.y + title.h > 30) {
+    title.y = 7;
+    title.h = Math.min(title.h || 16, 16);
   }
 }
 
@@ -2351,9 +2453,10 @@ function addItem() {
     state.selectedIds = new Set([item.id]);
   } else if (page.template === "mindmap") {
     const childCount = page.objects.filter((object) => object.parentId === selected.id).length;
-    const item = createMindNode(`하위 항목 ${childCount + 1}`, selected.id, selected.mindLevel + 1);
-    positionNewMindmapNode(page, selected, item);
+    const item = createMindNode(`하위 항목 ${childCount + 1}`, selected.id, (selected.mindLevel || 1) + 1);
     page.objects.push(item);
+    layoutMindmapTree(page);
+    saveMindmapSnapshotIfActive(page);
     state.selectedIds = new Set([item.id]);
   } else if (selected.type === "chart") {
     selected.data = getChartData(selected);
@@ -2399,6 +2502,8 @@ function deleteSelectedObjects() {
       });
     }
     page.objects = page.objects.filter((object) => !deletedIds.has(object.id));
+    layoutMindmapTree(page);
+    saveMindmapSnapshotIfActive(page);
   } else if (page.template === "object" || page.objectCategory === "layout") {
     const imageObjects = deletable.filter((o) => o.type === "image");
     if (imageObjects.length > 0) {
