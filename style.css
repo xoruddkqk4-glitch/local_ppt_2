@@ -83,6 +83,7 @@ button, select, input { font: inherit; }
 .header-actions .button { padding:2px 7px; font-size:10.5px; height:26px; line-height:20px; white-space:nowrap; display:inline-flex; align-items:center; justify-content:center; gap:3px; box-sizing:border-box; font-weight:850; }
 .header-actions .button kbd { font-size:9px; padding:0px 3px; border-radius:2px; line-height:1.2; }
 .button { border:2px solid var(--ink); background:var(--paper); color:var(--ink); padding:8px 11px; font-weight:850; cursor:pointer; }
+.button[hidden] { display:none !important; }
 .button:hover { transform:translate(-1px,-1px); box-shadow:3px 3px 0 var(--ink); }
 .button:disabled { opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; }
 .button-dark { background:var(--ink); color:#fff; }
@@ -634,7 +635,7 @@ body.is-fullscreen .canvas-object {
 .canvas-object .rotate-handle::after { content:""; position:absolute; top:18px; left:50%; transform:translateX(-50%); width:2px; height:8px; background:#2563eb; pointer-events:none; }
 .rotate-angle-tooltip { position:fixed; z-index:99999; padding:3px 8px; background:#0f172a; color:#ffffff; font-size:11px; font-weight:800; border-radius:4px; pointer-events:none; box-shadow:0 2px 6px rgba(0,0,0,0.3); display:none; white-space:nowrap; }
 .stage-marquee-box { position:absolute; border:1.5px dashed var(--blue, #2563eb); background:rgba(37,99,235,0.12); pointer-events:none; z-index:99; border-radius:2px; box-sizing:border-box; }
-.canvas-object.is-editing { outline:3px solid #2563eb; outline-offset:4px; cursor:text; z-index:100 !important; user-select:text !important; }
+.canvas-object.is-editing { outline:3px solid #2563eb; outline-offset:4px; cursor:text; z-index:100 !important; user-select:text !important; touch-action:auto !important; }
 .canvas-object.is-editing .canvas-text,
 .canvas-object.is-editing .canvas-text *,
 .canvas-object.is-editing .html-content-wrapper,

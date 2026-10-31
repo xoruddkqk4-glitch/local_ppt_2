@@ -2389,28 +2389,120 @@ function getDiagramMaximumCount(variant) {
 }
 
 function getSelectedActionObject(page) {
+  if (state.selectedIds.size > 0) {
+    const selectedTableOrChart = page.objects.find(
+      (object) => state.selectedIds.has(object.id) && (object.type === "table" || object.type === "chart")
+    );
+    if (selectedTableOrChart) return selectedTableOrChart;
+
+    const selected = page.objects.find((object) => state.selectedIds.has(object.id));
+    if (selected) {
+      if (page.type === "cover") return selected.role === "cover-item" ? selected : null;
+      if (page.template === "mindmap") return selected.root || selected.role === "mind-node" ? selected : null;
+      return selected;
+    }
+  }
   if (page.template === "object" && page.objectCategory === "chart") {
     return page.objects.find((object) => object.type === "chart") || null;
   }
   if (page.template === "object" && page.objectCategory === "layout" && TABLE_LAYOUT_VARIANTS.has(page.variant)) {
     return page.objects.find((object) => object.type === "table") || null;
   }
-  if (state.selectedIds.size === 0) return null;
-  const selected = page.objects.find((object) => state.selectedIds.has(object.id));
-  if (!selected) return null;
-  if (page.type === "cover") return selected.role === "cover-item" ? selected : null;
-  if (page.template === "mindmap") return selected.root || selected.role === "mind-node" ? selected : null;
-  return selected;
+  return null;
+}
+
+function canAddTableRow(table) {
+  if (!table || table.type !== "table" || !Array.isArray(table.cells)) return false;
+  return table.cells.length - 1 < 30;
+}
+
+function canRemoveTableRow(table) {
+  if (!table || table.type !== "table" || !Array.isArray(table.cells)) return false;
+  return table.cells.length > 1;
+}
+
+function canAddTableColumn(table) {
+  if (!table || table.type !== "table" || !Array.isArray(table.cells)) return false;
+  const columnCount = table.cells[0]?.length || 0;
+  return columnCount < 20;
+}
+
+function canRemoveTableColumn(table) {
+  if (!table || table.type !== "table" || !Array.isArray(table.cells)) return false;
+  const columnCount = table.cells[0]?.length || 0;
+  return columnCount > 1;
+}
+
+function applyAddTableRow(table) {
+  if (!canAddTableRow(table)) return false;
+  const colCount = table.cells[0]?.length || 1;
+  table.cells.push(Array.from({ length: colCount }, (_, index) => (index === 0 ? `항목 ${table.cells.length}` : "내용")));
+  if (Array.isArray(table.rowHeights)) {
+    table.rowHeights.push(30);
+  }
+  return true;
+}
+
+function applyRemoveTableRow(table) {
+  if (!canRemoveTableRow(table)) return false;
+  table.cells.pop();
+  const newRowCount = table.cells.length;
+  if (Array.isArray(table.rowHeights) && table.rowHeights.length > newRowCount) {
+    table.rowHeights.length = newRowCount;
+  }
+  if (table.cellStyles) {
+    Object.keys(table.cellStyles).forEach((key) => {
+      const [r] = key.split(",").map(Number);
+      if (r >= newRowCount) delete table.cellStyles[key];
+    });
+  }
+  if (state.selectedCell && state.selectedCell.objectId === table.id) {
+    state.selectedCell.rowIndex = Math.min(state.selectedCell.rowIndex, Math.max(0, newRowCount - 1));
+  }
+  return true;
+}
+
+function applyAddTableColumn(table) {
+  if (!canAddTableColumn(table)) return false;
+  table.cells.forEach((row, index) => row.push(index === 0 ? `열 ${row.length + 1}` : "내용"));
+  const newColCount = table.cells[0]?.length || 1;
+  if (Array.isArray(table.colWidths)) {
+    const newColWidth = 100 / newColCount;
+    const prevSum = table.colWidths.reduce((s, w) => s + (w || 0), 0) || 100;
+    const scale = (100 - newColWidth) / prevSum;
+    table.colWidths = [...table.colWidths.map((w) => Math.max(3, (w || 0) * scale)), newColWidth];
+  }
+  return true;
+}
+
+function applyRemoveTableColumn(table) {
+  if (!canRemoveTableColumn(table)) return false;
+  table.cells.forEach((row) => row.pop());
+  const newColCount = table.cells[0]?.length || 1;
+  if (Array.isArray(table.colWidths)) {
+    const sliced = table.colWidths.slice(0, newColCount);
+    const sum = sliced.reduce((s, w) => s + (w || 0), 0) || 100;
+    table.colWidths = sliced.map((w) => ((w || 0) / sum) * 100);
+  }
+  if (table.cellStyles) {
+    Object.keys(table.cellStyles).forEach((key) => {
+      const [, c] = key.split(",").map(Number);
+      if (c >= newColCount) delete table.cellStyles[key];
+    });
+  }
+  if (state.selectedCell && state.selectedCell.objectId === table.id) {
+    state.selectedCell.columnIndex = Math.min(state.selectedCell.columnIndex, Math.max(0, newColCount - 1));
+  }
+  return true;
 }
 
 function canAddItem(page, selected) {
+  if (selected?.type === "table") {
+    return tableManagementAxis === "column" ? canAddTableColumn(selected) : canAddTableRow(selected);
+  }
+  if (selected?.type === "chart") return getChartData(selected).length < CHART_MAX_ITEMS;
   if (page.type === "cover") return getItemCount(page) < MAX_ITEMS;
   if (!selected && page.template !== "object" && page.template !== "bullet" && page.template !== "mindmap") return false;
-  if (selected?.type === "chart") return getChartData(selected).length < CHART_MAX_ITEMS;
-  if (selected?.type === "table") {
-    const columnCount = selected.cells[0]?.length || 0;
-    return tableManagementAxis === "column" ? columnCount < 20 : selected.cells.length - 1 < 30;
-  }
   if ((page.template === "object" || page.objectCategory) && page.objectCategory === "layout" && getItemCount(page) >= getLayoutMaximumCount(page.variant)) return false;
   if ((page.template === "object" || page.objectCategory) && page.objectCategory === "diagram" && page.variant !== "connectedCircles" && getItemCount(page) >= getDiagramMaximumCount(page.variant)) return false;
   if (getItemCount(page) >= MAX_ITEMS) return false;
@@ -2422,33 +2514,43 @@ function canAddItem(page, selected) {
 }
 
 function canRemoveItem(page, selected) {
+  if (selected?.type === "table") {
+    return tableManagementAxis === "column" ? canRemoveTableColumn(selected) : canRemoveTableRow(selected);
+  }
+  if (selected?.type === "chart") return getChartData(selected).length > CHART_MIN_ITEMS;
   if (state.selectedIds.size > 0) return true;
   if (!selected) return false;
   if (page.type === "cover") return true;
-  if (selected.type === "chart") return getChartData(selected).length > CHART_MIN_ITEMS;
-  if (selected.type === "table") {
-    const columnCount = selected.cells[0]?.length || 0;
-    return tableManagementAxis === "column" ? columnCount > 2 : selected.cells.length > 2;
-  }
   return true;
 }
 
 function addItem() {
   const page = currentPage();
-  if (page.type !== "cover" && (page.type !== "content" || !page.template)) return;
-  const count = getItemCount(page);
   const selected = getSelectedActionObject(page);
+  if (page.type !== "cover" && (page.type !== "content" || (!page.template && selected?.type !== "table" && selected?.type !== "chart"))) return;
+  const count = getItemCount(page);
   if (!canAddItem(page, selected)) return;
   snapshot();
 
-  if (page.type === "cover") {
+  if (selected?.type === "table") {
+    if (tableManagementAxis === "column") {
+      applyAddTableColumn(selected);
+    } else {
+      applyAddTableRow(selected);
+    }
+    state.selectedIds = new Set([selected.id]);
+  } else if (selected?.type === "chart") {
+    selected.data = getChartData(selected);
+    selected.data.push(createNextChartDataItem(selected));
+  } else if (page.type === "cover") {
     const item = createTextObject("cover-item", `추가 항목 ${count + 1}`, 18, 0, 64, 5.5, { item: true, bulletLevel: 1 });
     page.objects.push(item);
     layoutCoverItems(page);
     state.selectedIds = new Set([item.id]);
   } else if (page.template === "bullet") {
-    const item = createTextObject("bullet-item", `새 핵심 내용 ${count + 1}`, 12, 0, 75, 9, { item: true, bulletLevel: selected.bulletLevel || 1 });
-    page.objects.splice(page.objects.indexOf(selected) + 1, 0, item);
+    const item = createTextObject("bullet-item", `새 핵심 내용 ${count + 1}`, 12, 0, 75, 9, { item: true, bulletLevel: selected?.bulletLevel || 1 });
+    const insertIndex = selected && selected.role === "bullet-item" ? page.objects.indexOf(selected) + 1 : page.objects.length;
+    page.objects.splice(insertIndex, 0, item);
     layoutBulletItems(page);
     state.selectedIds = new Set([item.id]);
   } else if (page.template === "mindmap") {
@@ -2458,19 +2560,32 @@ function addItem() {
     layoutMindmapTree(page);
     saveMindmapSnapshotIfActive(page);
     state.selectedIds = new Set([item.id]);
-  } else if (selected.type === "chart") {
-    selected.data = getChartData(selected);
-    selected.data.push(createNextChartDataItem(selected));
-  } else if (selected.type === "table") {
-    if (tableManagementAxis === "column") {
-      selected.cells.forEach((row, index) => row.push(index === 0 ? `열 ${row.length + 1}` : "내용"));
-    } else {
-      selected.cells.push(selected.cells[0].map((_, index) => index === 0 ? `항목 ${selected.cells.length}` : "내용"));
-    }
   } else {
     rebuildObjectTemplatePreservingContent(page, count + 1);
     state.selectedIds.clear();
   }
+  hideTextToolbar();
+  render();
+}
+
+function addTableColumn() {
+  const page = currentPage();
+  const selected = getSelectedActionObject(page);
+  if (!selected || selected.type !== "table" || !canAddTableColumn(selected)) return;
+  snapshot();
+  applyAddTableColumn(selected);
+  state.selectedIds = new Set([selected.id]);
+  hideTextToolbar();
+  render();
+}
+
+function removeTableColumn() {
+  const page = currentPage();
+  const selected = getSelectedActionObject(page);
+  if (!selected || selected.type !== "table" || !canRemoveTableColumn(selected)) return;
+  snapshot();
+  applyRemoveTableColumn(selected);
+  state.selectedIds = new Set([selected.id]);
   hideTextToolbar();
   render();
 }
@@ -2612,7 +2727,17 @@ function removeItem() {
 
   snapshot();
 
-  if (page.type === "cover") {
+  if (selected && selected.type === "table") {
+    if (tableManagementAxis === "column") {
+      applyRemoveTableColumn(selected);
+    } else {
+      applyRemoveTableRow(selected);
+    }
+    state.selectedIds = new Set([selected.id]);
+  } else if (selected && selected.type === "chart") {
+    selected.data = getChartData(selected);
+    selected.data.pop();
+  } else if (page.type === "cover") {
     page.objects = page.objects.filter((object) => !targetIds.has(object.id));
     layoutCoverItems(page);
     state.selectedIds.clear();
@@ -2634,12 +2759,6 @@ function removeItem() {
     }
     page.objects = page.objects.filter((object) => !deletedIds.has(object.id));
     state.selectedIds.clear();
-  } else if (selected && selected.type === "chart") {
-    selected.data = getChartData(selected);
-    selected.data.pop();
-  } else if (selected && selected.type === "table") {
-    if (tableManagementAxis === "column") selected.cells.forEach((row) => row.pop());
-    else selected.cells.pop();
   } else {
     const selectedObjects = page.objects.filter((object) => targetIds.has(object.id));
     const removeCount = selectedObjects.length || 1;
@@ -2858,7 +2977,7 @@ function renderControls() {
     cardImgInsertBtn.textContent = selected?.imageSrc ? "📷 카드 이미지 수정" : "📷 카드 이미지 삽입";
     cardImgRemoveBtn.hidden = !selected?.imageSrc;
   }
-  $("#tableAxisLabel").hidden = !selectedTable;
+  $("#tableAxisLabel").hidden = true;
   $("#tableAxisSelect").value = tableManagementAxis;
   const tableDimControls = $("#tableDimensionControls");
   if (tableDimControls) {
@@ -2874,19 +2993,31 @@ function renderControls() {
       if (rowHInput && document.activeElement !== rowHInput) rowHInput.value = Math.round(rowH);
     }
   }
-  $("#addItemButton").disabled = (!isCover && !page.template) || !canAddItem(page, selected);
-  $("#removeItemButton").disabled = (!isCover && !page.template) || !canRemoveItem(page, selected);
+  const hasTemplateOrTable = isCover || Boolean(page.template) || Boolean(selectedTable) || Boolean(selectedChart);
+  $("#addItemButton").disabled = !hasTemplateOrTable || !canAddItem(page, selected);
+  $("#removeItemButton").disabled = !hasTemplateOrTable || !canRemoveItem(page, selected);
   $("#addItemButton").textContent = selectedChart ? "+ 데이터" : selectedTable ? `+ ${tableManagementAxis === "column" ? "열" : "행"}` : "+ 항목";
   $("#removeItemButton").textContent = selectedChart ? "− 데이터" : selectedTable ? `− ${tableManagementAxis === "column" ? "열" : "행"}` : "− 항목";
-  $("#itemHint").textContent = isCover
-    ? selected ? `현재 ${selected.bulletLevel || 1}단계 선택 · Tab: 하위 위계 · Shift+Tab: 상위 위계` : "표지에 필요한 항목을 추가할 수 있습니다. 항목 선택 후 Tab/Shift+Tab으로 위계를 조정하세요."
-    : page.template === "mindmap"
-      ? selected ? `현재 ${selected.mindLevel}단계 선택 · +는 하위 항목 추가, −는 선택 가지 삭제` : `현재 항목 ${itemCount}개 · 추가하거나 삭제할 개체를 먼저 선택하세요.`
-      : page.template === "bullet"
-        ? selected ? `현재 ${selected.bulletLevel || 1}단계 선택 · Tab: 하위 위계 · Shift+Tab: 상위 위계` : `현재 항목 ${itemCount}개 · 항목을 선택한 뒤 Tab 또는 Shift+Tab으로 위계를 조정하세요.`
-        : isChart ? `데이터 ${itemCount}개 · 2~8개까지 추가·삭제하고 숫자를 수정할 수 있습니다.`
-        : selectedTable ? `테이블 ${tableManagementAxis === "column" ? "열" : "행"}을 관리합니다. 위 선택에서 대상을 바꿀 수 있습니다.`
-        : page.template ? `현재 항목 ${itemCount}개 · 추가하거나 삭제할 항목 개체를 먼저 선택하세요.` : "본문 템플릿을 먼저 선택하세요.";
+  const addTableColBtn = $("#addTableColButton");
+  const removeTableColBtn = $("#removeTableColButton");
+  if (addTableColBtn && removeTableColBtn) {
+    const showColBtns = Boolean(selectedTable && tableManagementAxis !== "column");
+    addTableColBtn.hidden = !showColBtns;
+    removeTableColBtn.hidden = !showColBtns;
+    addTableColBtn.disabled = !selectedTable || !canAddTableColumn(selectedTable);
+    removeTableColBtn.disabled = !selectedTable || !canRemoveTableColumn(selectedTable);
+  }
+  $("#itemHint").textContent = selectedTable
+    ? "테이블이 선택되었습니다. + 행, − 행, + 열, − 열 버튼으로 행과 열 개수를 조정할 수 있습니다."
+    : selectedChart || isChart
+      ? `데이터 ${itemCount}개 · 2~8개까지 추가·삭제하고 숫자를 수정할 수 있습니다.`
+      : isCover
+        ? selected ? `현재 ${selected.bulletLevel || 1}단계 선택 · Tab: 하위 위계 · Shift+Tab: 상위 위계` : "표지에 필요한 항목을 추가할 수 있습니다. 항목 선택 후 Tab/Shift+Tab으로 위계를 조정하세요."
+        : page.template === "mindmap"
+          ? selected ? `현재 ${selected.mindLevel}단계 선택 · +는 하위 항목 추가, −는 선택 가지 삭제` : `현재 항목 ${itemCount}개 · 추가하거나 삭제할 개체를 먼저 선택하세요.`
+          : page.template === "bullet"
+            ? selected ? `현재 ${selected.bulletLevel || 1}단계 선택 · Tab: 하위 위계 · Shift+Tab: 상위 위계` : `현재 항목 ${itemCount}개 · 항목을 선택한 뒤 Tab 또는 Shift+Tab으로 위계를 조정하세요.`
+            : page.template ? `현재 항목 ${itemCount}개 · 추가하거나 삭제할 항목 개체를 먼저 선택하세요.` : "본문 템플릿을 먼저 선택하세요.";
   const animBtn = $("#toggleAnimModeButton");
   if (animBtn) {
     animBtn.classList.toggle("is-active", isAnimMode);
@@ -4352,6 +4483,8 @@ function createObjectElement(object) {
     applyTextObjectStyle(text, object, element);
     element.append(text);
     element.addEventListener("dblclick", (event) => {
+      // 이미 편집 모드면 내부 handleDblClick 핸들러가 처리하도록 위임
+      if (element.classList.contains("is-editing")) return;
       event.preventDefault();
       event.stopPropagation();
       beginTextEdit(event, object, element, text, true);
@@ -4380,7 +4513,8 @@ function createObjectElement(object) {
       return;
     }
 
-    if (element.classList.contains("is-editing") || event.target.isContentEditable) {
+    if (element.classList.contains("is-editing") || event.target.isContentEditable || event.target.closest?.("[contenteditable='true']")) {
+      event.stopPropagation(); // stage pointerdown의 commitActiveTextEditing() 호출 방지 → 드래그 텍스트 선택 보존
       return;
     }
 
@@ -5152,18 +5286,23 @@ function expandTextObjectOnLineBreak(object, wrapper, text) {
 
 function beginTextEdit(event, object, wrapper, text, shouldSelectAll = false) {
   if (document.fullscreenElement) return;
+
+  // 이미 편집 모드인 상태에서 재진입 시 브라우저 기본 텍스트 선택 동작 보존
+  const alreadyEditing = text.isContentEditable && wrapper.classList.contains("is-editing");
+
   if (event) {
-    event.preventDefault();
+    if (!alreadyEditing) {
+      event.preventDefault();
+    }
     event.stopPropagation();
   }
   const isDbl = Boolean(shouldSelectAll || event?.type === "dblclick" || event?.detail === 2);
 
-  if (text.isContentEditable && wrapper.classList.contains("is-editing")) {
+  if (alreadyEditing) {
     if (isDbl) {
       selectAllText(text);
-    } else {
-      setCaretAtEventOrEnd(event, text);
     }
+    // isDbl이 아닌 경우: preventDefault를 안 했으므로 브라우저가 자연스럽게 캐럿/드래그 선택 처리
     return;
   }
 
@@ -7505,6 +7644,8 @@ $("#confirmHtmlImportButton")?.addEventListener("click", () => {
 
 $("#addItemButton").addEventListener("click", addItem);
 $("#removeItemButton").addEventListener("click", removeItem);
+$("#addTableColButton")?.addEventListener("click", addTableColumn);
+$("#removeTableColButton")?.addEventListener("click", removeTableColumn);
 $("#bringToFrontBtn")?.addEventListener("click", bringToFrontSelectedObjects);
 $("#bringForwardBtn")?.addEventListener("click", bringForwardSelectedObjects);
 $("#sendBackwardBtn")?.addEventListener("click", sendBackwardSelectedObjects);
