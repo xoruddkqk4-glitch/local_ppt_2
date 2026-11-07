@@ -148,7 +148,36 @@
           </select>
         </label>
         <div id="tableDimensionControls" class="table-dimension-controls" hidden style="margin-top: 10px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc;">
-          <strong style="display: block; margin-bottom: 6px; font-size: 11.5px; color: #0f172a;">📐 테이블 크기 & 셀 서식 관리</strong>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <strong style="font-size: 11.5px; color: #0f172a;">📐 테이블 크기 & 셀 서식 관리</strong>
+            <span id="tableSelectedCellInfo" style="font-size: 10.5px; font-weight: 800; color: #2563eb; background: #dbeafe; padding: 2px 6px; border-radius: 999px;">셀 1개 선택</span>
+          </div>
+          <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+            <button id="mergeTableCellsBtn" class="button button-blue" type="button" style="flex: 1; padding: 5px 6px; font-size: 11px;" disabled>🔗 선택 셀 병합 (M)</button>
+            <button id="unmergeTableCellsBtn" class="button" type="button" style="flex: 1; padding: 5px 6px; font-size: 11px;" disabled>↩️ 병합 이전으로 복원</button>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
+            <label style="font-size: 11px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 3px;">
+              선택 셀 배경색
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <input id="tableCellBgColorInput" type="color" value="#ffffff" style="width: 30px; height: 26px; padding: 1px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; cursor: pointer;">
+                <button type="button" class="table-cell-bg-swatch" data-bg-color="#dbeafe" title="연파랑" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #dbeafe; cursor: pointer;"></button>
+                <button type="button" class="table-cell-bg-swatch" data-bg-color="#fef08a" title="연노랑" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #fef08a; cursor: pointer;"></button>
+                <button type="button" class="table-cell-bg-swatch" data-bg-color="#dcfce7" title="연초록" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #dcfce7; cursor: pointer;"></button>
+                <button type="button" class="table-cell-bg-swatch" data-bg-color="#fee2e2" title="연빨강" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #fee2e2; cursor: pointer;"></button>
+              </div>
+            </label>
+            <label style="font-size: 11px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 3px;">
+              선택 셀 글자색
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <input id="tableCellTextColorInput" type="color" value="#0f172a" style="width: 30px; height: 26px; padding: 1px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; cursor: pointer;">
+                <button type="button" class="table-cell-text-swatch" data-text-color="#0f172a" title="진회색" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #0f172a; cursor: pointer;"></button>
+                <button type="button" class="table-cell-text-swatch" data-text-color="#ffffff" title="흰색" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #ffffff; cursor: pointer;"></button>
+                <button type="button" class="table-cell-text-swatch" data-text-color="#1d4ed8" title="파랑" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #1d4ed8; cursor: pointer;"></button>
+                <button type="button" class="table-cell-text-swatch" data-text-color="#dc2626" title="빨강" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #dc2626; cursor: pointer;"></button>
+              </div>
+            </label>
+          </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
             <label style="font-size: 11px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 3px;">
               선택 열 너비 (%)
@@ -160,7 +189,7 @@
             </label>
           </div>
           <div style="display: flex; gap: 6px; margin-top: 6px;">
-            <button id="resetCellStylesBtn" class="button" type="button" style="flex: 1; padding: 5px 6px; font-size: 11px;">🎨 셀 서식 초기화</button>
+            <button id="resetCellStylesBtn" class="button" type="button" style="flex: 1; padding: 5px 6px; font-size: 11px;">🎨 선택 셀 서식 초기화</button>
             <button id="resetTableSizesBtn" class="button" type="button" style="flex: 1; padding: 5px 6px; font-size: 11px;">📐 균등 크기 초기화</button>
           </div>
         </div>
@@ -347,6 +376,11 @@
                 <button class="text-tool-button arrow-dir-btn" type="button" data-angle="180" title="왼쪽 방향 (180°)">⬅️</button>
                 <button class="text-tool-button arrow-dir-btn" type="button" data-angle="270" title="위쪽 방향 (270°)">⬆️</button>
               </div>
+            </div>
+            <div id="tableMergeToolbarGroup" hidden style="display:flex; align-items:center; gap:4px;">
+              <span class="toolbar-divider" style="width:1px; height:16px; background:#cbd5e1; margin:0 1px;"></span>
+              <button id="toolbarMergeCellsBtn" class="text-tool-button" type="button" title="선택된 복수 셀 병합 (단축키 M)" style="font-size:10.5px; padding:2px 6px;" disabled>🔗 셀 병합</button>
+              <button id="toolbarUnmergeCellsBtn" class="text-tool-button" type="button" title="병합된 셀을 병합 이전 상태로 되돌리기" style="font-size:10.5px; padding:2px 6px;" disabled>↩️ 병합 해제</button>
             </div>
             <button id="closeTextToolbarButton" class="text-tool-button" type="button" aria-label="개체 서식 닫기">×</button>
           </div>

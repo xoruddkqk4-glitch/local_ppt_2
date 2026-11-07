@@ -961,11 +961,16 @@
       if (window.showOpenFilePicker) {
         (async () => {
           try {
-            const [handle] = await window.showOpenFilePicker({
-              id: "local-ppt-file",
-              multiple: false,
-              types: [{ description: "Local ppt JSON 텍스트", accept: { "text/plain": [".txt", ".json"] } }]
-            });
+            let handle;
+            if (window.LocalPptApp?.openProjectPickerDialog) {
+              handle = await window.LocalPptApp.openProjectPickerDialog();
+            } else {
+              [handle] = await window.showOpenFilePicker({
+                id: "local-ppt-project",
+                multiple: false,
+                types: [{ description: "Local ppt JSON 텍스트", accept: { "text/plain": [".txt", ".json"] } }]
+              });
+            }
             await window.LocalPptApp.loadProjectFile(await handle.getFile(), handle);
             intake.hidden = true;
           } catch (error) {

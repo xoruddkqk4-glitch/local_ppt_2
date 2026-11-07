@@ -2514,13 +2514,72 @@ body[data-design="tactile-minimal"] .resize-handle { width:13px; height:13px; ri
 }
 
 /* Table Cell Selection Highlight & Granular Formatting */
+.table-object th:not(:last-child) {
+  border-right-color: rgba(255, 255, 255, 0.35);
+}
+
 .table-object th.is-cell-selected,
 .table-object td.is-cell-selected {
-  outline: 3px solid #2563eb !important;
-  outline-offset: -3px !important;
-  box-shadow: inset 0 0 0 1px #ffffff !important;
+  box-shadow: inset 0 0 0 2.5px #2563eb, inset 0 0 0 4.5px #ffffff !important;
   z-index: 5 !important;
   position: relative !important;
+}
+
+.table-object th.is-cell-selected::after,
+.table-object td.is-cell-selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(59, 130, 246, 0.24);
+  border: 2.5px solid #3b82f6;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.presentation-stage:fullscreen .table-object th.is-cell-selected,
+.presentation-stage:fullscreen .table-object td.is-cell-selected,
+body.is-present-mode .table-object th.is-cell-selected,
+body.is-present-mode .table-object td.is-cell-selected {
+  box-shadow: none !important;
+}
+
+.presentation-stage:fullscreen .table-object th.is-cell-selected::after,
+.presentation-stage:fullscreen .table-object td.is-cell-selected::after,
+body.is-present-mode .table-object th.is-cell-selected::after,
+body.is-present-mode .table-object td.is-cell-selected::after {
+  display: none !important;
+}
+
+.table-move-handle {
+  position: absolute;
+  top: -24px;
+  left: 0;
+  height: 22px;
+  padding: 0 8px;
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 850;
+  display: none;
+  align-items: center;
+  gap: 4px;
+  cursor: move;
+  z-index: 20;
+  box-shadow: 2px 2px 0 var(--ink);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.canvas-object:hover .table-move-handle,
+.canvas-object.is-selected .table-move-handle {
+  display: inline-flex;
+}
+
+.presentation-stage:fullscreen .table-move-handle,
+body.is-present-mode .table-move-handle {
+  display: none !important;
 }
 
 .table-object {
@@ -2536,7 +2595,17 @@ body[data-design="tactile-minimal"] .resize-handle { width:13px; height:13px; ri
   box-sizing: border-box;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: background-color 0.12s ease, color 0.12s ease, outline 0.12s ease;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  transition: background-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.table-object th[contenteditable="true"],
+.table-object td[contenteditable="true"] {
+  cursor: text;
+  user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
 /* ==========================================================================

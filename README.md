@@ -254,8 +254,8 @@ AI 생성 기능 없이 편집기만 사용한다면 `index.html`을 직접 열 
 상단의 세 버튼으로 프로젝트를 관리할 수 있습니다.
 
 - `txt 불러오기`: Local PPT 2 `.txt` 또는 `.json` 프로젝트 열기
-- `현재 txt에 저장`: 현재 연결된 파일에 저장
-- `다른 이름으로 저장`: 새로운 `.txt` 파일로 저장
+- `txt에 저장`: 현재 연결된 파일에 덮어쓰기 저장 (연결된 파일이 없으면 저장 대화상자 표시)
+- `다른 이름 txt로 저장`: 새로운 `.txt` 파일로 저장
 
 저장 파일은 사람이 읽을 수 있도록 들여쓰기된 JSON이며 다음 정보를 포함합니다.
 
@@ -266,7 +266,7 @@ AI 생성 기능 없이 편집기만 사용한다면 `index.html`을 직접 열 
 - 마인드맵 계층 관계
 - Base64 형식으로 포함된 이미지
 
-Chrome과 Edge에서 File System Access API를 사용할 수 있으면 txt 불러오기와 다른 이름으로 저장이 동일한 Local PPT 2 전용 최근 폴더를 기억합니다. API를 사용할 수 없는 브라우저에서는 파일 입력 및 다운로드 방식으로 대체됩니다.
+Chrome과 Edge에서 File System Access API를 사용할 수 있으면 시작 화면의 불러오기와 편집창의 `txt 불러오기`, `txt에 저장`, `다른 이름 txt로 저장`이 모두 동일한 피커 ID(`local-ppt-project`) 및 직전 파일 핸들(`startIn`)과 `IndexedDB`(`local_ppt_fs_db`) 영속화를 통해 가장 최근에 불러오거나 저장했던 폴더를 맨 처음 열어 줍니다. API를 사용할 수 없는 브라우저에서는 파일 입력 및 다운로드 방식으로 대체됩니다.
 
 > 저장 파일에는 이미지 데이터도 포함되므로 이미지를 많이 삽입하면 `.txt` 파일 크기가 커질 수 있습니다.
 
@@ -1234,3 +1234,19 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **검증 결과**:
   - `node -c app.js`: 구문 및 정적 무결성 100% 통과 (Exit code: 0).
   - `index.html` 및 `app.js` 테이블 행/열 증감 버튼 DOM 및 핸들러 연동 검증 통과.
+
+## [2026-11-08 00:00] 업데이트 이력 (Commit ID: 11a776e)
+- **수정 내용**:
+  - `app.js`:
+    - **최근 사용한 파일 핸들(`lastProjectFileHandle`) 분리 관리 및 `IndexedDB` 영속화 (`openFileHandleDB`, `saveLastFileHandleToDB`, `loadLastFileHandleFromDB`)**:
+      - 현재 작업 중인 문서의 파일 핸들(`currentProjectFileHandle`)과 별도로, 가장 마지막에 불러오거나 저장한 파일 핸들(`lastProjectFileHandle`)을 메모리 및 `IndexedDB`(`local_ppt_fs_db` -> `handles` 스토어)에 저장하고 앱 시작 시 자동 복원하도록 구현.
+      - 빈 슬라이드나 AI 슬라이드를 새로 시작하여 `currentProjectFileHandle`이 `null`로 초기화되거나 브라우저를 새로고침/재실행한 뒤에도 직전에 사용했던 폴더 위치를 그대로 보존.
+    - **편집창 파일 열기/저장 대화상자에 `startIn` 옵션 적용 및 안전 폴백 (`openProjectPickerDialog`, `saveProjectPickerDialog`, `saveProjectAs`, `#loadProjectButton`)**:
+      - `window.showOpenFilePicker` 및 `window.showSaveFilePicker` 호출 시 `startIn: currentProjectFileHandle || lastProjectFileHandle`을 전달하여, 편집창의 `txt 불러오기`, `txt에 저장`, `다른 이름 txt로 저장` 클릭 시 매번 첫(기본) 폴더가 아닌 이전에 불러오거나 저장했던 폴더가 맨 처음 표시되도록 개선.
+      - 이전 폴더나 파일이 삭제·이동되어 `startIn` 핸들이 유효하지 않을 경우 자동으로 `startIn`을 제외하고 재호출하는 폴백 처리 적용.
+      - 시작 화면에서도 동일한 피커 헬퍼를 사용할 수 있도록 `window.LocalPptApp.openProjectPickerDialog` 노출.
+  - `ai-intake.js`:
+    - **시작 화면과 편집창 간의 파일 피커 연동 통일**:
+      - 시작 화면의 `02 txt 불러오기`(`action === "project"`)에서 기존 별도 ID(`"local-ppt-file"`) 대신 `window.LocalPptApp.openProjectPickerDialog()` 및 공통 ID(`"local-ppt-project"`)를 사용하도록 일원화하여 처음 불러오기에서 열었던 폴더와 편집창 버튼들의 최근 폴더가 100% 공유되도록 개선.
+- **검증 결과**:
+  - `node -c app.js; node -c ai-intake.js`: 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).

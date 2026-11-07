@@ -30,8 +30,74 @@ const AI_OBJECT_VARIANTS = {
 const AI_OBJECT_DEFAULT_VARIANTS = { layout: "cards", diagram: "process", chart: "column" };
 
 let currentProjectFileHandle = null;
+let lastProjectFileHandle = null;
 let currentProjectFileName = "local-ppt.txt";
 let currentFolderPath = "c:\\Users\\user\\Desktop\\codex_cli\\.projects\\local_ppt_2\\txts\\";
+
+const FILE_HANDLE_DB_NAME = "local_ppt_fs_db";
+const FILE_HANDLE_STORE_NAME = "handles";
+const LAST_FILE_HANDLE_KEY = "lastProjectFileHandle";
+
+function openFileHandleDB() {
+  return new Promise((resolve) => {
+    if (typeof indexedDB === "undefined") {
+      resolve(null);
+      return;
+    }
+    try {
+      const req = indexedDB.open(FILE_HANDLE_DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(FILE_HANDLE_STORE_NAME)) {
+          db.createObjectStore(FILE_HANDLE_STORE_NAME);
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch (err) {
+      resolve(null);
+    }
+  });
+}
+
+async function saveLastFileHandleToDB(handle) {
+  if (!handle) return;
+  lastProjectFileHandle = handle;
+  try {
+    const db = await openFileHandleDB();
+    if (!db) return;
+    await new Promise((resolve) => {
+      const tx = db.transaction(FILE_HANDLE_STORE_NAME, "readwrite");
+      tx.objectStore(FILE_HANDLE_STORE_NAME).put(handle, LAST_FILE_HANDLE_KEY);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
+  } catch (err) {
+    // Ignore IndexedDB persistence errors
+  }
+}
+
+async function loadLastFileHandleFromDB() {
+  if (lastProjectFileHandle) return lastProjectFileHandle;
+  try {
+    const db = await openFileHandleDB();
+    if (!db) return null;
+    const handle = await new Promise((resolve) => {
+      const tx = db.transaction(FILE_HANDLE_STORE_NAME, "readonly");
+      const req = tx.objectStore(FILE_HANDLE_STORE_NAME).get(LAST_FILE_HANDLE_KEY);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+    if (handle && !lastProjectFileHandle) {
+      lastProjectFileHandle = handle;
+    }
+    return lastProjectFileHandle;
+  } catch (err) {
+    return null;
+  }
+}
+
+loadLastFileHandleFromDB();
 
 function getOrCreateSessionId() {
   const params = new URLSearchParams(window.location.search);
@@ -183,6 +249,42 @@ function selectAllText(editable) {
 }
 
 function commitActiveTextEditing() {
+  const activeTableCell = typeof stage !== "undefined" ? stage?.querySelector(".table-object [contenteditable='true']") : null;
+  if (activeTableCell) {
+    const tWrapper = activeTableCell.closest(".canvas-object");
+    const tObjectId = tWrapper?.dataset.objectId;
+    const tPage = typeof currentPage === "function" ? currentPage() : null;
+    const tableObj = tPage?.objects?.find((o) => o.id === tObjectId && o.type === "table");
+    const r = Number(activeTableCell.dataset.rowIndex);
+    const c = Number(activeTableCell.dataset.columnIndex);
+    const cellKey = `${r},${c}`;
+    if (tableObj && !Number.isNaN(r) && !Number.isNaN(c) && tableObj.cells?.[r]) {
+      const isUneditedPlaceholder = r > 0 && tableObj.cells[r][c] === "내용" && !tableObj.userEditedCells?.[cellKey];
+      const nextVal = activeTableCell.innerText.replace(/\r\n/g, "\n").trim();
+      const rawHtml = activeTableCell.innerHTML.trim();
+      const hasHtml = Boolean(nextVal && /<[a-z][\s\S]*>/i.test(rawHtml));
+      if (!isUneditedPlaceholder || nextVal !== "내용" || hasHtml) {
+        tableObj.cells[r][c] = nextVal;
+        tableObj.userEditedCells = tableObj.userEditedCells || {};
+        tableObj.userEditedCells[cellKey] = true;
+        tableObj.cellHtml = tableObj.cellHtml || {};
+        if (hasHtml) {
+          tableObj.cellHtml[cellKey] = rawHtml;
+        } else {
+          delete tableObj.cellHtml[cellKey];
+        }
+        activeTableCell.classList.remove("is-default-placeholder");
+      }
+      if (!hasHtml) {
+        activeTableCell.textContent = tableObj.cells[r][c];
+      }
+    }
+    activeTableCell.contentEditable = "false";
+    if (activeEditingTextElement === activeTableCell) {
+      activeEditingTextElement = null;
+    }
+  }
+
   if (!activeEditingTextElement) return;
   const text = activeEditingTextElement;
   const wrapper = text.closest(".canvas-object");
@@ -195,7 +297,7 @@ function commitActiveTextEditing() {
       if (htmlWrapper) {
         object.htmlContent = htmlWrapper.innerHTML;
       }
-    } else {
+    } else if (object.type !== "table") {
       const rawText = text.innerText.replace(/\r\n/g, "\n").replace(/\n+$/, "");
       const trimmed = text.innerText.trim();
       if (trimmed) {
@@ -2456,8 +2558,25 @@ function applyRemoveTableRow(table) {
       if (r >= newRowCount) delete table.cellStyles[key];
     });
   }
+  if (Array.isArray(table.mergedCells)) {
+    table.mergedCells = table.mergedCells
+      .filter((m) => m && m.r < newRowCount)
+      .map((m) => {
+        if (m.r + (m.rowSpan || 1) > newRowCount) {
+          return { ...m, rowSpan: Math.max(1, newRowCount - m.r) };
+        }
+        return m;
+      })
+      .filter((m) => (m.rowSpan || 1) > 1 || (m.colSpan || 1) > 1);
+  }
   if (state.selectedCell && state.selectedCell.objectId === table.id) {
     state.selectedCell.rowIndex = Math.min(state.selectedCell.rowIndex, Math.max(0, newRowCount - 1));
+  }
+  if (state.selectedCells && state.selectedCells.objectId === table.id && state.selectedCells.keys) {
+    state.selectedCells.keys.forEach((key) => {
+      const [r] = key.split(",").map(Number);
+      if (r >= newRowCount) state.selectedCells.keys.delete(key);
+    });
   }
   return true;
 }
@@ -2490,9 +2609,455 @@ function applyRemoveTableColumn(table) {
       if (c >= newColCount) delete table.cellStyles[key];
     });
   }
+  if (Array.isArray(table.mergedCells)) {
+    table.mergedCells = table.mergedCells
+      .filter((m) => m && m.c < newColCount)
+      .map((m) => {
+        if (m.c + (m.colSpan || 1) > newColCount) {
+          return { ...m, colSpan: Math.max(1, newColCount - m.c) };
+        }
+        return m;
+      })
+      .filter((m) => (m.rowSpan || 1) > 1 || (m.colSpan || 1) > 1);
+  }
   if (state.selectedCell && state.selectedCell.objectId === table.id) {
     state.selectedCell.columnIndex = Math.min(state.selectedCell.columnIndex, Math.max(0, newColCount - 1));
   }
+  if (state.selectedCells && state.selectedCells.objectId === table.id && state.selectedCells.keys) {
+    state.selectedCells.keys.forEach((key) => {
+      const [, c] = key.split(",").map(Number);
+      if (c >= newColCount) state.selectedCells.keys.delete(key);
+    });
+  }
+  return true;
+}
+
+function getTableMergeAt(table, r, c) {
+  if (!table || !Array.isArray(table.mergedCells)) return null;
+  return table.mergedCells.find((m) => (
+    m &&
+    r >= m.r &&
+    r < m.r + (m.rowSpan || 1) &&
+    c >= m.c &&
+    c < m.c + (m.colSpan || 1)
+  )) || null;
+}
+
+function isHiddenMergedCell(table, r, c) {
+  const m = getTableMergeAt(table, r, c);
+  return Boolean(m && !(m.r === r && m.c === c));
+}
+
+function getKeysForCellOrMerge(table, r, c) {
+  const m = getTableMergeAt(table, r, c);
+  const keys = [];
+  if (m) {
+    for (let rr = m.r; rr < m.r + (m.rowSpan || 1); rr++) {
+      for (let cc = m.c; cc < m.c + (m.colSpan || 1); cc++) {
+        keys.push(`${rr},${cc}`);
+      }
+    }
+  } else {
+    keys.push(`${r},${c}`);
+  }
+  return keys;
+}
+
+function getExpandedMergeBounds(table, keys) {
+  if (!table || !Array.isArray(keys) || !keys.length) return null;
+  const coords = keys
+    .map((k) => k.split(",").map(Number))
+    .filter(([r, c]) => Number.isFinite(r) && Number.isFinite(c));
+  if (!coords.length) return null;
+  let minR = Math.min(...coords.map(([r]) => r));
+  let maxR = Math.max(...coords.map(([r]) => r));
+  let minC = Math.min(...coords.map(([, c]) => c));
+  let maxC = Math.max(...coords.map(([, c]) => c));
+
+  if (Array.isArray(table.mergedCells) && table.mergedCells.length > 0) {
+    let changed = true;
+    while (changed) {
+      changed = false;
+      table.mergedCells.forEach((m) => {
+        if (!m) return;
+        const mMaxR = m.r + (m.rowSpan || 1) - 1;
+        const mMaxC = m.c + (m.colSpan || 1) - 1;
+        const overlaps = !(mMaxR < minR || m.r > maxR || mMaxC < minC || m.c > maxC);
+        if (overlaps) {
+          if (m.r < minR) { minR = m.r; changed = true; }
+          if (mMaxR > maxR) { maxR = mMaxR; changed = true; }
+          if (m.c < minC) { minC = m.c; changed = true; }
+          if (mMaxC > maxC) { maxC = mMaxC; changed = true; }
+        }
+      });
+    }
+  }
+  return { minR, maxR, minC, maxC, rowSpan: maxR - minR + 1, colSpan: maxC - minC + 1 };
+}
+
+function canMergeSelectedTableCells(table) {
+  if (!table || table.type !== "table" || !state.selectedIds.has(table.id)) return false;
+  const keys = getSelectedTableCellKeys(table.id);
+  if (keys.length < 2) return false;
+  const bounds = getExpandedMergeBounds(table, keys);
+  if (!bounds || (bounds.rowSpan <= 1 && bounds.colSpan <= 1)) return false;
+  const existingExact = Array.isArray(table.mergedCells) && table.mergedCells.some((m) => (
+    m &&
+    m.r === bounds.minR &&
+    m.c === bounds.minC &&
+    (m.rowSpan || 1) === bounds.rowSpan &&
+    (m.colSpan || 1) === bounds.colSpan
+  ));
+  return !existingExact;
+}
+
+function canUnmergeSelectedTableCells(table) {
+  if (!table || table.type !== "table" || !state.selectedIds.has(table.id)) return false;
+  if (!Array.isArray(table.mergedCells) || !table.mergedCells.length) return false;
+  const keys = getSelectedTableCellKeys(table.id);
+  return keys.some((k) => {
+    const [r, c] = k.split(",").map(Number);
+    return Boolean(getTableMergeAt(table, r, c));
+  });
+}
+
+function escapeCellHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function mergeSelectedTableCells(tableParam = null) {
+  const table = tableParam || resolveActiveTableObject();
+  if (!canMergeSelectedTableCells(table)) return false;
+  const keys = getSelectedTableCellKeys(table.id);
+  const bounds = getExpandedMergeBounds(table, keys);
+  if (!bounds) return false;
+
+  commitActiveTextEditing();
+  stage?.querySelectorAll(".table-object [contenteditable='true']").forEach((el) => {
+    el.dispatchEvent(new Event("input"));
+    el.dataset.ignoreBlurSync = "true";
+    el.contentEditable = "false";
+  });
+  activeEditingTextElement = null;
+  hideTextSelectionToolbar();
+
+  snapshot();
+
+  const { minR, maxR, minC, maxC, rowSpan, colSpan } = bounds;
+  table.mergedCells = Array.isArray(table.mergedCells) ? table.mergedCells : [];
+  table.userEditedCells = table.userEditedCells || {};
+  table.cellHtml = table.cellHtml || {};
+  table.cellStyles = table.cellStyles || {};
+
+  const subMerges = [];
+  const remainingMerges = [];
+  table.mergedCells.forEach((m) => {
+    if (!m) return;
+    const mMaxR = m.r + (m.rowSpan || 1) - 1;
+    const mMaxC = m.c + (m.colSpan || 1) - 1;
+    const inside = m.r >= minR && mMaxR <= maxR && m.c >= minC && mMaxC <= maxC;
+    if (inside) {
+      subMerges.push(JSON.parse(JSON.stringify(m)));
+    } else {
+      remainingMerges.push(m);
+    }
+  });
+
+  const backup = {
+    cells: {},
+    cellHtml: {},
+    cellStyles: {},
+    userEditedCells: {},
+    subMerges
+  };
+
+  const isCoveredBySubMergeNonAnchor = (r, c) => subMerges.some((m) => (
+    r >= m.r && r < m.r + (m.rowSpan || 1) &&
+    c >= m.c && c < m.c + (m.colSpan || 1) &&
+    !(m.r === r && m.c === c)
+  ));
+
+  const textParts = [];
+  const htmlParts = [];
+  let fallbackStyle = null;
+
+  for (let r = minR; r <= maxR; r++) {
+    for (let c = minC; c <= maxC; c++) {
+      const k = `${r},${c}`;
+      const rawVal = table.cells?.[r]?.[c] ?? "";
+      backup.cells[k] = rawVal;
+      if (Object.hasOwn(table.cellHtml, k)) backup.cellHtml[k] = table.cellHtml[k];
+      if (Object.hasOwn(table.cellStyles, k)) backup.cellStyles[k] = JSON.parse(JSON.stringify(table.cellStyles[k]));
+      if (Object.hasOwn(table.userEditedCells, k)) backup.userEditedCells[k] = table.userEditedCells[k];
+
+      if (!fallbackStyle && table.cellStyles[k]) {
+        fallbackStyle = JSON.parse(JSON.stringify(table.cellStyles[k]));
+      }
+
+      if (!isCoveredBySubMergeNonAnchor(r, c)) {
+        const trimmed = String(rawVal).trim();
+        const isDefaultUnedited = r > 0 && trimmed === "내용" && !table.userEditedCells[k];
+        if (trimmed && !isDefaultUnedited) {
+          textParts.push(trimmed);
+          htmlParts.push(table.cellHtml[k] ? table.cellHtml[k] : escapeCellHtml(trimmed));
+        }
+      }
+    }
+  }
+
+  const anchorKey = `${minR},${minC}`;
+  let mergedText = textParts.join(" ");
+  let mergedHtml = htmlParts.length > 1 ? htmlParts.join(" ") : (htmlParts[0] || "");
+
+  if (!mergedText) {
+    const origAnchorVal = backup.cells[anchorKey] ?? "";
+    const anchorEdited = Boolean(backup.userEditedCells[anchorKey]);
+    if (minR > 0 && origAnchorVal === "내용" && !anchorEdited) {
+      mergedText = "내용";
+      mergedHtml = "";
+    } else {
+      mergedText = origAnchorVal;
+      mergedHtml = backup.cellHtml[anchorKey] || "";
+    }
+  }
+
+  for (let r = minR; r <= maxR; r++) {
+    for (let c = minC; c <= maxC; c++) {
+      const k = `${r},${c}`;
+      if (r === minR && c === minC) {
+        if (table.cells?.[r]) table.cells[r][c] = mergedText;
+        if (mergedHtml && mergedHtml !== escapeCellHtml(mergedText)) {
+          table.cellHtml[k] = mergedHtml;
+        } else {
+          delete table.cellHtml[k];
+        }
+        if (textParts.length > 0 || backup.userEditedCells[anchorKey]) {
+          table.userEditedCells[k] = true;
+        }
+        if (!table.cellStyles[k] && fallbackStyle) {
+          table.cellStyles[k] = fallbackStyle;
+        }
+      } else {
+        if (table.cells?.[r]) table.cells[r][c] = "";
+        delete table.cellHtml[k];
+        table.userEditedCells[k] = true;
+      }
+    }
+  }
+
+  remainingMerges.push({
+    r: minR,
+    c: minC,
+    rowSpan,
+    colSpan,
+    backup
+  });
+  table.mergedCells = remainingMerges;
+
+  const mergedKeysSet = new Set();
+  for (let r = minR; r <= maxR; r++) {
+    for (let c = minC; c <= maxC; c++) {
+      mergedKeysSet.add(`${r},${c}`);
+    }
+  }
+  state.selectedIds = new Set([table.id]);
+  state.selectedCell = { objectId: table.id, rowIndex: minR, columnIndex: minC };
+  state.selectedCells = {
+    objectId: table.id,
+    keys: mergedKeysSet,
+    anchor: { rowIndex: minR, columnIndex: minC }
+  };
+
+  renderControls();
+  renderStage();
+  renderPages();
+  const wrapper = stage?.querySelector(`[data-object-id="${table.id}"]`);
+  if (wrapper) showTextToolbar(table, wrapper);
+  showSaveToast(`🔗 선택한 셀(${rowSpan}×${colSpan})이 병합되었습니다.`);
+  return true;
+}
+
+function unmergeSelectedTableCells(tableParam = null) {
+  const table = tableParam || resolveActiveTableObject();
+  if (!canUnmergeSelectedTableCells(table)) return false;
+
+  commitActiveTextEditing();
+  stage?.querySelectorAll(".table-object [contenteditable='true']").forEach((el) => {
+    el.dispatchEvent(new Event("input"));
+    el.dataset.ignoreBlurSync = "true";
+    el.contentEditable = "false";
+  });
+  activeEditingTextElement = null;
+  hideTextSelectionToolbar();
+
+  const selectedKeys = getSelectedTableCellKeys(table.id);
+  const targetMerges = new Set();
+  selectedKeys.forEach((k) => {
+    const [r, c] = k.split(",").map(Number);
+    const m = getTableMergeAt(table, r, c);
+    if (m) targetMerges.add(m);
+  });
+  if (!targetMerges.size) return false;
+
+  snapshot();
+
+  table.userEditedCells = table.userEditedCells || {};
+  table.cellHtml = table.cellHtml || {};
+  table.cellStyles = table.cellStyles || {};
+
+  const restoredKeys = new Set();
+  let firstAnchor = null;
+
+  const remainingMerges = (table.mergedCells || []).filter((m) => !targetMerges.has(m));
+
+  targetMerges.forEach((m) => {
+    if (!firstAnchor) firstAnchor = { rowIndex: m.r, columnIndex: m.c };
+    const maxR = Math.min((table.cells?.length || 1) - 1, m.r + (m.rowSpan || 1) - 1);
+    const maxC = Math.min((table.cells?.[0]?.length || 1) - 1, m.c + (m.colSpan || 1) - 1);
+    const b = m.backup || {};
+
+    for (let r = m.r; r <= maxR; r++) {
+      for (let c = m.c; c <= maxC; c++) {
+        const k = `${r},${c}`;
+        restoredKeys.add(k);
+        if (b.cells && Object.hasOwn(b.cells, k)) {
+          if (table.cells?.[r]) table.cells[r][c] = b.cells[k];
+        } else if (!(r === m.r && c === m.c)) {
+          if (table.cells?.[r]) table.cells[r][c] = r === 0 ? `열 ${c + 1}` : "내용";
+        }
+
+        if (b.cellHtml && Object.hasOwn(b.cellHtml, k)) {
+          table.cellHtml[k] = b.cellHtml[k];
+        } else {
+          delete table.cellHtml[k];
+        }
+
+        if (b.cellStyles && Object.hasOwn(b.cellStyles, k)) {
+          table.cellStyles[k] = JSON.parse(JSON.stringify(b.cellStyles[k]));
+        } else {
+          delete table.cellStyles[k];
+        }
+
+        if (b.userEditedCells && Object.hasOwn(b.userEditedCells, k)) {
+          table.userEditedCells[k] = b.userEditedCells[k];
+        } else {
+          delete table.userEditedCells[k];
+        }
+      }
+    }
+
+    if (Array.isArray(b.subMerges) && b.subMerges.length > 0) {
+      b.subMerges.forEach((sub) => {
+        if (sub && sub.r < (table.cells?.length || 0) && sub.c < (table.cells?.[0]?.length || 0)) {
+          remainingMerges.push(JSON.parse(JSON.stringify(sub)));
+        }
+      });
+    }
+  });
+
+  table.mergedCells = remainingMerges;
+
+  state.selectedIds = new Set([table.id]);
+  if (firstAnchor) {
+    state.selectedCell = { objectId: table.id, rowIndex: firstAnchor.rowIndex, columnIndex: firstAnchor.columnIndex };
+    state.selectedCells = {
+      objectId: table.id,
+      keys: restoredKeys,
+      anchor: firstAnchor
+    };
+  }
+
+  renderControls();
+  renderStage();
+  renderPages();
+  const wrapper = stage?.querySelector(`[data-object-id="${table.id}"]`);
+  if (wrapper) showTextToolbar(table, wrapper);
+  showSaveToast("↩️ 병합된 셀이 병합 이전 상태로 복원되었습니다.");
+  return true;
+}
+
+function getSelectedTableCellKeys(tableId) {
+  if (state.selectedCells && state.selectedCells.objectId === tableId && state.selectedCells.keys?.size > 0) {
+    return [...state.selectedCells.keys];
+  }
+  if (state.selectedCell && state.selectedCell.objectId === tableId) {
+    return [`${state.selectedCell.rowIndex},${state.selectedCell.columnIndex}`];
+  }
+  return [];
+}
+
+function isTableCellSelected(tableId, rowIndex, columnIndex) {
+  const key = `${rowIndex},${columnIndex}`;
+  if (state.selectedCells && state.selectedCells.objectId === tableId && state.selectedCells.keys?.size > 0) {
+    return state.selectedCells.keys.has(key);
+  }
+  return Boolean(
+    state.selectedCell &&
+    state.selectedCell.objectId === tableId &&
+    state.selectedCell.rowIndex === rowIndex &&
+    state.selectedCell.columnIndex === columnIndex
+  );
+}
+
+function syncTableDOMCellSelection(objectId) {
+  const wrapper = stage?.querySelector(`[data-object-id="${objectId}"]`);
+  const tableEl = wrapper?.querySelector("table.table-object");
+  if (!tableEl) return;
+  tableEl.querySelectorAll("th[data-cell-key], td[data-cell-key]").forEach((cellEl) => {
+    const [r, c] = cellEl.dataset.cellKey.split(",").map(Number);
+    cellEl.classList.toggle("is-cell-selected", isTableCellSelected(objectId, r, c));
+  });
+}
+
+function getContrastingTextColorForBg(bgColor) {
+  const hex = normalizeColor(bgColor);
+  if (!hex || !hex.startsWith("#") || hex.length < 7) return "#0f172a";
+  const r = parseInt(hex.slice(1, 3), 16) || 0;
+  const g = parseInt(hex.slice(3, 5), 16) || 0;
+  const b = parseInt(hex.slice(5, 7), 16) || 0;
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.58 ? "#0f172a" : "#ffffff";
+}
+
+function moveTableCellSelectionByTab(table, delta = 1) {
+  if (!table || table.type !== "table" || !Array.isArray(table.cells) || !table.cells.length) return false;
+  const rowsCount = table.cells.length;
+  const colsCount = table.cells[0]?.length || 1;
+  const current = (state.selectedCell && state.selectedCell.objectId === table.id)
+    ? state.selectedCell
+    : { rowIndex: 0, columnIndex: 0 };
+
+  const totalCells = rowsCount * colsCount;
+  let nextFlatIndex = current.rowIndex * colsCount + current.columnIndex;
+  let nextRow = current.rowIndex;
+  let nextCol = current.columnIndex;
+
+  for (let step = 0; step < totalCells; step++) {
+    nextFlatIndex = ((nextFlatIndex + delta) % totalCells + totalCells) % totalCells;
+    nextRow = Math.floor(nextFlatIndex / colsCount);
+    nextCol = nextFlatIndex % colsCount;
+    if (!isHiddenMergedCell(table, nextRow, nextCol)) {
+      break;
+    }
+  }
+
+  const nextKeys = new Set(getKeysForCellOrMerge(table, nextRow, nextCol));
+
+  state.selectedIds = new Set([table.id]);
+  state.selectedCell = { objectId: table.id, rowIndex: nextRow, columnIndex: nextCol };
+  state.selectedCells = {
+    objectId: table.id,
+    keys: nextKeys,
+    anchor: { rowIndex: nextRow, columnIndex: nextCol }
+  };
+
+  syncTableDOMCellSelection(table.id);
+  renderControls();
+  const wrapper = stage?.querySelector(`[data-object-id="${table.id}"]`);
+  if (wrapper) showTextToolbar(table, wrapper);
   return true;
 }
 
@@ -2966,9 +3531,21 @@ function renderControls() {
   const mergeCardsBtn = $("#mergeCardsButton");
 
   if (mergeCardsBtn) {
-    const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
-    const mergeableCards = selectedObjects.filter((obj) => obj.type === "text" || obj.item || obj.role);
-    mergeCardsBtn.disabled = mergeableCards.length < 2 || !areSelectedObjectsSameLevel(mergeableCards);
+    if (selectedTable) {
+      const canMergeCells = canMergeSelectedTableCells(selectedTable);
+      const canUnmergeCells = canUnmergeSelectedTableCells(selectedTable);
+      mergeCardsBtn.disabled = !canMergeCells && !canUnmergeCells;
+      mergeCardsBtn.textContent = canMergeCells
+        ? "🔗 선택 셀 병합 (단축키 M)"
+        : canUnmergeCells
+          ? "↩️ 셀 병합 해제 (단축키 M)"
+          : "🧩 카드 합치기 (단축키 M)";
+    } else {
+      const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
+      const mergeableCards = selectedObjects.filter((obj) => obj.type === "text" || obj.item || obj.role);
+      mergeCardsBtn.disabled = mergeableCards.length < 2 || !areSelectedObjectsSameLevel(mergeableCards);
+      mergeCardsBtn.textContent = "🧩 카드 합치기 (단축키 M)";
+    }
   }
 
   if (cardImgInsertBtn && cardImgRemoveBtn) {
@@ -2983,6 +3560,7 @@ function renderControls() {
   if (tableDimControls) {
     tableDimControls.hidden = !selectedTable;
     if (selectedTable) {
+      const selectedKeys = getSelectedTableCellKeys(selectedTable.id);
       const currentCell = (state.selectedCell && state.selectedCell.objectId === selectedTable.id) ? state.selectedCell : { rowIndex: 0, columnIndex: 0 };
       const colsCount = selectedTable.cells[0]?.length || 1;
       const colWInput = $("#tableColWidthInput");
@@ -2991,6 +3569,54 @@ function renderControls() {
       const rowH = selectedTable.rowHeights?.[currentCell.rowIndex] ?? (currentCell.rowIndex === 0 ? 38 : 30);
       if (colWInput && document.activeElement !== colWInput) colWInput.value = Math.round(colW);
       if (rowHInput && document.activeElement !== rowHInput) rowHInput.value = Math.round(rowH);
+
+      const canMergeCells = canMergeSelectedTableCells(selectedTable);
+      const canUnmergeCells = canUnmergeSelectedTableCells(selectedTable);
+      const mergeCellsBtn = $("#mergeTableCellsBtn");
+      const unmergeCellsBtn = $("#unmergeTableCellsBtn");
+      if (mergeCellsBtn) mergeCellsBtn.disabled = !canMergeCells;
+      if (unmergeCellsBtn) unmergeCellsBtn.disabled = !canUnmergeCells;
+      const toolbarMergeBtn = $("#toolbarMergeCellsBtn");
+      const toolbarUnmergeBtn = $("#toolbarUnmergeCellsBtn");
+      if (toolbarMergeBtn) toolbarMergeBtn.disabled = !canMergeCells;
+      if (toolbarUnmergeBtn) toolbarUnmergeBtn.disabled = !canUnmergeCells;
+
+      const cellInfoEl = $("#tableSelectedCellInfo");
+      if (cellInfoEl) {
+        const count = selectedKeys.length;
+        const activeMerge = getTableMergeAt(selectedTable, currentCell.rowIndex, currentCell.columnIndex);
+        const isSingleMergedSelected = activeMerge && !canMergeCells && count === (activeMerge.rowSpan || 1) * (activeMerge.colSpan || 1);
+        cellInfoEl.textContent = isSingleMergedSelected
+          ? `병합 셀 선택됨 (${activeMerge.rowSpan}×${activeMerge.colSpan})`
+          : count > 1
+            ? `셀 ${count}개 복수 선택됨`
+            : count === 1
+              ? `셀 1개 선택 (${currentCell.rowIndex + 1}행 ${currentCell.columnIndex + 1}열)`
+              : "셀을 클릭·드래그하여 선택";
+      }
+      const primaryKey = `${currentCell.rowIndex},${currentCell.columnIndex}`;
+      const cellStyle = selectedTable.cellStyles?.[primaryKey];
+      const isHeader = currentCell.rowIndex === 0;
+      const domCellEl = stage?.querySelector(`[data-object-id="${selectedTable.id}"] table [data-cell-key="${primaryKey}"]`);
+      const cellBgInput = $("#tableCellBgColorInput");
+      const cellTextInput = $("#tableCellTextColorInput");
+      if (cellBgInput && document.activeElement !== cellBgInput) {
+        let bg = (cellStyle?.bgColor && cellStyle.bgColor !== "transparent" && cellStyle.bgColor !== "none")
+          ? cellStyle.bgColor
+          : "";
+        if (!bg && domCellEl) {
+          const compBg = getComputedStyle(domCellEl).backgroundColor;
+          if (compBg && compBg !== "rgba(0, 0, 0, 0)" && compBg !== "transparent") bg = compBg;
+        }
+        cellBgInput.value = normalizeColor(bg || (isHeader ? "#2563eb" : "#ffffff"));
+      }
+      if (cellTextInput && document.activeElement !== cellTextInput) {
+        let tc = cellStyle?.textColor || "";
+        if (!tc && domCellEl) {
+          tc = getComputedStyle(domCellEl).color;
+        }
+        cellTextInput.value = normalizeColor(tc || (isHeader ? "#ffffff" : "#0f172a"));
+      }
     }
   }
   const hasTemplateOrTable = isCover || Boolean(page.template) || Boolean(selectedTable) || Boolean(selectedChart);
@@ -4408,6 +5034,18 @@ function createObjectElement(object) {
     }, 15);
   } else if (object.type === "table") {
     element.append(createTableElement(object));
+    const moveHandle = document.createElement("span");
+    moveHandle.className = "table-move-handle";
+    moveHandle.title = "드래그하여 표 전체 위치 이동";
+    moveHandle.textContent = "✥ 표 이동";
+    moveHandle.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+      state.selectedCell = null;
+      state.selectedCells = null;
+      element.querySelectorAll(".is-cell-selected").forEach((c) => c.classList.remove("is-cell-selected"));
+      beginDrag(event, object);
+    });
+    element.append(moveHandle);
   } else if (object.type === "chart") {
     element.append(createChartElement(object));
   } else if (object.type === "timer") {
@@ -4829,65 +5467,264 @@ function createTableElement(object) {
     tr.style.height = `${rowPct}%`;
 
     row.forEach((value, columnIndex) => {
+      if (isHiddenMergedCell(object, rowIndex, columnIndex)) return;
+      const merge = getTableMergeAt(object, rowIndex, columnIndex);
       const isHeader = rowIndex === 0;
       const cell = document.createElement(isHeader ? "th" : "td");
-      cell.textContent = value;
-      cell.style.height = `${rowH}px`;
-      if (!isHeader && (value === "내용" || !value)) {
+      const cellKey = `${rowIndex},${columnIndex}`;
+      const isEditedCell = Boolean(object.userEditedCells?.[cellKey]);
+      if (object.cellHtml?.[cellKey] && value) {
+        cell.innerHTML = object.cellHtml[cellKey];
+        syncCanvasTextInlineScale(cell);
+      } else {
+        cell.textContent = value;
+      }
+      if (merge && merge.r === rowIndex && merge.c === columnIndex) {
+        if ((merge.rowSpan || 1) > 1) cell.rowSpan = merge.rowSpan;
+        if ((merge.colSpan || 1) > 1) cell.colSpan = merge.colSpan;
+        cell.classList.add("is-merged-cell");
+        let spanH = 0;
+        const maxMergeR = Math.min(object.cells.length, rowIndex + (merge.rowSpan || 1));
+        for (let rr = rowIndex; rr < maxMergeR; rr++) {
+          spanH += rowHeights[rr] || (rr === 0 ? 38 : 30);
+        }
+        cell.style.height = `${spanH || rowH}px`;
+      } else {
+        cell.style.height = `${rowH}px`;
+      }
+      if (!isHeader && value === "내용" && !isEditedCell) {
         cell.classList.add("is-default-placeholder");
       }
 
-      const cellKey = `${rowIndex},${columnIndex}`;
+      cell.dataset.cellKey = cellKey;
+      cell.dataset.rowIndex = String(rowIndex);
+      cell.dataset.columnIndex = String(columnIndex);
+
       const styleConfig = object.cellStyles?.[cellKey];
       if (styleConfig) {
         if (styleConfig.bgColor) {
-          cell.style.setProperty("background-color", styleConfig.bgColor, "important");
+          if (styleConfig.bgColor === "transparent" || styleConfig.bgColor === "none") {
+            cell.style.setProperty("background", "transparent", "important");
+            cell.style.setProperty("background-color", "transparent", "important");
+          } else {
+            cell.style.setProperty("background", styleConfig.bgColor, "important");
+            cell.style.setProperty("background-color", styleConfig.bgColor, "important");
+            if (!styleConfig.textColor) {
+              cell.style.setProperty("color", getContrastingTextColorForBg(styleConfig.bgColor), "important");
+            }
+          }
         }
         if (styleConfig.textColor) {
           cell.style.setProperty("color", styleConfig.textColor, "important");
         }
         if (styleConfig.fontSize) {
-          cell.style.setProperty("font-size", `${styleConfig.fontSize}px`, "important");
+          cell.style.setProperty("font-size", `calc(${styleConfig.fontSize}px * var(--stage-scale, 1))`, "important");
+        }
+        if (styleConfig.textAlign) {
+          cell.style.setProperty("text-align", styleConfig.textAlign, "important");
         }
       }
 
-      if (
-        state.selectedCell &&
-        state.selectedCell.objectId === object.id &&
-        state.selectedCell.rowIndex === rowIndex &&
-        state.selectedCell.columnIndex === columnIndex
-      ) {
+      if (isTableCellSelected(object.id, rowIndex, columnIndex)) {
         cell.classList.add("is-cell-selected");
       }
 
-      cell.addEventListener("click", (event) => {
-        if (cell.isContentEditable) return;
+      cell.addEventListener("pointerdown", (event) => {
+        if (isAnimMode || document.fullscreenElement || isPresentMode) return;
+        if (event.button !== 0) return;
+
+        const isCtrl = event.ctrlKey || event.metaKey;
+        const isShift = event.shiftKey;
+
+        const prevKeys = (state.selectedCells && state.selectedCells.objectId === object.id && state.selectedCells.keys)
+          ? new Set(state.selectedCells.keys)
+          : (state.selectedCell && state.selectedCell.objectId === object.id)
+            ? new Set(getKeysForCellOrMerge(object, state.selectedCell.rowIndex, state.selectedCell.columnIndex))
+            : new Set();
+        const prevAnchor = (state.selectedCells && state.selectedCells.objectId === object.id && state.selectedCells.anchor)
+          ? state.selectedCells.anchor
+          : (state.selectedCell && state.selectedCell.objectId === object.id)
+            ? { rowIndex: state.selectedCell.rowIndex, columnIndex: state.selectedCell.columnIndex }
+            : { rowIndex, columnIndex };
+
+        if (isShift || isCtrl) {
+          event.preventDefault();
+          event.stopPropagation();
+          commitActiveTextEditing();
+          window.getSelection()?.removeAllRanges();
+          hideTextSelectionToolbar();
+
+          state.selectedIds = new Set([object.id]);
+          updateSelectionClasses();
+
+          if (isShift) {
+            const rawKeys = [
+              ...getKeysForCellOrMerge(object, prevAnchor.rowIndex, prevAnchor.columnIndex),
+              ...getKeysForCellOrMerge(object, rowIndex, columnIndex)
+            ];
+            const bounds = getExpandedMergeBounds(object, rawKeys) || {
+              minR: Math.min(prevAnchor.rowIndex, rowIndex),
+              maxR: Math.max(prevAnchor.rowIndex, rowIndex),
+              minC: Math.min(prevAnchor.columnIndex, columnIndex),
+              maxC: Math.max(prevAnchor.columnIndex, columnIndex)
+            };
+            const nextKeys = isCtrl ? new Set(prevKeys) : new Set();
+            for (let r = bounds.minR; r <= bounds.maxR; r++) {
+              for (let c = bounds.minC; c <= bounds.maxC; c++) {
+                nextKeys.add(`${r},${c}`);
+              }
+            }
+            state.selectedCells = { objectId: object.id, keys: nextKeys, anchor: prevAnchor };
+            state.selectedCell = { objectId: object.id, rowIndex, columnIndex };
+          } else {
+            const nextKeys = new Set(prevKeys);
+            const groupKeys = getKeysForCellOrMerge(object, rowIndex, columnIndex);
+            if (nextKeys.has(cellKey) && nextKeys.size > groupKeys.length) {
+              groupKeys.forEach((k) => nextKeys.delete(k));
+            } else {
+              groupKeys.forEach((k) => nextKeys.add(k));
+            }
+            state.selectedCells = { objectId: object.id, keys: nextKeys, anchor: { rowIndex, columnIndex } };
+            state.selectedCell = { objectId: object.id, rowIndex, columnIndex };
+          }
+
+          syncTableDOMCellSelection(object.id);
+          renderControls();
+          const wrapper = stage?.querySelector(`[data-object-id="${object.id}"]`);
+          if (wrapper) showTextToolbar(object, wrapper);
+          return;
+        }
+
+        event.preventDefault();
         event.stopPropagation();
-        const wasSelected = state.selectedCell &&
-          state.selectedCell.objectId === object.id &&
-          state.selectedCell.rowIndex === rowIndex &&
-          state.selectedCell.columnIndex === columnIndex;
+        if (activeEditingTextElement && activeEditingTextElement !== cell) {
+          commitActiveTextEditing();
+        }
+        const activeEditCell = stage?.querySelector(".table-object [contenteditable='true']");
+        if (activeEditCell && activeEditCell !== cell) {
+          activeEditCell.blur();
+        }
 
         state.selectedIds = new Set([object.id]);
+        state.selectedCells = {
+          objectId: object.id,
+          keys: new Set(getKeysForCellOrMerge(object, rowIndex, columnIndex)),
+          anchor: { rowIndex, columnIndex }
+        };
         state.selectedCell = { objectId: object.id, rowIndex, columnIndex };
+        updateSelectionClasses();
+        syncTableDOMCellSelection(object.id);
 
-        const parentTable = cell.closest("table");
-        if (parentTable) {
-          parentTable.querySelectorAll(".is-cell-selected").forEach((c) => c.classList.remove("is-cell-selected"));
-        }
-        cell.classList.add("is-cell-selected");
+        beginCellEdit(event, object, rowIndex, columnIndex, cell);
+        hideTextSelectionToolbar();
 
-        renderControls();
-        const wrapper = stage?.querySelector(`[data-object-id="${object.id}"]`);
-        if (wrapper) showTextToolbar(object, wrapper);
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const startCaret = getCaretPointInElement(cell, startX, startY);
+        let isMultiCellDragging = false;
 
-        if (wasSelected) {
-          beginCellEdit(event, object, rowIndex, columnIndex, cell);
-        }
+        const handlePointerMove = (moveEvent) => {
+          const dist = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY);
+          if (dist < 3 && !isMultiCellDragging) return;
+
+          const targetEl = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+          const hoverCell = targetEl?.closest("th[data-cell-key], td[data-cell-key]");
+
+          if (!isMultiCellDragging && hoverCell && hoverCell !== cell && hoverCell.closest("table") === table) {
+            const hRect = hoverCell.getBoundingClientRect();
+            const inset = 5;
+            const isInsideOtherCell =
+              moveEvent.clientX >= hRect.left + inset &&
+              moveEvent.clientX <= hRect.right - inset &&
+              moveEvent.clientY >= hRect.top + inset &&
+              moveEvent.clientY <= hRect.bottom - inset;
+            if (isInsideOtherCell) {
+              isMultiCellDragging = true;
+              if (cell.isContentEditable) cell.blur();
+              window.getSelection()?.removeAllRanges();
+              hideTextSelectionToolbar();
+            }
+          }
+
+          if (isMultiCellDragging) {
+            if (!hoverCell || hoverCell.closest("table") !== table) return;
+            const endR = Number(hoverCell.dataset.rowIndex);
+            const endC = Number(hoverCell.dataset.columnIndex);
+            if (Number.isNaN(endR) || Number.isNaN(endC)) return;
+
+            const rawKeys = [
+              ...getKeysForCellOrMerge(object, rowIndex, columnIndex),
+              ...getKeysForCellOrMerge(object, endR, endC)
+            ];
+            const bounds = getExpandedMergeBounds(object, rawKeys) || {
+              minR: Math.min(rowIndex, endR),
+              maxR: Math.max(rowIndex, endR),
+              minC: Math.min(columnIndex, endC),
+              maxC: Math.max(columnIndex, endC)
+            };
+
+            const nextKeys = new Set();
+            for (let r = bounds.minR; r <= bounds.maxR; r++) {
+              for (let c = bounds.minC; c <= bounds.maxC; c++) {
+                nextKeys.add(`${r},${c}`);
+              }
+            }
+            state.selectedCells = { objectId: object.id, keys: nextKeys, anchor: { rowIndex, columnIndex } };
+            state.selectedCell = { objectId: object.id, rowIndex: endR, columnIndex: endC };
+            syncTableDOMCellSelection(object.id);
+            renderControls();
+            return;
+          }
+
+          if (cell.isContentEditable && startCaret) {
+            const endCaret = getCaretPointInElement(cell, moveEvent.clientX, moveEvent.clientY);
+            if (endCaret) {
+              const sel = window.getSelection();
+              if (sel && typeof sel.setBaseAndExtent === "function") {
+                sel.setBaseAndExtent(startCaret.node, startCaret.offset, endCaret.node, endCaret.offset);
+                saveCurrentSelection();
+                updateSelectionToolbar();
+              }
+            }
+          }
+        };
+
+        const handlePointerUp = () => {
+          window.removeEventListener("pointermove", handlePointerMove);
+          window.removeEventListener("pointerup", handlePointerUp);
+          renderControls();
+          const currentWrapper = stage?.querySelector(`[data-object-id="${object.id}"]`);
+          if (currentWrapper) showTextToolbar(object, currentWrapper);
+          if (!isMultiCellDragging && cell.isContentEditable) {
+            saveCurrentSelection();
+            updateSelectionToolbar();
+          }
+        };
+
+        window.addEventListener("pointermove", handlePointerMove);
+        window.addEventListener("pointerup", handlePointerUp);
+      });
+
+      cell.addEventListener("click", (event) => {
+        if (isAnimMode || document.fullscreenElement || isPresentMode) return;
+        event.stopPropagation();
       });
 
       cell.addEventListener("dblclick", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        state.selectedIds = new Set([object.id]);
+        state.selectedCell = { objectId: object.id, rowIndex, columnIndex };
+        state.selectedCells = {
+          objectId: object.id,
+          keys: new Set(getKeysForCellOrMerge(object, rowIndex, columnIndex)),
+          anchor: { rowIndex, columnIndex }
+        };
+        syncTableDOMCellSelection(object.id);
         beginCellEdit(event, object, rowIndex, columnIndex, cell);
+        selectAllText(cell);
+        saveCurrentSelection();
+        updateSelectionToolbar();
       });
       tr.append(cell);
     });
@@ -5076,46 +5913,81 @@ function renderPieChart(container, data, isDonut = false) {
   container.append(layout);
 }
 
-function setCaretAtEventOrEnd(event, targetElement) {
-  if (!targetElement) return;
+function getCaretPointInElement(el, clientX, clientY) {
+  if (!el) return null;
   try {
-    targetElement.focus();
-    const rect = targetElement.getBoundingClientRect();
-    let placed = false;
-    const clientX = event?.clientX ?? (event?.touches && event.touches[0]?.clientX);
-    const clientY = event?.clientY ?? (event?.touches && event.touches[0]?.clientY);
+    const contentRange = document.createRange();
+    contentRange.selectNodeContents(el);
+    const contentRect = contentRange.getBoundingClientRect();
 
-    if (typeof clientX === "number" && typeof clientY === "number") {
+    if (contentRect && contentRect.width > 0 && contentRect.height > 0 && typeof clientX === "number" && typeof clientY === "number") {
+      const rects = contentRange.getClientRects();
+      if (rects.length <= 1) {
+        if (clientX <= contentRect.left + 2) {
+          contentRange.collapse(true);
+          return { node: contentRange.startContainer, offset: contentRange.startOffset };
+        }
+        if (clientX >= contentRect.right - 2) {
+          contentRange.collapse(false);
+          return { node: contentRange.startContainer, offset: contentRange.startOffset };
+        }
+      } else {
+        if (clientY < contentRect.top || (clientY <= rects[0].bottom && clientX <= rects[0].left + 2)) {
+          contentRange.collapse(true);
+          return { node: contentRange.startContainer, offset: contentRange.startOffset };
+        }
+        const lastRect = rects[rects.length - 1];
+        if (clientY > contentRect.bottom || (clientY >= lastRect.top && clientX >= lastRect.right - 2)) {
+          contentRange.collapse(false);
+          return { node: contentRange.startContainer, offset: contentRange.startOffset };
+        }
+      }
+    }
+
+    const lookupX = (contentRect && contentRect.width > 2 && typeof clientX === "number")
+      ? Math.max(contentRect.left + 1, Math.min(contentRect.right - 1, clientX))
+      : clientX;
+    const lookupY = (contentRect && contentRect.height > 2 && typeof clientY === "number")
+      ? Math.max(contentRect.top + 1, Math.min(contentRect.bottom - 1, clientY))
+      : clientY;
+
+    if (typeof lookupX === "number" && typeof lookupY === "number") {
       let range = null;
       if (document.caretRangeFromPoint) {
-        range = document.caretRangeFromPoint(clientX, clientY);
+        range = document.caretRangeFromPoint(lookupX, lookupY);
       } else if (document.caretPositionFromPoint) {
-        const pos = document.caretPositionFromPoint(clientX, clientY);
+        const pos = document.caretPositionFromPoint(lookupX, lookupY);
         if (pos && pos.offsetNode) {
           range = document.createRange();
           range.setStart(pos.offsetNode, pos.offset);
           range.collapse(true);
         }
       }
-      if (range && (targetElement === range.startContainer || targetElement.contains(range.startContainer))) {
-        range.collapse(true);
-        const selection = window.getSelection();
-        if (selection) {
-          selection.removeAllRanges();
-          selection.addRange(range);
-          placed = true;
-        }
+      if (range && (el === range.startContainer || el.contains(range.startContainer))) {
+        return { node: range.startContainer, offset: range.startOffset };
       }
     }
 
-    if (!placed) {
+    const rect = el.getBoundingClientRect();
+    const isLeftHalf = typeof clientX === "number" && clientX < rect.left + rect.width / 2;
+    contentRange.collapse(isLeftHalf);
+    return { node: contentRange.startContainer, offset: contentRange.startOffset };
+  } catch (e) {
+    return null;
+  }
+}
+
+function setCaretAtEventOrEnd(event, targetElement) {
+  if (!targetElement) return;
+  try {
+    targetElement.focus();
+    const clientX = event?.clientX ?? (event?.touches && event.touches[0]?.clientX);
+    const clientY = event?.clientY ?? (event?.touches && event.touches[0]?.clientY);
+    const pt = getCaretPointInElement(targetElement, clientX, clientY);
+    if (pt) {
       const range = document.createRange();
-      range.selectNodeContents(targetElement);
-      if (typeof clientX === "number" && clientX < rect.left + rect.width / 2) {
-        range.collapse(true);
-      } else {
-        range.collapse(false);
-      }
+      range.setStart(pt.node, pt.offset);
+      range.collapse(true);
       const selection = window.getSelection();
       if (selection) {
         selection.removeAllRanges();
@@ -5520,7 +6392,11 @@ function updateSelectionToolbar() {
     return;
   }
   const textEl = document.activeElement;
-  if (!textEl || !textEl.isContentEditable || (!textEl.classList.contains("canvas-text") && !textEl.closest(".html-content-wrapper"))) {
+  if (
+    !textEl ||
+    !textEl.isContentEditable ||
+    (!textEl.classList.contains("canvas-text") && !textEl.closest(".table-object") && !textEl.closest(".html-content-wrapper"))
+  ) {
     hideTextSelectionToolbar();
     return;
   }
@@ -5556,9 +6432,29 @@ function syncActiveInlineEdit() {
   if (!activeEditingTextElement) return;
   const wrapper = activeEditingTextElement.closest(".canvas-object");
   const obj = currentPage()?.objects?.find((o) => o.id === wrapper?.dataset?.objectId);
-  if (obj && (obj.isSignature || obj.signatureId)) {
+  if (!obj) return;
+  if (obj.isSignature || obj.signatureId) {
     const hw = wrapper?.querySelector(".html-content-wrapper");
     if (hw) obj.htmlContent = hw.innerHTML;
+  } else if (obj.type === "table" && activeEditingTextElement.closest(".table-object")) {
+    const cell = activeEditingTextElement.closest("th[data-cell-key], td[data-cell-key]") || activeEditingTextElement;
+    const cellKey = cell.dataset?.cellKey;
+    const r = Number(cell.dataset?.rowIndex);
+    const c = Number(cell.dataset?.columnIndex);
+    if (cellKey && !Number.isNaN(r) && !Number.isNaN(c) && obj.cells?.[r]) {
+      const nextVal = cell.innerText.replace(/\r\n/g, "\n").trim();
+      obj.cells[r][c] = nextVal;
+      obj.userEditedCells = obj.userEditedCells || {};
+      obj.userEditedCells[cellKey] = true;
+      const rawHtml = cell.innerHTML.trim();
+      obj.cellHtml = obj.cellHtml || {};
+      if (nextVal && /<[a-z][\s\S]*>/i.test(rawHtml)) {
+        obj.cellHtml[cellKey] = rawHtml;
+      } else {
+        delete obj.cellHtml[cellKey];
+      }
+      cell.classList.remove("is-default-placeholder");
+    }
   }
 }
 
@@ -5638,7 +6534,7 @@ function applyInlineFontSize(delta) {
   const newBaseSize = Math.max(9, Math.min(140, Math.round(currentBase + delta)));
 
   document.execCommand("fontSize", false, "7");
-  const container = parentEl.closest(".canvas-text") || parentEl.closest(".sig-comp") || parentEl;
+  const container = parentEl.closest(".canvas-text") || parentEl.closest(".sig-comp") || parentEl.closest("th, td") || parentEl;
   const fontTags = container.querySelectorAll('font[size="7"]');
   fontTags.forEach((fontTag) => {
     const span = document.createElement("span");
@@ -5729,10 +6625,14 @@ function initTextSelectionToolbar() {
   bindToolbarBtn("#toolbarHighlightBtn", () => applyInlineHighlight("#fef08a"));
 
   document.addEventListener("selectionchange", () => {
-    if (document.activeElement?.isContentEditable && document.activeElement.classList.contains("canvas-text")) {
+    const activeEl = document.activeElement;
+    if (
+      activeEl?.isContentEditable &&
+      (activeEl.classList.contains("canvas-text") || activeEl.closest(".table-object") || activeEl.closest(".html-content-wrapper"))
+    ) {
       saveCurrentSelection();
       updateSelectionToolbar();
-    } else if (!$("#textSelectionToolbar")?.contains(document.activeElement)) {
+    } else if (!$("#textSelectionToolbar")?.contains(activeEl)) {
       hideTextSelectionToolbar();
     }
   });
@@ -5761,6 +6661,16 @@ function showTextToolbar(object, textElement, selectedObjectsParam = null) {
   if ($("#alignToolbarGroup")) $("#alignToolbarGroup").hidden = isTimer;
   if ($("#textSizeGroup")) $("#textSizeGroup").hidden = isTimer;
   if ($("#rotateToolbarGroup")) $("#rotateToolbarGroup").hidden = isTable || isTimer;
+  if ($("#tableMergeToolbarGroup")) {
+    $("#tableMergeToolbarGroup").hidden = !isTable;
+    $("#tableMergeToolbarGroup").style.display = isTable ? "flex" : "none";
+    if (isTable) {
+      const canM = canMergeSelectedTableCells(object);
+      const canU = canUnmergeSelectedTableCells(object);
+      if ($("#toolbarMergeCellsBtn")) $("#toolbarMergeCellsBtn").disabled = !canM;
+      if ($("#toolbarUnmergeCellsBtn")) $("#toolbarUnmergeCellsBtn").disabled = !canU;
+    }
+  }
 
   const rot = (object.rotation !== undefined && object.rotation !== null) ? Number(object.rotation) : 0;
   const rotInput = $("#objectRotationInput");
@@ -5778,13 +6688,21 @@ function showTextToolbar(object, textElement, selectedObjectsParam = null) {
       const cellKey = `${rowIndex},${columnIndex}`;
       const cellStyle = object.cellStyles?.[cellKey];
       const isHeader = rowIndex === 0;
+      const domCellEl = stage?.querySelector(`[data-object-id="${object.id}"] table [data-cell-key="${cellKey}"]`);
       if ($("#textColorInput")) {
-        const textColor = cellStyle?.textColor || (isHeader ? "#ffffff" : "#0f172a");
-        $("#textColorInput").value = normalizeColor(textColor);
+        let textColor = cellStyle?.textColor || "";
+        if (!textColor && domCellEl) textColor = getComputedStyle(domCellEl).color;
+        $("#textColorInput").value = normalizeColor(textColor || (isHeader ? "#ffffff" : "#0f172a"));
       }
       if ($("#bgColorInput")) {
-        const bgColor = cellStyle?.bgColor || (isHeader ? "#2563eb" : "#ffffff");
-        $("#bgColorInput").value = normalizeColor(bgColor);
+        let bgColor = (cellStyle?.bgColor && cellStyle.bgColor !== "transparent" && cellStyle.bgColor !== "none")
+          ? cellStyle.bgColor
+          : "";
+        if (!bgColor && domCellEl) {
+          const compBg = getComputedStyle(domCellEl).backgroundColor;
+          if (compBg && compBg !== "rgba(0, 0, 0, 0)" && compBg !== "transparent") bgColor = compBg;
+        }
+        $("#bgColorInput").value = normalizeColor(bgColor || (isHeader ? "#2563eb" : "#ffffff"));
       }
       if ($("#noBgColorButton")) {
         const isNoBg = cellStyle?.bgColor === "transparent" || cellStyle?.bgColor === "none";
@@ -5971,15 +6889,41 @@ function updateActiveTextStyle(property, value) {
   commitActiveTextEditing();
   const page = currentPage();
   const selectedObjects = page.objects.filter((item) => state.selectedIds.has(item.id));
-  if (!selectedObjects.length) return;
+  const fallbackSelected = getSelectedActionObject(page);
+  const targets = selectedObjects.length
+    ? selectedObjects
+    : (fallbackSelected ? [fallbackSelected] : []);
+  if (!targets.length) return;
   snapshot();
-  selectedObjects.forEach((target) => {
-    if (target.type === "table" && state.selectedCell && state.selectedCell.objectId === target.id) {
-      const { rowIndex, columnIndex } = state.selectedCell;
-      const cellKey = `${rowIndex},${columnIndex}`;
-      target.cellStyles = target.cellStyles || {};
-      target.cellStyles[cellKey] = target.cellStyles[cellKey] || {};
-      target.cellStyles[cellKey][property] = value;
+  targets.forEach((target) => {
+    if (target.type === "table") {
+      const cellKeys = getSelectedTableCellKeys(target.id);
+      if (cellKeys.length > 0 && ["bgColor", "textColor", "fontSize", "textAlign"].includes(property)) {
+        target.cellStyles = target.cellStyles || {};
+        cellKeys.forEach((cellKey) => {
+          target.cellStyles[cellKey] = target.cellStyles[cellKey] || {};
+          if (value === null || value === undefined) {
+            delete target.cellStyles[cellKey][property];
+          } else {
+            target.cellStyles[cellKey][property] = value;
+          }
+        });
+      } else if (["bgColor", "textColor", "fontSize", "textAlign"].includes(property)) {
+        target.cellStyles = target.cellStyles || {};
+        target.cells.forEach((row, rIdx) => {
+          row.forEach((_, cIdx) => {
+            const cellKey = `${rIdx},${cIdx}`;
+            target.cellStyles[cellKey] = target.cellStyles[cellKey] || {};
+            if (value === null || value === undefined) {
+              delete target.cellStyles[cellKey][property];
+            } else {
+              target.cellStyles[cellKey][property] = value;
+            }
+          });
+        });
+      } else {
+        target[property] = value;
+      }
     } else {
       target[property] = value;
       if (property === "textColor") target.isCustomTextColor = true;
@@ -5988,19 +6932,29 @@ function updateActiveTextStyle(property, value) {
     }
   });
   renderStage();
-  if (selectedObjects.length >= 1 && selectedObjects[0].type !== "timer") {
-    const el = stage.querySelector(`[data-object-id="${selectedObjects[0].id}"]`);
-    showTextToolbar(selectedObjects[0], el, selectedObjects);
+  renderControls();
+  if (targets.length >= 1 && targets[0].type !== "timer") {
+    const el = stage.querySelector(`[data-object-id="${targets[0].id}"]`);
+    showTextToolbar(targets[0], el, targets);
   }
 }
 
 function beginCellEdit(event, object, rowIndex, columnIndex, cell) {
   if (document.fullscreenElement) return;
+  const cellKey = `${rowIndex},${columnIndex}`;
   if (cell.isContentEditable) {
+    activeEditingTextElement = cell;
     if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      setCaretAtEventOrEnd(event, cell);
+      if (event.type === "dblclick" || event.detail === 2) {
+        event.preventDefault();
+        event.stopPropagation();
+        selectAllText(cell);
+        saveCurrentSelection();
+        updateSelectionToolbar();
+      } else {
+        event.stopPropagation();
+        setCaretAtEventOrEnd(event, cell);
+      }
     }
     return;
   }
@@ -6009,28 +6963,128 @@ function beginCellEdit(event, object, rowIndex, columnIndex, cell) {
     event.stopPropagation();
   }
   snapshot();
+
+  activeEditingTextElement = cell;
   cell.contentEditable = "true";
+  try {
+    document.execCommand("styleWithCSS", false, true);
+  } catch (e) {}
   cell.focus();
-  setCaretAtEventOrEnd(event, cell);
 
-  const stopEvt = (e) => e.stopPropagation();
-  cell.addEventListener("pointerdown", stopEvt);
-  cell.addEventListener("mousedown", stopEvt);
+  if (event?.type === "dblclick" || event?.detail === 2) {
+    selectAllText(cell);
+    saveCurrentSelection();
+    updateSelectionToolbar();
+  } else {
+    setCaretAtEventOrEnd(event, cell);
+  }
 
-  const finish = () => {
-    cell.removeEventListener("pointerdown", stopEvt);
-    cell.removeEventListener("mousedown", stopEvt);
-    object.cells[rowIndex][columnIndex] = cell.innerText.trim() || "내용";
-    cell.contentEditable = "false";
-    renderStage();
+  const syncCellValue = () => {
+    const nextValue = cell.innerText.replace(/\r\n/g, "\n").trim();
+    object.cells[rowIndex][columnIndex] = nextValue;
+    object.userEditedCells = object.userEditedCells || {};
+    object.userEditedCells[cellKey] = true;
+    object.cellHtml = object.cellHtml || {};
+    const rawHtml = cell.innerHTML.trim();
+    if (nextValue && /<[a-z][\s\S]*>/i.test(rawHtml)) {
+      object.cellHtml[cellKey] = rawHtml;
+    } else {
+      delete object.cellHtml[cellKey];
+    }
+    cell.classList.remove("is-default-placeholder");
   };
-  cell.addEventListener("blur", finish, { once: true });
+
+  const handleBeforeInput = (inputEvent) => {
+    const isUneditedPlaceholder = rowIndex > 0 && object.cells[rowIndex]?.[columnIndex] === "내용" && !object.userEditedCells?.[cellKey];
+    if (isUneditedPlaceholder && (inputEvent.inputType === "insertText" || inputEvent.inputType === "insertCompositionText")) {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed) {
+        cell.textContent = "";
+        cell.classList.remove("is-default-placeholder");
+      }
+    }
+  };
+
+  cell.addEventListener("beforeinput", handleBeforeInput);
+  cell.addEventListener("input", syncCellValue);
+
+  const finish = (blurEvent) => {
+    if (cell.dataset.ignoreBlurSync === "true" || !cell.isConnected) {
+      cell.removeEventListener("beforeinput", handleBeforeInput);
+      cell.removeEventListener("input", syncCellValue);
+      cell.removeEventListener("blur", finish);
+      hideTextSelectionToolbar();
+      if (activeEditingTextElement === cell) {
+        activeEditingTextElement = null;
+      }
+      return;
+    }
+    if (blurEvent?.relatedTarget && (
+      $("#textSelectionToolbar")?.contains(blurEvent.relatedTarget) ||
+      $("#textToolbar")?.contains(blurEvent.relatedTarget) ||
+      $("#tableDimensionControls")?.contains(blurEvent.relatedTarget)
+    )) {
+      return;
+    }
+    cell.removeEventListener("beforeinput", handleBeforeInput);
+    cell.removeEventListener("input", syncCellValue);
+    cell.removeEventListener("blur", finish);
+    hideTextSelectionToolbar();
+    if (activeEditingTextElement === cell) {
+      activeEditingTextElement = null;
+    }
+
+    const isUneditedPlaceholder = rowIndex > 0 && object.cells[rowIndex]?.[columnIndex] === "내용" && !object.userEditedCells?.[cellKey];
+    const nextValue = cell.innerText.replace(/\r\n/g, "\n").trim();
+    const rawHtml = cell.innerHTML.trim();
+    const hasHtml = Boolean(nextValue && /<[a-z][\s\S]*>/i.test(rawHtml));
+
+    if (!isUneditedPlaceholder || nextValue !== "내용" || hasHtml) {
+      object.cells[rowIndex][columnIndex] = nextValue;
+      object.userEditedCells = object.userEditedCells || {};
+      object.userEditedCells[cellKey] = true;
+      object.cellHtml = object.cellHtml || {};
+      if (hasHtml) {
+        object.cellHtml[cellKey] = rawHtml;
+      } else {
+        delete object.cellHtml[cellKey];
+        cell.textContent = nextValue;
+      }
+      cell.classList.remove("is-default-placeholder");
+    } else {
+      cell.textContent = "내용";
+      cell.classList.add("is-default-placeholder");
+    }
+
+    cell.contentEditable = "false";
+    renderPageList();
+  };
+  cell.addEventListener("blur", finish);
   cell.addEventListener("keydown", (keyEvent) => {
-    if (keyEvent.key === "Escape") cell.blur();
+    if (keyEvent.key === "Tab") {
+      keyEvent.preventDefault();
+      keyEvent.stopPropagation();
+      cell.blur();
+      moveTableCellSelectionByTab(object, keyEvent.shiftKey ? -1 : 1);
+      return;
+    }
+    if (keyEvent.key === "Escape") {
+      keyEvent.preventDefault();
+      cell.blur();
+      return;
+    }
+    const isUneditedPlaceholder = rowIndex > 0 && object.cells[rowIndex]?.[columnIndex] === "내용" && !object.userEditedCells?.[cellKey];
+    if (isUneditedPlaceholder && (keyEvent.key === "Backspace" || keyEvent.key === "Delete")) {
+      keyEvent.preventDefault();
+      cell.textContent = "";
+      syncCellValue();
+      return;
+    }
     if (keyEvent.key === "Enter" && keyEvent.altKey) {
       keyEvent.preventDefault();
       keyEvent.stopPropagation();
       insertEditableLineBreak(cell);
+      syncCellValue();
       return;
     }
     if (keyEvent.key === "Enter" && !keyEvent.shiftKey) {
@@ -6889,6 +7943,10 @@ async function loadProjectFile(file, handle = null) {
     state.guides = [];
     hideTextToolbar();
     currentProjectFileHandle = handle;
+    if (handle) {
+      lastProjectFileHandle = handle;
+      saveLastFileHandleToDB(handle);
+    }
     currentProjectFileName = file.name || "local-ppt.txt";
     if (file.path) {
       const lastSep = Math.max(file.path.lastIndexOf("\\"), file.path.lastIndexOf("/"));
@@ -6942,6 +8000,10 @@ async function writeProjectToHandle(handle) {
     await writable.write(serializeProject());
     await writable.close();
     currentProjectFileHandle = handle;
+    if (handle) {
+      lastProjectFileHandle = handle;
+      saveLastFileHandleToDB(handle);
+    }
     currentProjectFileName = handle.name || currentProjectFileName;
     document.title = `Local PPT 2 — ${currentProjectFileName}`;
     updateFilePathDisplay();
@@ -6987,14 +8049,70 @@ function getNewImagePlacement(page, index) {
   return { x: 62 + (index % 3) * 5, y: 55 + (index % 3) * 5, w: 25, h: 28 };
 }
 
+async function openProjectPickerDialog() {
+  const baseOptions = {
+    id: PROJECT_PICKER_ID,
+    multiple: false,
+    types: [{ description: "Local ppt JSON 텍스트", accept: { "text/plain": [".txt", ".json"] } }]
+  };
+  const startIn = currentProjectFileHandle || lastProjectFileHandle;
+  if (startIn) {
+    try {
+      const [handle] = await window.showOpenFilePicker({ ...baseOptions, startIn });
+      if (handle) {
+        lastProjectFileHandle = handle;
+        saveLastFileHandleToDB(handle);
+      }
+      return handle;
+    } catch (error) {
+      if (error.name === "AbortError" || ["SecurityError", "NotSupportedError"].includes(error.name)) {
+        throw error;
+      }
+      lastProjectFileHandle = null;
+    }
+  }
+  const [handle] = await window.showOpenFilePicker(baseOptions);
+  if (handle) {
+    lastProjectFileHandle = handle;
+    saveLastFileHandleToDB(handle);
+  }
+  return handle;
+}
+
+async function saveProjectPickerDialog(suggestedName) {
+  const baseOptions = {
+    id: PROJECT_PICKER_ID,
+    suggestedName,
+    types: [{ description: "Local ppt JSON 텍스트", accept: { "text/plain": [".txt"] } }]
+  };
+  const startIn = currentProjectFileHandle || lastProjectFileHandle;
+  if (startIn) {
+    try {
+      const handle = await window.showSaveFilePicker({ ...baseOptions, startIn });
+      if (handle) {
+        lastProjectFileHandle = handle;
+        saveLastFileHandleToDB(handle);
+      }
+      return handle;
+    } catch (error) {
+      if (error.name === "AbortError" || ["SecurityError", "NotSupportedError"].includes(error.name)) {
+        throw error;
+      }
+      lastProjectFileHandle = null;
+    }
+  }
+  const handle = await window.showSaveFilePicker(baseOptions);
+  if (handle) {
+    lastProjectFileHandle = handle;
+    saveLastFileHandleToDB(handle);
+  }
+  return handle;
+}
+
 async function saveProjectAs() {
   try {
     if (window.showSaveFilePicker) {
-      const handle = await window.showSaveFilePicker({
-        id: PROJECT_PICKER_ID,
-        suggestedName: suggestedProjectName(),
-        types: [{ description: "Local ppt JSON 텍스트", accept: { "text/plain": [".txt"] } }]
-      });
+      const handle = await saveProjectPickerDialog(suggestedProjectName());
       await writeProjectToHandle(handle);
       return true;
     } else {
@@ -7133,11 +8251,7 @@ function showSaveToast(message) {
 $("#loadProjectButton").addEventListener("click", async () => {
   if (window.showOpenFilePicker) {
     try {
-      const [handle] = await window.showOpenFilePicker({
-        id: PROJECT_PICKER_ID,
-        multiple: false,
-        types: [{ description: "Local ppt JSON 텍스트", accept: { "text/plain": [".txt", ".json"] } }]
-      });
+      const handle = await openProjectPickerDialog();
       await loadProjectFile(await handle.getFile(), handle);
     } catch (error) {
       if (error.name === "AbortError") return;
@@ -7698,47 +8812,128 @@ $("#tableAxisSelect").addEventListener("change", (event) => {
   tableManagementAxis = event.target.value;
   renderControls();
 });
-$("#tableColWidthInput")?.addEventListener("input", (event) => {
+function resolveActiveTableObject() {
   const page = currentPage();
-  const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
-  const table = selectedObjects.find((obj) => obj.type === "table");
+  const selected = getSelectedActionObject(page);
+  if (selected?.type === "table") return selected;
+  return page.objects.find((obj) => state.selectedIds.has(obj.id) && obj.type === "table") || null;
+}
+
+$("#tableCellBgColorInput")?.addEventListener("input", (event) => {
+  const table = resolveActiveTableObject();
   if (!table) return;
-  const currentCell = (state.selectedCell && state.selectedCell.objectId === table.id) ? state.selectedCell : { rowIndex: 0, columnIndex: 0 };
+  state.selectedIds.add(table.id);
+  updateActiveTextStyle("bgColor", event.target.value);
+  previewCustomColor("bg", event.target.value);
+});
+$("#tableCellBgColorInput")?.addEventListener("change", (event) => {
+  const table = resolveActiveTableObject();
+  if (!table) return;
+  state.selectedIds.add(table.id);
+  updateActiveTextStyle("bgColor", event.target.value);
+  recordCustomColor("bg", event.target.value);
+});
+document.querySelectorAll(".table-cell-bg-swatch").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const color = btn.dataset.bgColor;
+    const table = resolveActiveTableObject();
+    if (!table || !color) return;
+    state.selectedIds.add(table.id);
+    if ($("#tableCellBgColorInput")) $("#tableCellBgColorInput").value = normalizeColor(color);
+    updateActiveTextStyle("bgColor", color);
+    recordCustomColor("bg", color);
+  });
+});
+$("#tableCellTextColorInput")?.addEventListener("input", (event) => {
+  const table = resolveActiveTableObject();
+  if (!table) return;
+  state.selectedIds.add(table.id);
+  updateActiveTextStyle("textColor", event.target.value);
+  previewCustomColor("text", event.target.value);
+});
+$("#tableCellTextColorInput")?.addEventListener("change", (event) => {
+  const table = resolveActiveTableObject();
+  if (!table) return;
+  state.selectedIds.add(table.id);
+  updateActiveTextStyle("textColor", event.target.value);
+  recordCustomColor("text", event.target.value);
+});
+document.querySelectorAll(".table-cell-text-swatch").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const color = btn.dataset.textColor;
+    const table = resolveActiveTableObject();
+    if (!table || !color) return;
+    state.selectedIds.add(table.id);
+    if ($("#tableCellTextColorInput")) $("#tableCellTextColorInput").value = normalizeColor(color);
+    updateActiveTextStyle("textColor", color);
+    recordCustomColor("text", color);
+  });
+});
+
+$("#tableColWidthInput")?.addEventListener("input", (event) => {
+  const table = resolveActiveTableObject();
+  if (!table) return;
+  const selectedKeys = getSelectedTableCellKeys(table.id);
+  const colIndices = selectedKeys.length > 0
+    ? [...new Set(selectedKeys.map((k) => Number(k.split(",")[1])).filter((n) => !Number.isNaN(n)))]
+    : [((state.selectedCell && state.selectedCell.objectId === table.id) ? state.selectedCell.columnIndex : 0)];
   const val = Number(event.target.value) || 10;
   snapshot();
-  setTableColumnWidth(table, currentCell.columnIndex, val);
+  colIndices.forEach((colIdx) => setTableColumnWidth(table, colIdx, val));
   renderStage();
 });
 $("#tableRowHeightInput")?.addEventListener("input", (event) => {
-  const page = currentPage();
-  const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
-  const table = selectedObjects.find((obj) => obj.type === "table");
+  const table = resolveActiveTableObject();
   if (!table) return;
-  const currentCell = (state.selectedCell && state.selectedCell.objectId === table.id) ? state.selectedCell : { rowIndex: 0, columnIndex: 0 };
+  const selectedKeys = getSelectedTableCellKeys(table.id);
+  const rowIndices = selectedKeys.length > 0
+    ? [...new Set(selectedKeys.map((k) => Number(k.split(",")[0])).filter((n) => !Number.isNaN(n)))]
+    : [((state.selectedCell && state.selectedCell.objectId === table.id) ? state.selectedCell.rowIndex : 0)];
   const val = Number(event.target.value) || 30;
   snapshot();
-  setTableRowHeight(table, currentCell.rowIndex, val);
+  rowIndices.forEach((rowIdx) => setTableRowHeight(table, rowIdx, val));
   renderStage();
 });
 $("#resetCellStylesBtn")?.addEventListener("click", () => {
-  const page = currentPage();
-  const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
-  const table = selectedObjects.find((obj) => obj.type === "table");
+  const table = resolveActiveTableObject();
   if (!table) return;
   snapshot();
-  delete table.cellStyles;
+  const selectedKeys = getSelectedTableCellKeys(table.id);
+  if (selectedKeys.length > 0 && table.cellStyles) {
+    selectedKeys.forEach((k) => delete table.cellStyles[k]);
+  } else {
+    delete table.cellStyles;
+  }
+  renderControls();
   renderStage();
 });
 $("#resetTableSizesBtn")?.addEventListener("click", () => {
-  const page = currentPage();
-  const selectedObjects = page.objects.filter((obj) => state.selectedIds.has(obj.id));
-  const table = selectedObjects.find((obj) => obj.type === "table");
+  const table = resolveActiveTableObject();
   if (!table) return;
   snapshot();
   delete table.colWidths;
   delete table.rowHeights;
   renderControls();
   renderStage();
+});
+$("#mergeTableCellsBtn")?.addEventListener("click", () => {
+  mergeSelectedTableCells();
+});
+$("#unmergeTableCellsBtn")?.addEventListener("click", () => {
+  unmergeSelectedTableCells();
+});
+$("#toolbarMergeCellsBtn")?.addEventListener("click", () => {
+  mergeSelectedTableCells();
+});
+$("#toolbarUnmergeCellsBtn")?.addEventListener("click", () => {
+  unmergeSelectedTableCells();
+});
+$("#mergeCardsButton")?.addEventListener("click", () => {
+  const table = resolveActiveTableObject();
+  if (table && state.selectedIds.has(table.id)) {
+    if (mergeSelectedTableCells(table) || unmergeSelectedTableCells(table)) return;
+  }
+  mergeSelectedCards();
 });
 $("#undoButton")?.addEventListener("click", undo);
 
@@ -8656,6 +9851,9 @@ stage.addEventListener("pointerdown", (event) => {
 
   if (!isCtrl) {
     state.selectedIds.clear();
+    state.selectedCell = null;
+    state.selectedCells = null;
+    stage.querySelectorAll(".is-cell-selected").forEach((c) => c.classList.remove("is-cell-selected"));
     updateSelectionClasses();
     renderControls();
   }
@@ -9309,7 +10507,18 @@ document.addEventListener("keydown", (event) => {
   if ((event.key === "Enter" || event.key === "F2") && !isEditingText && !modifier && state.selectedIds.size === 1) {
     const singleObjId = Array.from(state.selectedIds)[0];
     const singleObj = page?.objects?.find((o) => o.id === singleObjId);
-    if (singleObj && singleObj.type !== "image" && singleObj.type !== "chart" && singleObj.type !== "scale") {
+    if (singleObj?.type === "table") {
+      const targetCellCoord = (state.selectedCell && state.selectedCell.objectId === singleObj.id)
+        ? state.selectedCell
+        : { rowIndex: 0, columnIndex: 0 };
+      const cellKey = `${targetCellCoord.rowIndex},${targetCellCoord.columnIndex}`;
+      const cellEl = stage?.querySelector(`[data-object-id="${singleObj.id}"] table [data-cell-key="${cellKey}"]`);
+      if (cellEl) {
+        event.preventDefault();
+        beginCellEdit(event, singleObj, targetCellCoord.rowIndex, targetCellCoord.columnIndex, cellEl);
+        return;
+      }
+    } else if (singleObj && singleObj.type !== "image" && singleObj.type !== "chart" && singleObj.type !== "scale") {
       const wrapper = stage?.querySelector(`[data-object-id="${singleObj.id}"]`);
       const textEl = wrapper?.querySelector(".canvas-text") || wrapper;
       if (wrapper && textEl) {
@@ -9340,6 +10549,13 @@ document.addEventListener("keydown", (event) => {
 
   const isMergeKey = (keyCode === 77 || code === "KeyM" || key === "m" || key === "ㅡ") && !modifier && !isEditingText;
   if (isMergeKey) {
+    const activeTable = resolveActiveTableObject();
+    if (activeTable && state.selectedIds.has(activeTable.id)) {
+      if (mergeSelectedTableCells(activeTable) || unmergeSelectedTableCells(activeTable)) {
+        event.preventDefault();
+        return;
+      }
+    }
     if (mergeSelectedCards()) {
       event.preventDefault();
       return;
@@ -9348,6 +10564,30 @@ document.addEventListener("keydown", (event) => {
 
   const isDeleteKey = ["Delete", "Del", "Backspace"].includes(event.key) || ["delete", "del", "backspace"].includes(key) || keyCode === 46 || keyCode === 8;
   if (isDeleteKey && !isEditingText) {
+    const activeTable = resolveActiveTableObject();
+    if (activeTable && state.selectedIds.size === 1 && state.selectedIds.has(activeTable.id)) {
+      const selectedCellKeys = getSelectedTableCellKeys(activeTable.id);
+      const hasNonEmptySelectedCell = selectedCellKeys.some((k) => {
+        const [r, c] = k.split(",").map(Number);
+        return Boolean(String(activeTable.cells?.[r]?.[c] || "").trim());
+      });
+      if (hasNonEmptySelectedCell) {
+        event.preventDefault();
+        snapshot();
+        activeTable.userEditedCells = activeTable.userEditedCells || {};
+        selectedCellKeys.forEach((k) => {
+          const [r, c] = k.split(",").map(Number);
+          if (activeTable.cells?.[r] && c >= 0 && c < activeTable.cells[r].length) {
+            activeTable.cells[r][c] = "";
+            if (activeTable.cellHtml) delete activeTable.cellHtml[k];
+            activeTable.userEditedCells[k] = true;
+          }
+        });
+        renderStage();
+        renderPageList();
+        return;
+      }
+    }
     if (deleteSelectedObjects()) {
       event.preventDefault();
       return;
@@ -9419,6 +10659,13 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   if (event.key === "Tab" && !isEditingText) {
+    const activeTable = resolveActiveTableObject();
+    if (activeTable && state.selectedIds.has(activeTable.id)) {
+      if (moveTableCellSelectionByTab(activeTable, event.shiftKey ? -1 : 1)) {
+        event.preventDefault();
+        return;
+      }
+    }
     if (changeSelectedBulletHierarchy(event.shiftKey ? -1 : 1)) {
       event.preventDefault();
       return;
@@ -9596,6 +10843,7 @@ window.LocalPptApp = {
     render();
   },
   loadProjectFile,
+  openProjectPickerDialog,
   applyAiPresentation(presentation, options = {}) {
     const title = String(presentation?.title || "AI PRESENTATION").trim().slice(0, 90) || "AI PRESENTATION";
     const slides = Array.isArray(presentation?.slides) ? presentation.slides.slice(0, 30) : [];
