@@ -1,23 +1,33 @@
 docs: update README.md and detailed commit results
 
 [User Request]
-- 처음 불러오기가 아니라, 편집창의 버튼들 중에서 txt 불러오기, txt에 저장, 다른 이름 txt로 저장을 눌렀을 때 뜨는 창의 폴더가 이전에 불러오거나 저장했던 폴더를 불러와야 하는데, 매번 첫 폴더가 보여. 이전에 불러오거나 저장했던 폴더가 맨처음 보이게 해줄 수 있어?
+- 개체 내 텍스트에 한글 입력이 안돼.
+- 편집창 위 빨간 네모 안의 글자색 적용이 안돼.
+- 테이블 객체의 경우 행높이와 열높이 맞춤 버튼이 추가되면 좋겠어.
+- 드래그를 이용해 테이블의 행 넓이와 열 높이를 조정할 수 있으면 좋겠어.
 
 [Action & Verification Results]
 - app.js:
-  - 최근 사용한 파일 핸들(lastProjectFileHandle) 분리 관리 및 IndexedDB 영속화 (openFileHandleDB, saveLastFileHandleToDB, loadLastFileHandleFromDB)
-    - 현재 열린 문서의 파일 핸들(currentProjectFileHandle)과 별도로, 가장 마지막에 불러오거나 저장한 파일 핸들(lastProjectFileHandle)을 메모리 및 IndexedDB(local_ppt_fs_db -> handles 스토어)에 저장하고 앱 시작 시 자동 복원하도록 구현
-    - 새 슬라이드 시작이나 브라우저 새로고침 후에도 직전에 사용했던 폴더 위치를 그대로 보존
-  - 편집창 파일 열기/저장 대화상자에 startIn 옵션 적용 및 안전 폴백 (openProjectPickerDialog, saveProjectPickerDialog, saveProjectAs, #loadProjectButton)
-    - window.showOpenFilePicker 및 window.showSaveFilePicker 호출 시 startIn: currentProjectFileHandle || lastProjectFileHandle을 전달하여 편집창의 txt 불러오기, txt에 저장, 다른 이름 txt로 저장 클릭 시 이전에 불러오거나 저장했던 폴더가 맨 처음 표시되도록 개선
-    - 이전 폴더나 파일이 삭제·이동되어 startIn 핸들이 유효하지 않을 경우 자동으로 startIn 없이 재시도하는 안전 폴백 적용
-    - 시작 화면에서도 동일한 피커 헬퍼를 사용할 수 있도록 window.LocalPptApp.openProjectPickerDialog 노출
-- ai-intake.js:
-  - 시작 화면(02 txt 불러오기)에서 window.LocalPptApp.openProjectPickerDialog() 및 공통 ID(local-ppt-project)를 사용하도록 일원화하여 처음 불러오기와 편집창 버튼들의 최근 폴더가 상호 공유되도록 개선
+  - 개체 내 텍스트 한글(IME) 입력 불가 현상 해결 (isEditableInput, bindEvents 전역 keydown 핸들러)
+    - isEditableInput(target)에서 target.isContentEditable뿐만 아니라 closest('[contenteditable="true"]') 및 활성 인라인 편집 개체(state.editingObjectId) 내부 여부를 함께 판별하도록 보강
+    - 전역 keydown 리스너 최상단에 event.isComposing || event.keyCode === 229 가드를 추가하여 한글 IME 조합 중 단축키 핸들러가 개입하지 않도록 차단
+    - 개체가 선택된 상태에서 문자 키를 직접 타이핑해 편집을 시작하는 로직에서 영문/숫자 정규식(/^[a-zA-Z0-9]$/) 제한으로 인해 한글 자모가 차단되던 문제를 해결하고, beginInlineTextEdit 직후 event.preventDefault()를 제거하여 첫 한글 음절이 정상 조합·입력되도록 개선
+  - 상단 편집 툴바(#textToolbar) 글자색 적용 오류 수정 (applySelectedObjectColor, stripInlineColorStyles, applySelectionStyle)
+    - 기존 인라인 부분 서식(<span style="color: ...">, <font color="...">)이 남아 있을 때 상단 툴바의 글자색 변경이 자식 인라인 스타일에 가려져 반영되지 않던 문제를 해결하기 위해 stripInlineColorStyles(rootEl) 헬퍼를 추가하여 내부 인라인 색상 속성을 정리하고 개체 전체 및 활성 편집 요소에 즉시 색상이 적용되도록 개선
+    - 텍스트 드래그 선택 후 상단 #textToolbar의 글자색 피커 또는 프리셋 스와치 클릭 시에도 선택 영역이 해제되지 않도록 mousedown 기본 포커스 이동을 방지하고 선택된 텍스트 구간 또는 개체 전체에 글자색이 정확히 반영되도록 연동
+  - 테이블 행높이 맞춤 / 열너비 맞춤 기능 추가 (equalizeTableRowHeights, equalizeTableColWidths)
+    - 상단 편집 툴바(#textToolbar) 및 좌측 표 설정 패널(#tableDimensionControls)에 ↕ 행높이 맞춤(#equalRowHeightBtn, #toolbarEqualRowHeightBtn), ↔ 열너비 맞춤(#equalColWidthBtn, #toolbarEqualColWidthBtn) 버튼 추가 및 이벤트 연동
+    - 2개 이상의 행 또는 열을 다중 선택한 상태에서는 선택된 행/열들의 높이·너비 합계를 유지한 채 균등 배분하고, 단일 셀 선택이나 표 전체 선택 상태에서는 표 전체 행 높이·열 너비를 균등 배분
+  - 마우스 드래그를 이용한 테이블 열 너비 및 행 높이 실시간 조절 (appendTableResizeHandles, getNormalizedTableColWidths, getNormalizedTableRowHeights, createTableElement)
+    - 테이블 개체 렌더링 시 내부 열 경계선(.table-col-resizer), 우측 외곽 경계선(.table-col-edge-resizer), 내부 행 경계선(.table-row-resizer), 하단 외곽 경계선(.table-row-edge-resizer) 드래그 핸들을 오버레이로 생성하여 열 너비와 행 높이를 실시간 드래그로 조절하고 더블클릭 시 균등 맞춤이 실행되도록 구현
+- index.html:
+  - 좌측 #tableDimensionControls 패널 및 상단 #textToolbar 내 #tableMergeToolbarGroup에 ↕ 행높이 맞춤, ↔ 열너비 맞춤 버튼 추가
+- style.css:
+  - .table-object에 table-layout: fixed를 적용하고 .table-grid-resizers 및 행/열 리사이저 핸들 스타일과 발표·전체화면 모드 숨김 규칙 추가
 - README.md:
-  - 프로젝트 저장 파일 설명 최신화 및 2026-11-08 00:00 업데이트 이력 누적 기록 추가
+  - 테이블 행높이·열너비 맞춤 및 드래그 크기 조절 기능 설명 반영 및 2026-11-09 00:21 업데이트 이력 누적 기록 추가
 - 정적 및 구문 검증 결과:
   - node -c app.js; node -c ai-intake.js: 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0)
 
 [Summary]
-- 편집창의 txt 불러오기, txt에 저장, 다른 이름 txt로 저장 버튼 클릭 시 이전에 불러오거나 저장했던 폴더가 맨 처음 열리도록 개선 및 README.md 업데이트 완료
+- 개체 내 한글(IME) 입력 및 상단 편집 툴바 글자색 적용 버그 수정, 테이블 행높이·열너비 맞춤 버튼 및 마우스 드래그 크기 조절 기능 구현, README.md 업데이트 및 원격 저장소 푸시 완료

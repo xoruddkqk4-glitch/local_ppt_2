@@ -4774,10 +4774,11 @@ function beginSignatureTextEdit(event, object, element) {
   element.classList.add("is-editing");
   activeEditingTextElement = target;
 
+  target.setAttribute("lang", "ko");
   target.contentEditable = "true";
-  target.focus();
+  target.focus({ preventScroll: true });
   try {
-    document.execCommand("styleWithCSS", false, true);
+    document.execCommand("styleWithCSS", false, false);
   } catch (e) {}
 
   selectAllText(target);
@@ -4788,6 +4789,7 @@ function beginSignatureTextEdit(event, object, element) {
   target.addEventListener("input", handleInput);
 
   const handleKeyDown = (keyEvent) => {
+    if (keyEvent.isComposing || keyEvent.keyCode === 229) return;
     if (keyEvent.key === "Escape") {
       keyEvent.preventDefault();
       target.blur();
@@ -5033,7 +5035,9 @@ function createObjectElement(object) {
       loadScriptSequentially(0);
     }, 15);
   } else if (object.type === "table") {
-    element.append(createTableElement(object));
+    const tableEl = createTableElement(object);
+    element.append(tableEl);
+    appendTableResizeHandles(object, element, tableEl);
     const moveHandle = document.createElement("span");
     moveHandle.className = "table-move-handle";
     moveHandle.title = "드래그하여 표 전체 위치 이동";
@@ -5073,6 +5077,8 @@ function createObjectElement(object) {
 
     const text = document.createElement("div");
     text.className = `canvas-text ${object.role}`;
+    text.setAttribute("lang", "ko");
+    text.setAttribute("spellcheck", "false");
     if (object.html) {
       text.innerHTML = object.html;
       text.dataset.fitText = object.text || "";
@@ -5170,7 +5176,6 @@ function createObjectElement(object) {
 
     if (object.isSignature || object.signatureId) {
       if (isDoubleClick) {
-        event.preventDefault();
         event.stopPropagation();
         beginSignatureTextEdit(event, object, element);
         return;
@@ -5185,7 +5190,6 @@ function createObjectElement(object) {
     const isAlreadySelectedText = isTextChild && state.selectedIds.has(object.id) && state.selectedIds.size === 1;
 
     if ((isDoubleClick || isAlreadySelectedText) && !isNonTextObject) {
-      event.preventDefault();
       event.stopPropagation();
       const textEl = element.querySelector(".canvas-text") || element;
       beginTextEdit(event, object, element, textEl, isDoubleClick);
@@ -5223,6 +5227,37 @@ function getTextAlign(object) {
   return "center";
 }
 
+function stripInlineColorFromHtml(htmlStr) {
+  if (!htmlStr || typeof htmlStr !== "string") return htmlStr;
+  try {
+    const temp = document.createElement("div");
+    temp.innerHTML = htmlStr;
+    temp.querySelectorAll("*").forEach((el) => {
+      if (el.style && el.style.color) {
+        el.style.removeProperty("color");
+      }
+      if (el.hasAttribute("color")) {
+        el.removeAttribute("color");
+      }
+      if (el.getAttribute("style") !== null && !el.getAttribute("style").trim()) {
+        el.removeAttribute("style");
+      }
+    });
+    // Unwrap empty <span> or <font> wrappers with no attributes
+    Array.from(temp.querySelectorAll("span, font")).reverse().forEach((el) => {
+      if (el.attributes.length === 0 && el.parentNode) {
+        while (el.firstChild) {
+          el.parentNode.insertBefore(el.firstChild, el);
+        }
+        el.parentNode.removeChild(el);
+      }
+    });
+    return temp.innerHTML.trim();
+  } catch (e) {
+    return htmlStr;
+  }
+}
+
 function applyTextObjectStyle(text, object, wrapper) {
   const align = getTextAlign(object);
   const flexJustify = { left: "flex-start", center: "center", right: "flex-end" }[align] || "center";
@@ -5244,7 +5279,7 @@ function applyTextObjectStyle(text, object, wrapper) {
     text.style.removeProperty("align-items");
   }
 
-  text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+  text.querySelectorAll("strong, span, p, h1, h2, h3, h4, h5, h6, div, font, b, i, u, em, mark").forEach((child) => {
     child.style.setProperty("text-align", align, "important");
   });
 
@@ -5259,21 +5294,21 @@ function applyTextObjectStyle(text, object, wrapper) {
     const placeholderColor = "#94a3b8";
     text.style.setProperty("color", placeholderColor, "important");
     if (!object.html) {
-      text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+      text.querySelectorAll("strong, span, p, h1, h2, h3, h4, h5, h6, div, font, b, i, u, em, mark").forEach((child) => {
         child.style.setProperty("color", placeholderColor, "important");
       });
     }
   } else if (object.textColor) {
     text.style.setProperty("color", object.textColor, "important");
-    if (!object.html) {
-      text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+    text.querySelectorAll("strong, span, p, h1, h2, h3, h4, h5, h6, div, font, b, i, u, em, mark").forEach((child) => {
+      if (!object.html || (!child.style?.color && !child.getAttribute("color"))) {
         child.style.setProperty("color", object.textColor, "important");
-      });
-    }
+      }
+    });
   } else {
     text.style.removeProperty("color");
     if (!object.html) {
-      text.querySelectorAll("strong, span, p, h1, h2, h3, div").forEach((child) => {
+      text.querySelectorAll("strong, span, p, h1, h2, h3, h4, h5, h6, div, font, b, i, u, em, mark").forEach((child) => {
         child.style.removeProperty("color");
       });
     }
@@ -5438,14 +5473,489 @@ function setTableRowHeight(table, rowIndex, newHeightPx) {
   table.rowHeights[rowIndex] = Math.max(20, Math.min(300, newHeightPx));
 }
 
+function equalizeTableRowHeights(tableParam = null) {
+  const table = tableParam || resolveActiveTableObject();
+  if (!table || table.type !== "table" || !Array.isArray(table.cells)) return false;
+  const rows = table.cells.length;
+  if (rows < 1) return false;
+
+  commitActiveTextEditing();
+  const currentHeights = Array.isArray(table.rowHeights) && table.rowHeights.length === rows
+    ? table.rowHeights.map((h) => Math.max(16, Number(h) || 30))
+    : table.cells.map((_, i) => (i === 0 ? 38 : 30));
+
+  const selectedKeys = getSelectedTableCellKeys(table.id);
+  const selectedRows = [...new Set(
+    selectedKeys
+      .map((k) => Number(k.split(",")[0]))
+      .filter((n) => Number.isFinite(n) && n >= 0 && n < rows)
+  )];
+
+  snapshot();
+  if (selectedRows.length >= 2 && selectedRows.length < rows) {
+    const sumSelected = selectedRows.reduce((s, r) => s + (currentHeights[r] || 30), 0);
+    const avgH = Math.max(18, Math.round((sumSelected / selectedRows.length) * 10) / 10);
+    selectedRows.forEach((r) => {
+      currentHeights[r] = avgH;
+    });
+    table.rowHeights = currentHeights;
+    showSaveToast(`↕ 선택한 ${selectedRows.length}개 행 높이를 균등하게 맞췄습니다.`);
+  } else {
+    const totalH = currentHeights.reduce((s, h) => s + (h || 30), 0) || (rows * 32);
+    const equalH = Math.max(18, Math.round((totalH / rows) * 10) / 10);
+    table.rowHeights = Array(rows).fill(equalH);
+    showSaveToast("↕ 표의 전체 행 높이를 균등하게 맞췄습니다.");
+  }
+
+  state.selectedIds = new Set([table.id]);
+  renderControls();
+  renderStage();
+  renderPages();
+  const wrapper = stage?.querySelector(`[data-object-id="${table.id}"]`);
+  if (wrapper) showTextToolbar(table, wrapper);
+  return true;
+}
+
+function equalizeTableColWidths(tableParam = null) {
+  const table = tableParam || resolveActiveTableObject();
+  if (!table || table.type !== "table" || !Array.isArray(table.cells)) return false;
+  const cols = table.cells[0]?.length || 0;
+  if (cols < 1) return false;
+
+  commitActiveTextEditing();
+  const currentWidths = Array.isArray(table.colWidths) && table.colWidths.length === cols
+    ? table.colWidths.map((w) => Math.max(3, Number(w) || (100 / cols)))
+    : Array(cols).fill(100 / cols);
+
+  const selectedKeys = getSelectedTableCellKeys(table.id);
+  const selectedCols = [...new Set(
+    selectedKeys
+      .map((k) => Number(k.split(",")[1]))
+      .filter((n) => Number.isFinite(n) && n >= 0 && n < cols)
+  )];
+
+  snapshot();
+  if (selectedCols.length >= 2 && selectedCols.length < cols) {
+    const sumSelected = selectedCols.reduce((s, c) => s + (currentWidths[c] || (100 / cols)), 0);
+    const avgW = Math.max(3, Math.round((sumSelected / selectedCols.length) * 100) / 100);
+    selectedCols.forEach((c) => {
+      currentWidths[c] = avgW;
+    });
+    table.colWidths = currentWidths;
+    showSaveToast(`↔ 선택한 ${selectedCols.length}개 열 너비를 균등하게 맞췄습니다.`);
+  } else {
+    const equalW = Math.round((100 / cols) * 100) / 100;
+    table.colWidths = Array(cols).fill(equalW);
+    showSaveToast("↔ 표의 전체 열 너비를 균등하게 맞췄습니다.");
+  }
+
+  state.selectedIds = new Set([table.id]);
+  renderControls();
+  renderStage();
+  renderPages();
+  const wrapper = stage?.querySelector(`[data-object-id="${table.id}"]`);
+  if (wrapper) showTextToolbar(table, wrapper);
+  return true;
+}
+
+function getNormalizedTableColWidths(object) {
+  const colsCount = object.cells?.[0]?.length || 1;
+  const raw = Array.isArray(object.colWidths) && object.colWidths.length === colsCount
+    ? object.colWidths.map((w) => Math.max(3, Number(w) || (100 / colsCount)))
+    : Array(colsCount).fill(100 / colsCount);
+  const sum = raw.reduce((s, w) => s + w, 0) || 100;
+  return raw.map((w) => (w / sum) * 100);
+}
+
+function getNormalizedTableRowHeights(object) {
+  const rowsCount = object.cells?.length || 1;
+  return Array.isArray(object.rowHeights) && object.rowHeights.length === rowsCount
+    ? object.rowHeights.map((h) => Math.max(16, Number(h) || 30))
+    : object.cells.map((_, i) => (i === 0 ? 38 : 30));
+}
+
+function appendTableResizeHandles(object, element, table) {
+  const colsCount = object.cells?.[0]?.length || 1;
+  const rowsCount = object.cells?.length || 1;
+  const overlay = document.createElement("div");
+  overlay.className = "table-grid-resizers";
+
+  const colResizers = [];
+  const rowResizers = [];
+
+  const syncTableLayoutDOM = () => {
+    const colWidths = getNormalizedTableColWidths(object);
+    const rowHeights = getNormalizedTableRowHeights(object);
+    const totalRowHeight = rowHeights.reduce((sum, h) => sum + h, 0) || 1;
+
+    const colEls = table.querySelectorAll("colgroup col");
+    colWidths.forEach((w, idx) => {
+      if (colEls[idx]) colEls[idx].style.width = `${w}%`;
+    });
+
+    const trEls = table.querySelectorAll("tr");
+    rowHeights.forEach((h, idx) => {
+      const rowPct = (h / totalRowHeight) * 100;
+      if (trEls[idx]) trEls[idx].style.height = `${rowPct}%`;
+    });
+
+    table.querySelectorAll(".is-merged-cell").forEach((cellEl) => {
+      const rIdx = Number(cellEl.dataset.rowIndex);
+      const rSpan = cellEl.rowSpan || 1;
+      if (!Number.isNaN(rIdx) && rSpan > 1) {
+        let spanH = 0;
+        const maxMergeR = Math.min(rowsCount, rIdx + rSpan);
+        for (let rr = rIdx; rr < maxMergeR; rr++) {
+          spanH += rowHeights[rr] || 30;
+        }
+        cellEl.style.height = `${(spanH / totalRowHeight) * 100}%`;
+      }
+    });
+
+    let cumW = 0;
+    for (let c = 0; c < colsCount - 1; c++) {
+      cumW += colWidths[c];
+      if (colResizers[c]) colResizers[c].style.left = `${cumW}%`;
+    }
+
+    let cumH = 0;
+    for (let r = 0; r < rowsCount - 1; r++) {
+      cumH += (rowHeights[r] / totalRowHeight) * 100;
+      if (rowResizers[r]) rowResizers[r].style.top = `${cumH}%`;
+    }
+
+    fitTablesToCommonSize([table]);
+  };
+
+  const initColWidths = getNormalizedTableColWidths(object);
+  let cumW = 0;
+  for (let c = 0; c < colsCount - 1; c++) {
+    cumW += initColWidths[c];
+    const resizer = document.createElement("div");
+    resizer.className = "table-col-resizer";
+    resizer.dataset.colIndex = String(c);
+    resizer.style.left = `${cumW}%`;
+    resizer.title = "드래그하여 열 너비 조정 (더블클릭: 열 너비 균등 맞춤)";
+
+    resizer.addEventListener("dblclick", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      equalizeTableColWidths(object);
+    });
+
+    resizer.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || isAnimMode || document.fullscreenElement || isPresentMode) return;
+      event.preventDefault();
+      event.stopPropagation();
+      commitActiveTextEditing();
+      blurActiveFormControl();
+
+      if (!state.selectedIds.has(object.id)) {
+        state.selectedIds = new Set([object.id]);
+        updateSelectionClasses();
+        renderControls();
+        showTextToolbar(object, element);
+      }
+
+      const startX = event.clientX;
+      const tableRect = table.getBoundingClientRect();
+      const tableWidthPx = Math.max(40, tableRect.width);
+      const startWidths = getNormalizedTableColWidths(object);
+      const pairSumPct = startWidths[c] + startWidths[c + 1];
+      let dragged = false;
+
+      resizer.classList.add("is-dragging");
+      element.classList.add("is-resizing-table-grid");
+
+      const handleMove = (moveEvent) => {
+        const dxPx = moveEvent.clientX - startX;
+        if (!dragged) {
+          if (Math.abs(dxPx) < 2) return;
+          snapshot();
+          dragged = true;
+        }
+        const deltaPct = (dxPx / tableWidthPx) * 100;
+        const minColPct = Math.min(4, pairSumPct * 0.25);
+        const nextLeftPct = clamp(minColPct, startWidths[c] + deltaPct, pairSumPct - minColPct);
+        const nextRightPct = pairSumPct - nextLeftPct;
+
+        object.colWidths = startWidths.map((w, idx) => {
+          if (idx === c) return Math.round(nextLeftPct * 100) / 100;
+          if (idx === c + 1) return Math.round(nextRightPct * 100) / 100;
+          return Math.round(w * 100) / 100;
+        });
+
+        syncTableLayoutDOM();
+        const colWInput = $("#tableColWidthInput");
+        if (colWInput && document.activeElement !== colWInput) {
+          colWInput.value = Math.round(object.colWidths[c]);
+        }
+      };
+
+      const handleUp = () => {
+        window.removeEventListener("pointermove", handleMove);
+        window.removeEventListener("pointerup", handleUp);
+        resizer.classList.remove("is-dragging");
+        element.classList.remove("is-resizing-table-grid");
+        if (dragged) {
+          renderControls();
+          renderPages();
+          broadcastState();
+        }
+      };
+
+      window.addEventListener("pointermove", handleMove);
+      window.addEventListener("pointerup", handleUp);
+    });
+
+    colResizers.push(resizer);
+    overlay.append(resizer);
+  }
+
+  // Right outer edge resizer (adjusts last column width + table width)
+  const rightEdgeResizer = document.createElement("div");
+  rightEdgeResizer.className = "table-col-edge-resizer";
+  rightEdgeResizer.title = "드래그하여 마지막 열 및 표 가로 너비 조정";
+  rightEdgeResizer.addEventListener("dblclick", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    equalizeTableColWidths(object);
+  });
+  rightEdgeResizer.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || isAnimMode || document.fullscreenElement || isPresentMode) return;
+    event.preventDefault();
+    event.stopPropagation();
+    commitActiveTextEditing();
+    blurActiveFormControl();
+
+    if (!state.selectedIds.has(object.id)) {
+      state.selectedIds = new Set([object.id]);
+      updateSelectionClasses();
+      renderControls();
+      showTextToolbar(object, element);
+    }
+
+    const startX = event.clientX;
+    const stageWidthPx = Math.max(100, stage.clientWidth);
+    const startW = Number(object.w) || 50;
+    const startTablePx = (startW / 100) * stageWidthPx;
+    const startColWidths = getNormalizedTableColWidths(object);
+    const startColPx = startColWidths.map((pct) => (pct / 100) * startTablePx);
+    let dragged = false;
+
+    rightEdgeResizer.classList.add("is-dragging");
+    element.classList.add("is-resizing-table-grid");
+
+    const handleMove = (moveEvent) => {
+      const dxPx = moveEvent.clientX - startX;
+      if (!dragged) {
+        if (Math.abs(dxPx) < 2) return;
+        snapshot();
+        dragged = true;
+      }
+      const lastIdx = colsCount - 1;
+      const otherPxSum = startColPx.slice(0, lastIdx).reduce((s, px) => s + px, 0);
+      const maxTablePx = ((100 - (Number(object.x) || 0)) / 100) * stageWidthPx;
+      const nextLastPx = clamp(24, startColPx[lastIdx] + dxPx, Math.max(24, maxTablePx - otherPxSum));
+      const nextTotalPx = otherPxSum + nextLastPx;
+      object.w = Math.round(clamp(5, (nextTotalPx / stageWidthPx) * 100, 100 - (Number(object.x) || 0)) * 100) / 100;
+      element.style.width = `${object.w}%`;
+
+      if (colsCount > 1 && nextTotalPx > 0) {
+        object.colWidths = startColPx.map((px, idx) => {
+          const targetPx = idx === lastIdx ? nextLastPx : px;
+          return Math.round(((targetPx / nextTotalPx) * 100) * 100) / 100;
+        });
+      }
+      syncTableLayoutDOM();
+    };
+
+    const handleUp = () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+      rightEdgeResizer.classList.remove("is-dragging");
+      element.classList.remove("is-resizing-table-grid");
+      if (dragged) {
+        renderControls();
+        renderPages();
+        broadcastState();
+      }
+    };
+
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+  });
+  overlay.append(rightEdgeResizer);
+
+  const initRowHeights = getNormalizedTableRowHeights(object);
+  const initTotalRowH = initRowHeights.reduce((s, h) => s + h, 0) || 1;
+  let cumH = 0;
+  for (let r = 0; r < rowsCount - 1; r++) {
+    cumH += (initRowHeights[r] / initTotalRowH) * 100;
+    const resizer = document.createElement("div");
+    resizer.className = "table-row-resizer";
+    resizer.dataset.rowIndex = String(r);
+    resizer.style.top = `${cumH}%`;
+    resizer.title = "드래그하여 행 높이 조정 (더블클릭: 행 높이 균등 맞춤)";
+
+    resizer.addEventListener("dblclick", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      equalizeTableRowHeights(object);
+    });
+
+    resizer.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || isAnimMode || document.fullscreenElement || isPresentMode) return;
+      event.preventDefault();
+      event.stopPropagation();
+      commitActiveTextEditing();
+      blurActiveFormControl();
+
+      if (!state.selectedIds.has(object.id)) {
+        state.selectedIds = new Set([object.id]);
+        updateSelectionClasses();
+        renderControls();
+        showTextToolbar(object, element);
+      }
+
+      const startY = event.clientY;
+      const tableRect = table.getBoundingClientRect();
+      const tableHeightPx = Math.max(40, tableRect.height);
+      const curRowHeights = getNormalizedTableRowHeights(object);
+      const curTotalRowH = curRowHeights.reduce((s, h) => s + h, 0) || 1;
+      const startRowPx = curRowHeights.map((h) => (h / curTotalRowH) * tableHeightPx);
+      const pairSumPx = startRowPx[r] + startRowPx[r + 1];
+      let dragged = false;
+
+      resizer.classList.add("is-dragging");
+      element.classList.add("is-resizing-table-grid");
+
+      const handleMove = (moveEvent) => {
+        const dyPx = moveEvent.clientY - startY;
+        if (!dragged) {
+          if (Math.abs(dyPx) < 2) return;
+          snapshot();
+          dragged = true;
+        }
+        const minRowPx = Math.min(18, pairSumPx * 0.25);
+        const nextTopPx = clamp(minRowPx, startRowPx[r] + dyPx, pairSumPx - minRowPx);
+        const nextBottomPx = pairSumPx - nextTopPx;
+
+        object.rowHeights = startRowPx.map((px, idx) => {
+          if (idx === r) return Math.round(nextTopPx * 10) / 10;
+          if (idx === r + 1) return Math.round(nextBottomPx * 10) / 10;
+          return Math.round(px * 10) / 10;
+        });
+
+        syncTableLayoutDOM();
+        const rowHInput = $("#tableRowHeightInput");
+        if (rowHInput && document.activeElement !== rowHInput) {
+          rowHInput.value = Math.round(object.rowHeights[r]);
+        }
+      };
+
+      const handleUp = () => {
+        window.removeEventListener("pointermove", handleMove);
+        window.removeEventListener("pointerup", handleUp);
+        resizer.classList.remove("is-dragging");
+        element.classList.remove("is-resizing-table-grid");
+        if (dragged) {
+          renderControls();
+          renderPages();
+          broadcastState();
+        }
+      };
+
+      window.addEventListener("pointermove", handleMove);
+      window.addEventListener("pointerup", handleUp);
+    });
+
+    rowResizers.push(resizer);
+    overlay.append(resizer);
+  }
+
+  // Bottom outer edge resizer (adjusts last row height + table height)
+  const bottomEdgeResizer = document.createElement("div");
+  bottomEdgeResizer.className = "table-row-edge-resizer";
+  bottomEdgeResizer.title = "드래그하여 마지막 행 및 표 세로 높이 조정";
+  bottomEdgeResizer.addEventListener("dblclick", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    equalizeTableRowHeights(object);
+  });
+  bottomEdgeResizer.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || isAnimMode || document.fullscreenElement || isPresentMode) return;
+    event.preventDefault();
+    event.stopPropagation();
+    commitActiveTextEditing();
+    blurActiveFormControl();
+
+    if (!state.selectedIds.has(object.id)) {
+      state.selectedIds = new Set([object.id]);
+      updateSelectionClasses();
+      renderControls();
+      showTextToolbar(object, element);
+    }
+
+    const startY = event.clientY;
+    const stageHeightPx = Math.max(100, stage.clientHeight);
+    const startH = Number(object.h) || 40;
+    const startTablePx = (startH / 100) * stageHeightPx;
+    const curRowHeights = getNormalizedTableRowHeights(object);
+    const curTotalRowH = curRowHeights.reduce((s, h) => s + h, 0) || 1;
+    const startRowPx = curRowHeights.map((h) => (h / curTotalRowH) * startTablePx);
+    let dragged = false;
+
+    bottomEdgeResizer.classList.add("is-dragging");
+    element.classList.add("is-resizing-table-grid");
+
+    const handleMove = (moveEvent) => {
+      const dyPx = moveEvent.clientY - startY;
+      if (!dragged) {
+        if (Math.abs(dyPx) < 2) return;
+        snapshot();
+        dragged = true;
+      }
+      const lastIdx = rowsCount - 1;
+      const otherPxSum = startRowPx.slice(0, lastIdx).reduce((s, px) => s + px, 0);
+      const maxTablePx = ((100 - (Number(object.y) || 0)) / 100) * stageHeightPx;
+      const nextLastPx = clamp(18, startRowPx[lastIdx] + dyPx, Math.max(18, maxTablePx - otherPxSum));
+      const nextTotalPx = otherPxSum + nextLastPx;
+      object.h = Math.round(clamp(4, (nextTotalPx / stageHeightPx) * 100, 100 - (Number(object.y) || 0)) * 100) / 100;
+      element.style.height = `${object.h}%`;
+
+      object.rowHeights = startRowPx.map((px, idx) => {
+        const targetPx = idx === lastIdx ? nextLastPx : px;
+        return Math.round(targetPx * 10) / 10;
+      });
+      syncTableLayoutDOM();
+    };
+
+    const handleUp = () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+      bottomEdgeResizer.classList.remove("is-dragging");
+      element.classList.remove("is-resizing-table-grid");
+      if (dragged) {
+        renderControls();
+        renderPages();
+        broadcastState();
+      }
+    };
+
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+  });
+  overlay.append(bottomEdgeResizer);
+
+  element.append(overlay);
+}
+
 function createTableElement(object) {
   const table = document.createElement("table");
   table.className = "table-object";
 
-  const colsCount = object.cells[0]?.length || 1;
-  const colWidths = Array.isArray(object.colWidths) && object.colWidths.length === colsCount
-    ? object.colWidths
-    : Array(colsCount).fill(100 / colsCount);
+  const colWidths = getNormalizedTableColWidths(object);
 
   const colgroup = document.createElement("colgroup");
   colWidths.forEach((w) => {
@@ -5455,9 +5965,7 @@ function createTableElement(object) {
   });
   table.append(colgroup);
 
-  const rowHeights = Array.isArray(object.rowHeights) && object.rowHeights.length === object.cells.length
-    ? object.rowHeights
-    : object.cells.map((_, i) => (i === 0 ? 38 : 30));
+  const rowHeights = getNormalizedTableRowHeights(object);
   const totalRowHeight = rowHeights.reduce((sum, h) => sum + h, 0) || 1;
 
   object.cells.forEach((row, rowIndex) => {
@@ -5483,14 +5991,14 @@ function createTableElement(object) {
         if ((merge.rowSpan || 1) > 1) cell.rowSpan = merge.rowSpan;
         if ((merge.colSpan || 1) > 1) cell.colSpan = merge.colSpan;
         cell.classList.add("is-merged-cell");
-        let spanH = 0;
-        const maxMergeR = Math.min(object.cells.length, rowIndex + (merge.rowSpan || 1));
-        for (let rr = rowIndex; rr < maxMergeR; rr++) {
-          spanH += rowHeights[rr] || (rr === 0 ? 38 : 30);
+        if ((merge.rowSpan || 1) > 1) {
+          let spanH = 0;
+          const maxMergeR = Math.min(object.cells.length, rowIndex + (merge.rowSpan || 1));
+          for (let rr = rowIndex; rr < maxMergeR; rr++) {
+            spanH += rowHeights[rr] || (rr === 0 ? 38 : 30);
+          }
+          cell.style.height = `${((spanH || rowH) / totalRowHeight) * 100}%`;
         }
-        cell.style.height = `${spanH || rowH}px`;
-      } else {
-        cell.style.height = `${rowH}px`;
       }
       if (!isHeader && value === "내용" && !isEditedCell) {
         cell.classList.add("is-default-placeholder");
@@ -6093,7 +6601,7 @@ function isDefaultPlaceholderText(text, role) {
 
 function isObjectDefaultPlaceholder(object) {
   if (!object) return false;
-  if (object.html || object.isUserEdited) return false;
+  if (object.html || object.isUserEdited || (object.isCustomTextColor && object.textColor)) return false;
   if (["page-title", "cover-title", "cover-subtitle"].includes(object.role)) {
     return false;
   }
@@ -6163,9 +6671,6 @@ function beginTextEdit(event, object, wrapper, text, shouldSelectAll = false) {
   const alreadyEditing = text.isContentEditable && wrapper.classList.contains("is-editing");
 
   if (event) {
-    if (!alreadyEditing) {
-      event.preventDefault();
-    }
     event.stopPropagation();
   }
   const isDbl = Boolean(shouldSelectAll || event?.type === "dblclick" || event?.detail === 2);
@@ -6196,18 +6701,29 @@ function beginTextEdit(event, object, wrapper, text, shouldSelectAll = false) {
   if (isPlaceholder) {
     text.textContent = "";
     text.innerHTML = "";
-  } else if (object.html) {
-    text.innerHTML = object.html;
-  } else {
+    text.classList.remove("is-default-placeholder");
+    wrapper.classList.remove("is-placeholder-object", "is-empty-placeholder");
+    if (object.textColor) {
+      text.style.setProperty("color", object.textColor, "important");
+    } else {
+      text.style.removeProperty("color");
+    }
+  } else if (!object.html && (STRUCTURED_LAYOUT_ROLES.has(object.role) || ["timeline-node", "side-accent-card", "card"].includes(object.role))) {
     text.textContent = object.text || "";
+    if (object.textColor) {
+      text.style.setProperty("color", object.textColor, "important");
+    } else {
+      text.style.removeProperty("color");
+    }
   }
+  text.setAttribute("lang", "ko");
   text.contentEditable = "true";
   try {
-    document.execCommand("styleWithCSS", false, true);
+    document.execCommand("styleWithCSS", false, false);
   } catch (e) {}
 
   if (isPlaceholder) {
-    text.focus();
+    text.focus({ preventScroll: true });
     try {
       const range = document.createRange();
       range.selectNodeContents(text);
@@ -6219,7 +6735,15 @@ function beginTextEdit(event, object, wrapper, text, shouldSelectAll = false) {
       }
     } catch (e) {}
   } else if (isDbl) {
+    text.focus({ preventScroll: true });
     selectAllText(text);
+    if (event?.type === "pointerdown") {
+      requestAnimationFrame(() => {
+        if (activeEditingTextElement === text) {
+          selectAllText(text);
+        }
+      });
+    }
   } else {
     setCaretAtEventOrEnd(event, text);
   }
@@ -6231,6 +6755,8 @@ function beginTextEdit(event, object, wrapper, text, shouldSelectAll = false) {
     if (trimmed) {
       object.text = rawText;
       object.isUserEdited = true;
+      text.classList.remove("is-default-placeholder");
+      wrapper.classList.remove("is-placeholder-object", "is-empty-placeholder");
       const rawHtml = text.innerHTML.trim();
       if (/<[a-z][\s\S]*>/i.test(rawHtml)) {
         object.html = rawHtml;
@@ -6307,6 +6833,7 @@ function beginTextEdit(event, object, wrapper, text, shouldSelectAll = false) {
 
   text.addEventListener("blur", finish);
   text.addEventListener("keydown", (keyEvent) => {
+    if (keyEvent.isComposing || keyEvent.keyCode === 229) return;
     if (keyEvent.key === "Escape") {
       keyEvent.preventDefault();
       text.blur();
@@ -6455,6 +6982,21 @@ function syncActiveInlineEdit() {
       }
       cell.classList.remove("is-default-placeholder");
     }
+  } else if (activeEditingTextElement.classList.contains("canvas-text")) {
+    const rawText = activeEditingTextElement.innerText.replace(/\r\n/g, "\n").replace(/\n+$/, "");
+    const trimmed = activeEditingTextElement.innerText.trim();
+    if (trimmed) {
+      obj.text = rawText;
+      obj.isUserEdited = true;
+      activeEditingTextElement.classList.remove("is-default-placeholder");
+      wrapper?.classList.remove("is-placeholder-object", "is-empty-placeholder");
+      const rawHtml = activeEditingTextElement.innerHTML.trim();
+      if (/<[a-z][\s\S]*>/i.test(rawHtml)) {
+        obj.html = rawHtml;
+      } else {
+        delete obj.html;
+      }
+    }
   }
 }
 
@@ -6483,6 +7025,9 @@ function applyInlineHighlight(color) {
     if (!document.execCommand("hiliteColor", false, color)) {
       document.execCommand("backColor", false, color);
     }
+    try {
+      document.execCommand("styleWithCSS", false, false);
+    } catch (e) {}
   }
   const hlBar = $("#selHlBar");
   if (hlBar) hlBar.style.background = (color === "transparent" ? "#fef08a" : color);
@@ -6504,6 +7049,9 @@ function applyInlineColor(color) {
     document.execCommand("styleWithCSS", false, true);
   } catch (e) {}
   document.execCommand("foreColor", false, color);
+  try {
+    document.execCommand("styleWithCSS", false, false);
+  } catch (e) {}
   const colorBar = $("#selColorBar");
   if (colorBar) colorBar.style.background = color;
   if (activeEditingTextElement) {
@@ -6689,12 +7237,12 @@ function showTextToolbar(object, textElement, selectedObjectsParam = null) {
       const cellStyle = object.cellStyles?.[cellKey];
       const isHeader = rowIndex === 0;
       const domCellEl = stage?.querySelector(`[data-object-id="${object.id}"] table [data-cell-key="${cellKey}"]`);
-      if ($("#textColorInput")) {
+      if ($("#textColorInput") && document.activeElement !== $("#textColorInput")) {
         let textColor = cellStyle?.textColor || "";
         if (!textColor && domCellEl) textColor = getComputedStyle(domCellEl).color;
         $("#textColorInput").value = normalizeColor(textColor || (isHeader ? "#ffffff" : "#0f172a"));
       }
-      if ($("#bgColorInput")) {
+      if ($("#bgColorInput") && document.activeElement !== $("#bgColorInput")) {
         let bgColor = (cellStyle?.bgColor && cellStyle.bgColor !== "transparent" && cellStyle.bgColor !== "none")
           ? cellStyle.bgColor
           : "";
@@ -6709,20 +7257,23 @@ function showTextToolbar(object, textElement, selectedObjectsParam = null) {
         $("#noBgColorButton").classList.toggle("is-active", isNoBg);
       }
     } else {
-      if ($("#textColorInput")) {
+      if ($("#textColorInput") && document.activeElement !== $("#textColorInput")) {
         let textColor = object.textColor;
         if (!textColor && (object.isSignature || object.signatureId) && textElement) {
           const sigEl = textElement.querySelector(".sig-comp strong, .sig-comp p, .sig-comp span, .sig-comp div, .sig-comp") || textElement;
           textColor = getComputedStyle(sigEl).color;
         }
         if (!textColor) {
+          const canvasTextEl = textElement
+            ? (textElement.classList?.contains("canvas-text") ? textElement : textElement.querySelector?.(".canvas-text") || textElement)
+            : stage?.querySelector(`[data-object-id="${object.id}"] .canvas-text`);
           textColor = object.type === "timer" && (!object.isCustomTextColor || !object.textColor)
             ? themeDefaults.textColor
-            : (object.textColor || (textElement ? getComputedStyle(textElement).color : "#ffffff") || "#ffffff");
+            : (object.textColor || (canvasTextEl ? getComputedStyle(canvasTextEl).color : "#151515") || "#151515");
         }
         $("#textColorInput").value = normalizeColor(textColor);
       }
-      if ($("#bgColorInput")) {
+      if ($("#bgColorInput") && document.activeElement !== $("#bgColorInput")) {
         let bgColor = object.bgColor;
         if (!bgColor && (object.isSignature || object.signatureId) && textElement) {
           const sigEl = textElement.querySelector(".sig-comp") || textElement;
@@ -6732,9 +7283,12 @@ function showTextToolbar(object, textElement, selectedObjectsParam = null) {
           }
         }
         if (!bgColor) {
+          const wrapperEl = textElement?.classList?.contains("canvas-object")
+            ? textElement
+            : (textElement?.closest?.(".canvas-object") || stage?.querySelector(`[data-object-id="${object.id}"]`) || textElement);
           bgColor = object.type === "timer" && (!object.isCustomBgColor || !object.bgColor)
             ? themeDefaults.bgColor
-            : (object.bgColor || (textElement ? getComputedStyle(textElement.parentElement || textElement).backgroundColor : "#ffffff") || "#ffffff");
+            : (object.bgColor || (wrapperEl ? getComputedStyle(wrapperEl).backgroundColor : "#ffffff") || "#ffffff");
         }
         $("#bgColorInput").value = normalizeColor(bgColor);
       }
@@ -6744,7 +7298,7 @@ function showTextToolbar(object, textElement, selectedObjectsParam = null) {
       }
     }
 
-    if ($("#borderColorInput")) {
+    if ($("#borderColorInput") && document.activeElement !== $("#borderColorInput")) {
       let borderColor = object.borderColor;
       if (!borderColor && (object.isSignature || object.signatureId) && textElement) {
         const sigEl = textElement.querySelector(".sig-comp") || textElement;
@@ -6907,6 +7461,14 @@ function updateActiveTextStyle(property, value) {
           } else {
             target.cellStyles[cellKey][property] = value;
           }
+          if (property === "textColor" && target.cellHtml?.[cellKey]) {
+            const cleaned = stripInlineColorFromHtml(target.cellHtml[cellKey]);
+            if (cleaned && /<[a-z][\s\S]*>/i.test(cleaned)) {
+              target.cellHtml[cellKey] = cleaned;
+            } else {
+              delete target.cellHtml[cellKey];
+            }
+          }
         });
       } else if (["bgColor", "textColor", "fontSize", "textAlign"].includes(property)) {
         target.cellStyles = target.cellStyles || {};
@@ -6919,6 +7481,14 @@ function updateActiveTextStyle(property, value) {
             } else {
               target.cellStyles[cellKey][property] = value;
             }
+            if (property === "textColor" && target.cellHtml?.[cellKey]) {
+              const cleaned = stripInlineColorFromHtml(target.cellHtml[cellKey]);
+              if (cleaned && /<[a-z][\s\S]*>/i.test(cleaned)) {
+                target.cellHtml[cellKey] = cleaned;
+              } else {
+                delete target.cellHtml[cellKey];
+              }
+            }
           });
         });
       } else {
@@ -6926,7 +7496,21 @@ function updateActiveTextStyle(property, value) {
       }
     } else {
       target[property] = value;
-      if (property === "textColor") target.isCustomTextColor = true;
+      if (property === "textColor") {
+        target.isCustomTextColor = true;
+        target.isUserEdited = true;
+        if (target.html) {
+          const cleaned = stripInlineColorFromHtml(target.html);
+          if (cleaned && /<[a-z][\s\S]*>/i.test(cleaned)) {
+            target.html = cleaned;
+          } else {
+            delete target.html;
+          }
+        }
+        if ((target.isSignature || target.signatureId) && target.htmlContent) {
+          target.htmlContent = stripInlineColorFromHtml(target.htmlContent);
+        }
+      }
       if (property === "bgColor") target.isCustomBgColor = true;
       if (property === "textAlign") target.isCustomTextAlign = true;
     }
@@ -6959,17 +7543,20 @@ function beginCellEdit(event, object, rowIndex, columnIndex, cell) {
     return;
   }
   if (event) {
-    event.preventDefault();
+    if (event.type === "dblclick") {
+      event.preventDefault();
+    }
     event.stopPropagation();
   }
   snapshot();
 
   activeEditingTextElement = cell;
+  cell.setAttribute("lang", "ko");
   cell.contentEditable = "true";
   try {
-    document.execCommand("styleWithCSS", false, true);
+    document.execCommand("styleWithCSS", false, false);
   } catch (e) {}
-  cell.focus();
+  cell.focus({ preventScroll: true });
 
   if (event?.type === "dblclick" || event?.detail === 2) {
     selectAllText(cell);
@@ -7061,6 +7648,7 @@ function beginCellEdit(event, object, rowIndex, columnIndex, cell) {
   };
   cell.addEventListener("blur", finish);
   cell.addEventListener("keydown", (keyEvent) => {
+    if (keyEvent.isComposing || keyEvent.keyCode === 229) return;
     if (keyEvent.key === "Tab") {
       keyEvent.preventDefault();
       keyEvent.stopPropagation();
@@ -7094,11 +7682,18 @@ function beginCellEdit(event, object, rowIndex, columnIndex, cell) {
   });
 }
 
+function blurActiveFormControl() {
+  const active = document.activeElement;
+  if (active && (["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(active.tagName) || active.isContentEditable)) {
+    active.blur();
+  }
+}
+
 function beginDrag(event, object) {
   commitActiveTextEditing();
   if (event.button !== 0 || event.target.classList.contains("resize-handle") || event.target.classList.contains("rotate-handle") || event.target.closest(".rotate-handle") || isTextInputTarget(event.target) || document.fullscreenElement) return;
   event.preventDefault();
-  stage.focus({ preventScroll: true });
+  blurActiveFormControl();
   hideTextToolbar();
 
   const isCtrl = event.ctrlKey || event.metaKey;
@@ -7197,7 +7792,7 @@ function beginResize(event, object) {
   if (document.fullscreenElement) return;
   event.preventDefault();
   event.stopPropagation();
-  stage.focus({ preventScroll: true });
+  blurActiveFormControl();
   hideTextToolbar();
   snapshot();
   const start = getStagePoint(event);
@@ -7252,7 +7847,7 @@ function beginRotate(event, object, element) {
   if (event.button !== 0 || document.fullscreenElement) return;
   event.preventDefault();
   event.stopPropagation();
-  stage.focus({ preventScroll: true });
+  blurActiveFormControl();
 
   const rect = element.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
@@ -8907,14 +9502,30 @@ $("#resetCellStylesBtn")?.addEventListener("click", () => {
   renderControls();
   renderStage();
 });
+$("#equalRowHeightBtn")?.addEventListener("click", () => {
+  equalizeTableRowHeights();
+});
+$("#equalColWidthBtn")?.addEventListener("click", () => {
+  equalizeTableColWidths();
+});
+$("#toolbarEqualRowHeightBtn")?.addEventListener("click", () => {
+  equalizeTableRowHeights();
+});
+$("#toolbarEqualColWidthBtn")?.addEventListener("click", () => {
+  equalizeTableColWidths();
+});
 $("#resetTableSizesBtn")?.addEventListener("click", () => {
   const table = resolveActiveTableObject();
   if (!table) return;
   snapshot();
-  delete table.colWidths;
-  delete table.rowHeights;
+  const cols = table.cells?.[0]?.length || 1;
+  const rows = table.cells?.length || 1;
+  table.colWidths = Array(cols).fill(Math.round((100 / cols) * 100) / 100);
+  table.rowHeights = Array(rows).fill(32);
   renderControls();
   renderStage();
+  renderPages();
+  showSaveToast("📐 표의 모든 행 높이와 열 너비를 균등하게 초기화했습니다.");
 });
 $("#mergeTableCellsBtn")?.addEventListener("click", () => {
   mergeSelectedTableCells();
@@ -8937,13 +9548,46 @@ $("#mergeCardsButton")?.addEventListener("click", () => {
 });
 $("#undoButton")?.addEventListener("click", undo);
 
+function hasPartialInlineSelection() {
+  if (!activeEditingTextElement || !activeEditingTextElement.isConnected) return false;
+  const sel = window.getSelection();
+  const range = (sel && sel.rangeCount > 0 && !sel.isCollapsed && activeEditingTextElement.contains(sel.getRangeAt(0).commonAncestorContainer))
+    ? sel.getRangeAt(0)
+    : (savedSelectionRange && !savedSelectionRange.collapsed && activeEditingTextElement.contains(savedSelectionRange.commonAncestorContainer)
+      ? savedSelectionRange
+      : null);
+  if (!range) return false;
+  const selectedText = range.toString().replace(/\s+/g, "");
+  const fullText = (activeEditingTextElement.innerText || "").replace(/\s+/g, "");
+  return Boolean(selectedText && fullText && selectedText.length < fullText.length);
+}
+
+$("#textToolbar")?.addEventListener("mousedown", (event) => {
+  if (activeEditingTextElement) {
+    saveCurrentSelection();
+    if (!["INPUT", "SELECT", "TEXTAREA", "LABEL"].includes(event.target.tagName)) {
+      event.preventDefault();
+    }
+  }
+});
+
 $("#textColorInput")?.addEventListener("change", (event) => {
-  updateActiveTextStyle("textColor", event.target.value);
-  recordCustomColor("text", event.target.value);
+  const color = event.target.value;
+  if (hasPartialInlineSelection()) {
+    applyInlineColor(color);
+  } else {
+    updateActiveTextStyle("textColor", color);
+  }
+  recordCustomColor("text", color);
 });
 $("#textColorInput")?.addEventListener("input", (event) => {
-  updateActiveTextStyle("textColor", event.target.value);
-  previewCustomColor("text", event.target.value);
+  const color = event.target.value;
+  if (hasPartialInlineSelection()) {
+    applyInlineColor(color);
+  } else {
+    updateActiveTextStyle("textColor", color);
+  }
+  previewCustomColor("text", color);
 });
 
 $("#bgColorInput")?.addEventListener("change", (event) => {
@@ -9023,7 +9667,11 @@ document.querySelectorAll(".theme-color-btn").forEach((btn) => {
     const target = btn.dataset.target || "bg";
 
     if (target === "text") {
-      updateActiveTextStyle("textColor", color);
+      if (hasPartialInlineSelection()) {
+        applyInlineColor(color);
+      } else {
+        updateActiveTextStyle("textColor", color);
+      }
       if ($("#textColorInput")) $("#textColorInput").value = normalizeColor(color);
     } else if (target === "border") {
       updateActiveTextStyle("borderColor", color);
@@ -9842,7 +10490,7 @@ stage.addEventListener("pointerdown", (event) => {
   if (!isStageBackgroundTarget(event.target)) return;
 
   event.preventDefault();
-  stage.focus({ preventScroll: true });
+  blurActiveFormControl();
   hideTextToolbar();
 
   const startPoint = getStagePoint(event);
@@ -10428,6 +11076,7 @@ document.addEventListener("keydown", (event) => {
     document.querySelector(".canvas-text[contenteditable='true']")
   );
   const isEditingText = inFormField || isContentEditing;
+  if (event.isComposing || event.keyCode === 229) return;
   const key = event.key ? event.key.toLowerCase() : "";
   const code = event.code || "";
   const keyCode = event.keyCode;

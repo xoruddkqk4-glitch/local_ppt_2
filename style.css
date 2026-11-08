@@ -642,7 +642,6 @@ body.is-fullscreen .canvas-object {
 .canvas-object.is-editing .sig-comp,
 .canvas-object.is-editing .sig-comp * { user-select:text !important; cursor:text !important; outline:none !important; pointer-events:auto !important; }
 .canvas-object.is-editing [contenteditable="true"] { outline: 2px dashed #2563eb !important; outline-offset: 3px !important; border-radius: 3px; }
-.canvas-object.is-editing .canvas-text { color:var(--ink, #151515); }
 .canvas-text { width:100%; height:100%; box-sizing:border-box !important; display:block; align-content:center; text-align:center; white-space:pre-wrap; word-break:keep-all; overflow-wrap:break-word; overflow:hidden; font-size:calc(var(--object-font-size,28px) * var(--stage-scale, 1) * var(--hierarchy-scale, 1)); font-weight:850; line-height:1.15; }
 .canvas-text div,
 .canvas-text p { width:100%; margin:0; padding:0; box-sizing:border-box; }
@@ -668,10 +667,10 @@ body.is-fullscreen .canvas-object {
 .canvas-text [data-base-font-size] {
   font-size: calc(var(--inline-font-size, var(--object-font-size, 28px)) * var(--stage-scale, 1)) !important;
 }
-.canvas-text.is-default-placeholder,
-.canvas-text.is-default-placeholder *,
-.canvas-object.is-placeholder-object .canvas-text,
-.canvas-object.is-placeholder-object .canvas-text * { color:var(--text-placeholder, #94a3b8) !important; }
+.canvas-object:not(.is-editing) .canvas-text.is-default-placeholder,
+.canvas-object:not(.is-editing) .canvas-text.is-default-placeholder *,
+.canvas-object.is-placeholder-object:not(.is-editing) .canvas-text,
+.canvas-object.is-placeholder-object:not(.is-editing) .canvas-text * { color:var(--text-placeholder, #94a3b8) !important; }
 .presentation-stage:fullscreen .canvas-text.is-default-placeholder,
 .presentation-stage.is-fullscreen .canvas-text.is-default-placeholder,
 #presentationStage.is-fullscreen .canvas-text.is-default-placeholder,
@@ -968,9 +967,33 @@ body.is-present-mode td.is-default-placeholder {
 .img-thumb-top .t-text-row .t-card, .img-thumb-bottom .t-text-row .t-card { flex:1 !important; height:100% !important; background:#ffffff !important; border:1.5px solid #0f172a !important; border-radius:2px !important; }
 .object-image { width:100%; height:100%; object-fit:contain; background:transparent; display:block; border:none; pointer-events:none; }
 .resize-handle { position:absolute; right:-8px; bottom:-8px; width:16px; height:16px; border:2px solid var(--ink); background:var(--red); cursor:nwse-resize; z-index:8; }
-.table-object { width:100%; height:100%; border-collapse:collapse; background:#fff; font-size:calc(var(--table-font-size,20px) * var(--stage-scale,1)); }
-.table-object td,.table-object th { border:2px solid var(--ink); padding:6px; text-align:center; }
+.table-object { width:100%; height:100%; table-layout:fixed; border-collapse:collapse; background:#fff; font-size:calc(var(--table-font-size,20px) * var(--stage-scale,1)); }
+.table-object td,.table-object th { border:2px solid var(--ink); padding:6px; text-align:center; word-break:keep-all; overflow-wrap:break-word; }
 .table-object th { background:var(--blue); }
+.table-grid-resizers { position:absolute; inset:0; pointer-events:none; z-index:12; }
+.presentation-stage:fullscreen .table-grid-resizers,
+.presentation-stage.is-fullscreen .table-grid-resizers,
+#presentationStage.is-fullscreen .table-grid-resizers,
+#stage.is-fullscreen .table-grid-resizers,
+body.is-fullscreen .table-grid-resizers,
+body.is-present-mode .table-grid-resizers,
+.presentation-stage.is-anim-mode .table-grid-resizers { display:none !important; }
+.table-col-resizer { position:absolute; top:0; bottom:0; width:9px; transform:translateX(-50%); cursor:col-resize; pointer-events:auto; z-index:14; background:transparent; transition:background-color 0.12s ease; }
+.table-col-resizer::after { content:""; position:absolute; top:0; bottom:0; left:50%; width:2.5px; transform:translateX(-50%); background:transparent; transition:background-color 0.12s ease, box-shadow 0.12s ease; }
+.table-col-resizer:hover::after,
+.table-col-resizer.is-dragging::after { background:#2563eb; box-shadow:0 0 0 1px rgba(37,99,235,0.35); }
+.table-row-resizer { position:absolute; left:0; right:0; height:9px; transform:translateY(-50%); cursor:row-resize; pointer-events:auto; z-index:13; background:transparent; transition:background-color 0.12s ease; }
+.table-row-resizer::after { content:""; position:absolute; left:0; right:0; top:50%; height:2.5px; transform:translateY(-50%); background:transparent; transition:background-color 0.12s ease, box-shadow 0.12s ease; }
+.table-row-resizer:hover::after,
+.table-row-resizer.is-dragging::after { background:#2563eb; box-shadow:0 0 0 1px rgba(37,99,235,0.35); }
+.table-col-edge-resizer { position:absolute; top:0; bottom:12px; right:-4px; width:8px; cursor:col-resize; pointer-events:auto; z-index:14; background:transparent; }
+.table-col-edge-resizer:hover,
+.table-col-edge-resizer.is-dragging { background:rgba(37,99,235,0.45); }
+.table-row-edge-resizer { position:absolute; left:0; right:12px; bottom:-4px; height:8px; cursor:row-resize; pointer-events:auto; z-index:13; background:transparent; }
+.table-row-edge-resizer:hover,
+.table-row-edge-resizer.is-dragging { background:rgba(37,99,235,0.45); }
+.canvas-object.is-resizing-table-grid,
+.canvas-object.is-resizing-table-grid * { user-select:none !important; }
 .chart-column,.chart-line,.chart-pie,.chart-bar,.chart-area,.chart-donut {
   overflow: hidden !important;
   border: 2px solid #d5cdbd;

@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="ko">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,6 +9,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
   <link rel="stylesheet" href="style.css?v=20260828-intake3">
 </head>
+
 <body data-design="bauhaus">
   <header class="app-header">
     <a class="brand" href="#" aria-label="Local ppt 홈">LOCAL PPT 2</a>
@@ -19,16 +21,20 @@
       <button id="saveProjectButton" class="button button-blue">txt에 저장</button>
       <button id="saveProjectAsButton" class="button">다른 이름 txt로 저장</button>
       <button id="addPageButton" class="button button-dark">+ 본문 페이지</button>
-      <button id="openHtmlImportButton" class="button button-dark" title="HTML 코드를 파싱하여 새로운 슬라이드로 추가합니다.">📄 HTML 불러오기</button>
+      <button id="openHtmlImportButton" class="button button-dark" title="HTML 코드를 파싱하여 새로운 슬라이드로 추가합니다.">📄 HTML
+        불러오기</button>
       <button id="fullscreenButton" class="button button-blue">전체 화면 <kbd>F</kbd></button>
-      <button id="presenterWindowButton" class="button button-dark" title="두 번째 창(프로젝터)에 전체 화면 발표 창을 띄우고 본 창에서 실시간으로 편집합니다.">🖥️ 발표 (이중 창)</button>
+      <button id="presenterWindowButton" class="button button-dark"
+        title="두 번째 창(프로젝터)에 전체 화면 발표 창을 띄우고 본 창에서 실시간으로 편집합니다.">🖥️ 발표 (이중 창)</button>
       <input id="projectFileInput" type="file" accept=".txt,.json,text/plain,application/json" hidden>
     </div>
   </header>
   <main class="workspace">
     <aside class="editor-panel">
       <section id="designSection01" class="panel-section">
-        <div class="section-heading"><span>01</span><h1>디자인 & 스타일</h1></div>
+        <div class="section-heading"><span>01</span>
+          <h1>디자인 & 스타일</h1>
+        </div>
         <p id="designHint" class="guide"></p>
         <div class="panel-start-screen-box">
           <p class="guide">디자인 테마(44종), 3색 커스텀 테마색, 6개 고정 문구는 아래 버튼을 눌러 모달에서 변경할 수 있습니다.</p>
@@ -37,7 +43,8 @@
       </section>
 
       <section id="templateSection" class="panel-section panel-section-accordion">
-        <button id="templateSectionToggle" class="section-heading-accordion" type="button" aria-expanded="false" aria-controls="unifiedTemplateContainer">
+        <button id="templateSectionToggle" class="section-heading-accordion" type="button" aria-expanded="false"
+          aria-controls="unifiedTemplateContainer">
           <div class="section-heading-inner">
             <span class="section-number">01</span>
             <h2>본문 템플릿</h2>
@@ -53,7 +60,8 @@
               <div class="layout-variant-heading">
                 <strong class="option-group-title">📁 텍스트 & 구조화</strong>
               </div>
-              <button id="catToggle_text" class="layout-variant-toggle" type="button" aria-expanded="true" aria-controls="catGrid_text" aria-label="텍스트 & 구조화 펼치기">
+              <button id="catToggle_text" class="layout-variant-toggle" type="button" aria-expanded="true"
+                aria-controls="catGrid_text" aria-label="텍스트 & 구조화 펼치기">
                 <span class="layout-toggle-chevron" aria-hidden="true"></span>
               </button>
             </div>
@@ -66,7 +74,8 @@
               <div class="layout-variant-heading">
                 <strong class="option-group-title">📁 카드 & 레이아웃</strong>
               </div>
-              <button id="catToggle_card" class="layout-variant-toggle" type="button" aria-expanded="false" aria-controls="catGrid_card" aria-label="카드 & 레이아웃 펼치기">
+              <button id="catToggle_card" class="layout-variant-toggle" type="button" aria-expanded="false"
+                aria-controls="catGrid_card" aria-label="카드 & 레이아웃 펼치기">
                 <span class="layout-toggle-chevron" aria-hidden="true"></span>
               </button>
             </div>
@@ -79,7 +88,8 @@
               <div class="layout-variant-heading">
                 <strong class="option-group-title">📁 요약 및 강조</strong>
               </div>
-              <button id="catToggle_compare" class="layout-variant-toggle" type="button" aria-expanded="false" aria-controls="catGrid_compare" aria-label="요약 및 강조 펼치기">
+              <button id="catToggle_compare" class="layout-variant-toggle" type="button" aria-expanded="false"
+                aria-controls="catGrid_compare" aria-label="요약 및 강조 펼치기">
                 <span class="layout-toggle-chevron" aria-hidden="true"></span>
               </button>
             </div>
@@ -92,7 +102,8 @@
               <div class="layout-variant-heading">
                 <strong class="option-group-title">📁 프로세스 & 비주얼</strong>
               </div>
-              <button id="catToggle_diagram" class="layout-variant-toggle" type="button" aria-expanded="false" aria-controls="catGrid_diagram" aria-label="프로세스 & 비주얼 펼치기">
+              <button id="catToggle_diagram" class="layout-variant-toggle" type="button" aria-expanded="false"
+                aria-controls="catGrid_diagram" aria-label="프로세스 & 비주얼 펼치기">
                 <span class="layout-toggle-chevron" aria-hidden="true"></span>
               </button>
             </div>
@@ -105,7 +116,8 @@
               <div class="layout-variant-heading">
                 <strong class="option-group-title">📁 데이터 차트 & 테이블</strong>
               </div>
-              <button id="catToggle_chart" class="layout-variant-toggle" type="button" aria-expanded="false" aria-controls="catGrid_chart" aria-label="데이터 차트 & 테이블 펼치기">
+              <button id="catToggle_chart" class="layout-variant-toggle" type="button" aria-expanded="false"
+                aria-controls="catGrid_chart" aria-label="데이터 차트 & 테이블 펼치기">
                 <span class="layout-toggle-chevron" aria-hidden="true"></span>
               </button>
             </div>
@@ -118,7 +130,8 @@
               <div class="layout-variant-heading">
                 <strong class="option-group-title">🖼️ 이미지 레이아웃</strong>
               </div>
-              <button id="catToggle_image" class="layout-variant-toggle" type="button" aria-expanded="false" aria-controls="catGrid_image" aria-label="이미지 레이아웃 펼치기">
+              <button id="catToggle_image" class="layout-variant-toggle" type="button" aria-expanded="false"
+                aria-controls="catGrid_image" aria-label="이미지 레이아웃 펼치기">
                 <span class="layout-toggle-chevron" aria-hidden="true"></span>
               </button>
             </div>
@@ -128,7 +141,9 @@
       </section>
 
       <section id="itemSection" class="panel-section">
-        <div class="section-heading"><span>02</span><h2>개체 관리</h2></div>
+        <div class="section-heading"><span>02</span>
+          <h2>개체 관리</h2>
+        </div>
         <p id="itemHint" class="guide">오른쪽 개체를 더블클릭하면 내용을 직접 수정할 수 있습니다.</p>
         <div class="action-grid">
           <button id="addItemButton" class="button">+ 항목</button>
@@ -137,9 +152,11 @@
           <button id="removeTableColButton" class="button" type="button" hidden>− 열</button>
         </div>
         <div class="card-image-action-grid" style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
-          <button id="mergeCardsButton" class="button button-blue" type="button" style="flex:1 1 100%;">🧩 카드 합치기 (단축키 M)</button>
+          <button id="mergeCardsButton" class="button button-blue" type="button" style="flex:1 1 100%;">🧩 카드 합치기 (단축키
+            M)</button>
           <button id="cardImageInsertButton" class="button" type="button" style="flex:1;">📷 카드 이미지 삽입</button>
-          <button id="cardImageRemoveButton" class="button button-danger" type="button" style="flex:1;" hidden>🗑️ 이미지 제거</button>
+          <button id="cardImageRemoveButton" class="button button-danger" type="button" style="flex:1;" hidden>🗑️ 이미지
+            제거</button>
         </div>
         <label id="tableAxisLabel" class="select-label" hidden>테이블 관리 대상
           <select id="tableAxisSelect">
@@ -147,80 +164,127 @@
             <option value="column">열</option>
           </select>
         </label>
-        <div id="tableDimensionControls" class="table-dimension-controls" hidden style="margin-top: 10px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc;">
+        <div id="tableDimensionControls" class="table-dimension-controls" hidden
+          style="margin-top: 10px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
             <strong style="font-size: 11.5px; color: #0f172a;">📐 테이블 크기 & 셀 서식 관리</strong>
-            <span id="tableSelectedCellInfo" style="font-size: 10.5px; font-weight: 800; color: #2563eb; background: #dbeafe; padding: 2px 6px; border-radius: 999px;">셀 1개 선택</span>
+            <span id="tableSelectedCellInfo"
+              style="font-size: 10.5px; font-weight: 800; color: #2563eb; background: #dbeafe; padding: 2px 6px; border-radius: 999px;">셀
+              1개 선택</span>
           </div>
           <div style="display: flex; gap: 6px; margin-bottom: 8px;">
-            <button id="mergeTableCellsBtn" class="button button-blue" type="button" style="flex: 1; padding: 5px 6px; font-size: 11px;" disabled>🔗 선택 셀 병합 (M)</button>
-            <button id="unmergeTableCellsBtn" class="button" type="button" style="flex: 1; padding: 5px 6px; font-size: 11px;" disabled>↩️ 병합 이전으로 복원</button>
+            <button id="mergeTableCellsBtn" class="button button-blue" type="button"
+              style="flex: 1; padding: 5px 6px; font-size: 11px;" disabled>🔗 선택 셀 병합 (M)</button>
+            <button id="unmergeTableCellsBtn" class="button" type="button"
+              style="flex: 1; padding: 5px 6px; font-size: 11px;" disabled>↩️ 병합 이전으로 복원</button>
           </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
-            <label style="font-size: 11px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 3px;">
+            <label
+              style="font-size: 11px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 3px;">
               선택 셀 배경색
               <div style="display: flex; align-items: center; gap: 4px;">
-                <input id="tableCellBgColorInput" type="color" value="#ffffff" style="width: 30px; height: 26px; padding: 1px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; cursor: pointer;">
-                <button type="button" class="table-cell-bg-swatch" data-bg-color="#dbeafe" title="연파랑" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #dbeafe; cursor: pointer;"></button>
-                <button type="button" class="table-cell-bg-swatch" data-bg-color="#fef08a" title="연노랑" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #fef08a; cursor: pointer;"></button>
-                <button type="button" class="table-cell-bg-swatch" data-bg-color="#dcfce7" title="연초록" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #dcfce7; cursor: pointer;"></button>
-                <button type="button" class="table-cell-bg-swatch" data-bg-color="#fee2e2" title="연빨강" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #fee2e2; cursor: pointer;"></button>
+                <input id="tableCellBgColorInput" type="color" value="#ffffff"
+                  style="width: 30px; height: 26px; padding: 1px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; cursor: pointer;">
+                <button type="button" class="table-cell-bg-swatch" data-bg-color="#dbeafe" title="연파랑"
+                  style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #dbeafe; cursor: pointer;"></button>
+                <button type="button" class="table-cell-bg-swatch" data-bg-color="#fef08a" title="연노랑"
+                  style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #fef08a; cursor: pointer;"></button>
+                <button type="button" class="table-cell-bg-swatch" data-bg-color="#dcfce7" title="연초록"
+                  style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #dcfce7; cursor: pointer;"></button>
+                <button type="button" class="table-cell-bg-swatch" data-bg-color="#fee2e2" title="연빨강"
+                  style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #fee2e2; cursor: pointer;"></button>
               </div>
             </label>
-            <label style="font-size: 11px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 3px;">
+            <label
+              style="font-size: 11px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 3px;">
               선택 셀 글자색
               <div style="display: flex; align-items: center; gap: 4px;">
-                <input id="tableCellTextColorInput" type="color" value="#0f172a" style="width: 30px; height: 26px; padding: 1px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; cursor: pointer;">
-                <button type="button" class="table-cell-text-swatch" data-text-color="#0f172a" title="진회색" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #0f172a; cursor: pointer;"></button>
-                <button type="button" class="table-cell-text-swatch" data-text-color="#ffffff" title="흰색" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #ffffff; cursor: pointer;"></button>
-                <button type="button" class="table-cell-text-swatch" data-text-color="#1d4ed8" title="파랑" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #1d4ed8; cursor: pointer;"></button>
-                <button type="button" class="table-cell-text-swatch" data-text-color="#dc2626" title="빨강" style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #dc2626; cursor: pointer;"></button>
+                <input id="tableCellTextColorInput" type="color" value="#0f172a"
+                  style="width: 30px; height: 26px; padding: 1px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; cursor: pointer;">
+                <button type="button" class="table-cell-text-swatch" data-text-color="#0f172a" title="진회색"
+                  style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #0f172a; cursor: pointer;"></button>
+                <button type="button" class="table-cell-text-swatch" data-text-color="#ffffff" title="흰색"
+                  style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #ffffff; cursor: pointer;"></button>
+                <button type="button" class="table-cell-text-swatch" data-text-color="#1d4ed8" title="파랑"
+                  style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #1d4ed8; cursor: pointer;"></button>
+                <button type="button" class="table-cell-text-swatch" data-text-color="#dc2626" title="빨강"
+                  style="width: 18px; height: 18px; border: 1px solid #94a3b8; border-radius: 4px; background: #dc2626; cursor: pointer;"></button>
               </div>
             </label>
           </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
-            <label style="font-size: 11px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 3px;">
+            <label
+              style="font-size: 11px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 3px;">
               선택 열 너비 (%)
-              <input id="tableColWidthInput" type="number" min="5" max="90" step="1" value="20" style="padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: 800;">
+              <input id="tableColWidthInput" type="number" min="5" max="90" step="1" value="20"
+                style="padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: 800;">
             </label>
-            <label style="font-size: 11px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 3px;">
+            <label
+              style="font-size: 11px; font-weight: 700; color: #334155; display: flex; flex-direction: column; gap: 3px;">
               선택 행 높이 (px)
-              <input id="tableRowHeightInput" type="number" min="20" max="300" step="2" value="30" style="padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: 800;">
+              <input id="tableRowHeightInput" type="number" min="20" max="300" step="2" value="30"
+                style="padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: 800;">
             </label>
           </div>
           <div style="display: flex; gap: 6px; margin-top: 6px;">
-            <button id="resetCellStylesBtn" class="button" type="button" style="flex: 1; padding: 5px 6px; font-size: 11px;">🎨 선택 셀 서식 초기화</button>
-            <button id="resetTableSizesBtn" class="button" type="button" style="flex: 1; padding: 5px 6px; font-size: 11px;">📐 균등 크기 초기화</button>
+            <button id="equalRowHeightBtn" class="button" type="button"
+              style="flex: 1; padding: 5px 6px; font-size: 11px;" title="표의 행 높이를 균등하게 맞춤 (복수 행 선택 시 선택 행만 맞춤)">↕ 행높이 맞춤</button>
+            <button id="equalColWidthBtn" class="button" type="button"
+              style="flex: 1; padding: 5px 6px; font-size: 11px;" title="표의 열 너비를 균등하게 맞춤 (복수 열 선택 시 선택 열만 맞춤)">↔ 열너비 맞춤</button>
+          </div>
+          <div style="display: flex; gap: 6px; margin-top: 6px;">
+            <button id="resetCellStylesBtn" class="button" type="button"
+              style="flex: 1; padding: 5px 6px; font-size: 11px;">🎨 선택 셀 서식 초기화</button>
+            <button id="resetTableSizesBtn" class="button" type="button"
+              style="flex: 1; padding: 5px 6px; font-size: 11px;">📐 균등 크기 초기화</button>
           </div>
         </div>
       </section>
 
       <section id="insertSection" class="panel-section">
-        <div class="section-heading"><span>03</span><h2>개체 삽입</h2></div>
-        <div class="action-grid" style="grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 6px; margin-top: 0;">
-          <button id="addTextObjectButton" class="button insert-btn" type="button" title="텍스트 개체 추가">📝 텍스트 추가</button>
-          <button id="addImageObjectButton" class="button insert-btn" type="button" title="이미지 개체 추가">🖼️ 이미지 추가</button>
-          <button id="addTimerObjectButton" class="button button-blue insert-btn" type="button" title="타이머 개체 추가">⏱️ 타이머 추가</button>
-          <button id="addTableObjectButton" class="button button-blue insert-btn" type="button" title="테이블 개체 추가">📊 테이블 추가</button>
+        <div class="section-heading"><span>03</span>
+          <h2>개체 삽입</h2>
         </div>
-        <div class="shape-selector-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 4px;">
+        <div class="action-grid"
+          style="grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 6px; margin-top: 0;">
+          <button id="addTextObjectButton" class="button insert-btn" type="button" title="텍스트 개체 추가">📝 텍스트 추가</button>
+          <button id="addImageObjectButton" class="button insert-btn" type="button" title="이미지 개체 추가">🖼️ 이미지
+            추가</button>
+          <button id="addTimerObjectButton" class="button button-blue insert-btn" type="button" title="타이머 개체 추가">⏱️ 타이머
+            추가</button>
+          <button id="addTableObjectButton" class="button button-blue insert-btn" type="button" title="테이블 개체 추가">📊 테이블
+            추가</button>
+        </div>
+        <div class="shape-selector-grid"
+          style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 4px;">
           <button class="button shape-select-btn" type="button" data-shape-type="rectangle" title="사각형">⬛ 사각형</button>
           <button class="button shape-select-btn" type="button" data-shape-type="circle" title="동그라미">🔴 동그라미</button>
           <button class="button shape-select-btn" type="button" data-shape-type="triangle" title="세모">🔺 세모</button>
           <button class="button shape-select-btn" type="button" data-shape-type="star" title="별표">⭐ 별표</button>
           <button class="button shape-select-btn" type="button" data-shape-type="arrow" title="화살표">➡️ 화살표</button>
         </div>
-        <div class="shape-selector-grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 8px;">
-          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="plus" title="더하기 (+)">+</button>
-          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="minus" title="빼기 (-)">−</button>
-          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="multiply" title="곱하기 (×)">×</button>
-          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="divide" title="나누기 (÷)">÷</button>
-          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="double-arrow" title="양방향 화살표 (↔)">↔</button>
-          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="gt" title="보다 큼 (>)">&gt;</button>
-          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="lt" title="보다 작음 (<)">&lt;</button>
-          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="equal" title="같음 (=)">=</button>
-          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="not-equal" title="같지 않음 (≠)">≠</button>
-          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="vertical-arrow" title="상하 화살표 (↕)">↕</button>
+        <div class="shape-selector-grid"
+          style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 8px;">
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="plus"
+            title="더하기 (+)">+</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="minus"
+            title="빼기 (-)">−</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="multiply"
+            title="곱하기 (×)">×</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="divide"
+            title="나누기 (÷)">÷</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="double-arrow"
+            title="양방향 화살표 (↔)">↔</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="gt"
+            title="보다 큼 (>)">&gt;</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="lt"
+            title="보다 작음 (<)">&lt;</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="equal"
+            title="같음 (=)">=</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="not-equal"
+            title="같지 않음 (≠)">≠</button>
+          <button class="button shape-select-btn symbol-btn" type="button" data-shape-type="vertical-arrow"
+            title="상하 화살표 (↕)">↕</button>
         </div>
         <input id="imageInput" type="file" accept="image/*" multiple hidden>
         <p id="imageInfo" class="guide" style="margin: 0; font-size: 11px;">💡 여러 이미지를 한 번에 선택하여 삽입할 수 있습니다.</p>
@@ -240,28 +304,65 @@
       </section>
 
       <section id="helpSection" class="panel-section">
-        <div class="section-heading"><span class="badge-help">?</span><h2>도움말 & 단축키 안내</h2></div>
-        <div class="anim-guide-box" style="margin-bottom:10px;">
-          <button id="toggleAnimModeButton" class="button button-blue anim-mode-btn" type="button">애니메이션 지정 (단축키 A)</button>
-          <p class="guide"><kbd>A</kbd> 누른 뒤 개체 클릭: 애니메이션 지정<br><kbd>🟢 나타나기</kbd> / <kbd>🔴 사라지기</kbd> 배너에서 선택<br><strong>한 개체에 나타나기(A)+사라지기(D) 동시 지정 가능!</strong><br><kbd>Ctrl+클릭</kbd>: 이전과 동일 번호 부여<br><kbd>재클릭</kbd>: 해당 번호 삭제 및 자동 재정렬<br><kbd>Shift+A</kbd>: 페이지 애니메이션 일괄 초기화</p>
+        <div class="section-heading"><span class="badge-help">?</span>
+          <h2>도움말 & 단축키 안내</h2>
         </div>
-        <div class="shortcut-guide-box" style="padding:10px; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; font-size:11px; line-height:1.5;">
+        <div class="anim-guide-box" style="margin-bottom:10px;">
+          <button id="toggleAnimModeButton" class="button button-blue anim-mode-btn" type="button">애니메이션 지정 (단축키
+            A)</button>
+          <p class="guide"><kbd>A</kbd> 누른 뒤 개체 클릭: 애니메이션 지정<br><kbd>🟢 나타나기</kbd> / <kbd>🔴 사라지기</kbd> 배너에서
+            선택<br><strong>한 개체에 나타나기(A)+사라지기(D) 동시 지정 가능!</strong><br><kbd>Ctrl+클릭</kbd>: 이전과 동일 번호
+            부여<br><kbd>재클릭</kbd>: 해당 번호 삭제 및 자동 재정렬<br><kbd>Shift+A</kbd>: 페이지 애니메이션 일괄 초기화</p>
+        </div>
+        <div class="shortcut-guide-box"
+          style="padding:10px; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; font-size:11px; line-height:1.5;">
           <strong style="display:block; margin-bottom:6px; color:#0f172a; font-size:12px;">⌨️ 유용한 단축키 및 버튼 안내</strong>
           <ul style="margin:0; padding-left:14px; color:#334155; display:flex; flex-direction:column; gap:4px;">
-            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Del</kbd> / <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Backspace</kbd>: 선택 개체(제목 포함) 삭제</li>
-            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+]</kbd> / <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+[</kbd>: 개체 위로 / 아래로 이동</li>
-            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+Shift+]</kbd> / <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+Shift+[</kbd>: 개체 맨 위 / 맨 아래 이동</li>
-            <li><strong>📋 복사 / ✂️ 잘라내기 / 📥 붙여넣기 버튼</strong> (또는 <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+C</kbd> / <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+X</kbd> / <kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+V</kbd>): 개체 또는 슬라이드 복사 / 잘라내기 / 붙여넣기</li>
-            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+Z</kbd>: 실행 취소 (되돌리기)</li>
-            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">M</kbd>: 카드 2개 이상 선택 시 이웃 카드 병합</li>
-            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">F</kbd>: 전체 화면 발표 모드 시작</li>
-            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Esc</kbd>: 선택 해제 / 발표 및 애니메이션 종료</li>
+            <li><kbd
+                style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Del</kbd>
+              / <kbd
+                style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Backspace</kbd>:
+              선택 개체(제목 포함) 삭제</li>
+            <li><kbd
+                style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+]</kbd>
+              / <kbd
+                style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+[</kbd>:
+              개체 위로 / 아래로 이동</li>
+            <li><kbd
+                style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+Shift+]</kbd>
+              / <kbd
+                style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+Shift+[</kbd>:
+              개체 맨 위 / 맨 아래 이동</li>
+            <li><strong>📋 복사 / ✂️ 잘라내기 / 📥 붙여넣기 버튼</strong> (또는 <kbd
+                style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+C</kbd>
+              / <kbd
+                style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+X</kbd>
+              / <kbd
+                style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+V</kbd>):
+              개체 또는 슬라이드 복사 / 잘라내기 / 붙여넣기</li>
+            <li><kbd
+                style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+Z</kbd>:
+              실행 취소 (되돌리기)</li>
+            <li><kbd
+                style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">M</kbd>:
+              카드 2개 이상 선택 시 이웃 카드 병합</li>
+            <li><kbd
+                style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">F</kbd>:
+              전체 화면 발표 모드 시작</li>
+            <li><kbd
+                style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Esc</kbd>:
+              선택 해제 / 발표 및 애니메이션 종료</li>
           </ul>
           <hr style="margin:8px 0; border:0; border-top:1px solid #cbd5e1;">
-          <strong style="display:block; margin-bottom:6px; color:#2563eb; font-size:11.5px;">⏱️ 타이머 개체 선택 / 발표 진행 중 단축키</strong>
+          <strong style="display:block; margin-bottom:6px; color:#2563eb; font-size:11.5px;">⏱️ 타이머 개체 선택 / 발표 진행 중
+            단축키</strong>
           <ul style="margin:0; padding-left:14px; color:#334155; display:flex; flex-direction:column; gap:4px;">
-            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Shift+방향키</kbd>: 시간 조절 (좌/우: ±10초, 위/아래: ±1분)</li>
-            <li><kbd style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+위/아래 방향키</kbd>: 시간 숫자 크기 조절 (위: +10%, 아래: -10%)</li>
+            <li><kbd
+                style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Shift+방향키</kbd>:
+              시간 조절 (좌/우: ±10초, 위/아래: ±1분)</li>
+            <li><kbd
+                style="padding:1px 4px; background:#fff; border:1px solid #cbd5e1; border-radius:3px; font-weight:850;">Ctrl+위/아래
+                방향키</kbd>: 시간 숫자 크기 조절 (위: +10%, 아래: -10%)</li>
           </ul>
         </div>
       </section>
@@ -269,17 +370,21 @@
 
     <section class="stage-panel" aria-label="프레젠테이션 편집 영역">
       <div class="stage-toolbar">
-        <button id="pageFirstBtn" class="page-scroll-btn" type="button" aria-label="맨 앞으로 이동" title="맨 앞 페이지로 이동 (첫 페이지)">
+        <button id="pageFirstBtn" class="page-scroll-btn" type="button" aria-label="맨 앞으로 이동"
+          title="맨 앞 페이지로 이동 (첫 페이지)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M11 5L3 12L11 19V5ZM20 5L12 12L20 19V5Z"/>
+            <path d="M11 5L3 12L11 19V5ZM20 5L12 12L20 19V5Z" />
           </svg>
         </button>
-        <button id="pageScrollLeftBtn" class="page-scroll-btn" type="button" aria-label="이전 페이지 목록 보기" title="이전 페이지 목록 스크롤">◀</button>
+        <button id="pageScrollLeftBtn" class="page-scroll-btn" type="button" aria-label="이전 페이지 목록 보기"
+          title="이전 페이지 목록 스크롤">◀</button>
         <div id="pageList" class="page-list"></div>
-        <button id="pageScrollRightBtn" class="page-scroll-btn" type="button" aria-label="다음 페이지 목록 보기" title="다음 페이지 목록 스크롤">▶</button>
-        <button id="pageLastBtn" class="page-scroll-btn" type="button" aria-label="맨 뒤로 이동" title="맨 뒤 페이지로 이동 (마지막 페이지)">
+        <button id="pageScrollRightBtn" class="page-scroll-btn" type="button" aria-label="다음 페이지 목록 보기"
+          title="다음 페이지 목록 스크롤">▶</button>
+        <button id="pageLastBtn" class="page-scroll-btn" type="button" aria-label="맨 뒤로 이동"
+          title="맨 뒤 페이지로 이동 (마지막 페이지)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M4 5L12 12L4 19V5ZM13 5L21 12L13 19V5Z"/>
+            <path d="M4 5L12 12L4 19V5ZM13 5L21 12L13 19V5Z" />
           </svg>
         </button>
       </div>
@@ -289,44 +394,64 @@
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
               <strong>🎬 애니메이션 지정 모드</strong>
               <div class="anim-type-switch" role="group" aria-label="애니메이션 유형 선택">
-                <button id="animTypeInBtn" class="anim-type-btn is-active" data-type="in" type="button" title="나타나기 애니메이션">🟢 나타나기</button>
-                <button id="animTypeOutBtn" class="anim-type-btn" data-type="out" type="button" title="사라지기 애니메이션">🔴 사라지기</button>
+                <button id="animTypeInBtn" class="anim-type-btn is-active" data-type="in" type="button"
+                  title="나타나기 애니메이션">🟢 나타나기</button>
+                <button id="animTypeOutBtn" class="anim-type-btn" data-type="out" type="button" title="사라지기 애니메이션">🔴
+                  사라지기</button>
               </div>
             </div>
-            <span style="font-size:11.5px; opacity:0.95;">클릭: 선택 유형 번호 지정 (한 개체에 나타나기+사라지기 동시 지정 가능) · 재클릭: 해당 번호 삭제 · A/Esc: 종료</span>
+            <span style="font-size:11.5px; opacity:0.95;">클릭: 선택 유형 번호 지정 (한 개체에 나타나기+사라지기 동시 지정 가능) · 재클릭: 해당 번호 삭제 ·
+              A/Esc: 종료</span>
           </div>
           <div id="textToolbar" class="text-toolbar" hidden aria-label="개체 서식">
-            <label>글자
-              <input id="textColorInput" type="color" value="#151515" aria-label="텍스트 색상">
+            <div style="display:flex; align-items:center; gap:4px;">
+              <label>글자
+                <input id="textColorInput" type="color" value="#151515" aria-label="텍스트 색상">
+              </label>
               <div class="theme-color-palette-group" data-color-target="text" aria-label="글자색 테마 3색 퀵 선택">
-                <button class="theme-color-btn" data-target="text" data-color-index="0" type="button" title="글자색 테마 1순위 적용"></button>
-                <button class="theme-color-btn" data-target="text" data-color-index="1" type="button" title="글자색 테마 2순위 적용"></button>
-                <button class="theme-color-btn" data-target="text" data-color-index="2" type="button" title="글자색 테마 3순위 적용"></button>
+                <button class="theme-color-btn" data-target="text" data-color-index="0" type="button"
+                  title="글자색 테마 1순위 적용"></button>
+                <button class="theme-color-btn" data-target="text" data-color-index="1" type="button"
+                  title="글자색 테마 2순위 적용"></button>
+                <button class="theme-color-btn" data-target="text" data-color-index="2" type="button"
+                  title="글자색 테마 3순위 적용"></button>
               </div>
-            </label>
+            </div>
             <span class="toolbar-divider" style="width:1px; height:16px; background:#cbd5e1; margin:0 1px;"></span>
-            <label>배경
-              <input id="bgColorInput" type="color" value="#ffffff" aria-label="개체 배경색">
+            <div style="display:flex; align-items:center; gap:4px;">
+              <label>배경
+                <input id="bgColorInput" type="color" value="#ffffff" aria-label="개체 배경색">
+              </label>
               <div class="theme-color-palette-group" data-color-target="bg" aria-label="배경색 테마 3색 퀵 선택">
-                <button class="theme-color-btn" data-target="bg" data-color-index="0" type="button" title="배경색 테마 1순위 적용"></button>
-                <button class="theme-color-btn" data-target="bg" data-color-index="1" type="button" title="배경색 테마 2순위 적용"></button>
-                <button class="theme-color-btn" data-target="bg" data-color-index="2" type="button" title="배경색 테마 3순위 적용"></button>
+                <button class="theme-color-btn" data-target="bg" data-color-index="0" type="button"
+                  title="배경색 테마 1순위 적용"></button>
+                <button class="theme-color-btn" data-target="bg" data-color-index="1" type="button"
+                  title="배경색 테마 2순위 적용"></button>
+                <button class="theme-color-btn" data-target="bg" data-color-index="2" type="button"
+                  title="배경색 테마 3순위 적용"></button>
               </div>
-              <button id="noBgColorButton" class="text-tool-button" type="button" title="배경색 없음 (투명)" style="margin-left:1px; font-size:10.5px; padding:1px 5px;">투명</button>
-            </label>
+              <button id="noBgColorButton" class="text-tool-button" type="button" title="배경색 없음 (투명)"
+                style="margin-left:1px; font-size:10.5px; padding:1px 5px;">투명</button>
+            </div>
             <div id="borderToolbarGroup" style="display:flex; align-items:center; gap:4px;">
               <span class="toolbar-divider" style="width:1px; height:16px; background:#cbd5e1; margin:0 1px;"></span>
               <label>테두리
                 <input id="borderColorInput" type="color" value="#0f172a" aria-label="테두리 색상">
-                <div class="theme-color-palette-group" data-color-target="border" aria-label="테두리색 테마 3색 퀵 선택">
-                  <button class="theme-color-btn" data-target="border" data-color-index="0" type="button" title="테두리색 테마 1순위 적용"></button>
-                  <button class="theme-color-btn" data-target="border" data-color-index="1" type="button" title="테두리색 테마 2순위 적용"></button>
-                  <button class="theme-color-btn" data-target="border" data-color-index="2" type="button" title="테두리색 테마 3순위 적용"></button>
-                </div>
               </label>
-              <label>두께 <input id="borderWidthInput" type="number" min="0" max="20" step="1" value="0" style="width:36px;" aria-label="테두리 두께"></label>
+              <div class="theme-color-palette-group" data-color-target="border" aria-label="테두리색 테마 3색 퀵 선택">
+                <button class="theme-color-btn" data-target="border" data-color-index="0" type="button"
+                  title="테두리색 테마 1순위 적용"></button>
+                <button class="theme-color-btn" data-target="border" data-color-index="1" type="button"
+                  title="테두리색 테마 2순위 적용"></button>
+                <button class="theme-color-btn" data-target="border" data-color-index="2" type="button"
+                  title="테두리색 테마 3순위 적용"></button>
+              </div>
+              <label>두께 <input id="borderWidthInput" type="number" min="0" max="20" step="1" value="0"
+                  style="width:36px;" aria-label="테두리 두께"></label>
               <label>선
-                <select id="borderStyleSelect" style="padding:1px 3px; border:1px solid var(--ink); font-size:10.5px; font-weight:700;" aria-label="테두리 선 스타일">
+                <select id="borderStyleSelect"
+                  style="padding:1px 3px; border:1px solid var(--ink); font-size:10.5px; font-weight:700;"
+                  aria-label="테두리 선 스타일">
                   <option value="none">없음</option>
                   <option value="solid">실선</option>
                   <option value="dashed">점선</option>
@@ -345,42 +470,76 @@
             </div>
             <span class="toolbar-divider" style="width:1px; height:16px; background:#cbd5e1; margin:0 1px;"></span>
             <div class="zorder-group" aria-label="개체 순서 조절">
-              <button id="bringToFrontBtn" class="text-tool-button" type="button" title="맨 위로 보내기 (Ctrl+Shift+])" aria-label="맨 위로 보내기">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/><path d="M5 5h14"/></svg>
+              <button id="bringToFrontBtn" class="text-tool-button" type="button" title="맨 위로 보내기 (Ctrl+Shift+])"
+                aria-label="맨 위로 보내기">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 15l-6-6-6 6" />
+                  <path d="M5 5h14" />
+                </svg>
               </button>
-              <button id="bringForwardBtn" class="text-tool-button" type="button" title="위로 보내기 (Ctrl+])" aria-label="위로 보내기">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+              <button id="bringForwardBtn" class="text-tool-button" type="button" title="위로 보내기 (Ctrl+])"
+                aria-label="위로 보내기">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 15l-6-6-6 6" />
+                </svg>
               </button>
-              <button id="sendBackwardBtn" class="text-tool-button" type="button" title="아래로 보내기 (Ctrl+[)" aria-label="아래로 보내기">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              <button id="sendBackwardBtn" class="text-tool-button" type="button" title="아래로 보내기 (Ctrl+[)"
+                aria-label="아래로 보내기">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
               </button>
-              <button id="sendToBackBtn" class="text-tool-button" type="button" title="맨 아래로 보내기 (Ctrl+Shift+[)" aria-label="맨 아래로 보내기">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/><path d="M5 19h14"/></svg>
+              <button id="sendToBackBtn" class="text-tool-button" type="button" title="맨 아래로 보내기 (Ctrl+Shift+[)"
+                aria-label="맨 아래로 보내기">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 9l6 6 6-6" />
+                  <path d="M5 19h14" />
+                </svg>
               </button>
             </div>
             <div id="textSizeGroup" style="display:flex; align-items:center; gap:4px;">
               <span class="toolbar-divider" style="width:1px; height:16px; background:#cbd5e1; margin:0 1px;"></span>
-              <label id="textSizeLabel">크기 <input id="textSizeInput" type="number" min="8" max="160" step="1" style="width:36px;" aria-label="텍스트 크기"></label>
+              <label id="textSizeLabel">크기 <input id="textSizeInput" type="number" min="8" max="160" step="1"
+                  style="width:36px;" aria-label="텍스트 크기"></label>
               <button id="autoTextSizeButton" class="text-tool-button" type="button">자동</button>
             </div>
             <div id="rotateToolbarGroup" style="display:flex; align-items:center; gap:4px;">
               <span class="toolbar-divider" style="width:1px; height:16px; background:#cbd5e1; margin:0 1px;"></span>
-              <label style="display:flex; align-items:center; gap:2px; font-size:11px; font-weight:800; cursor:pointer;" title="화살표/개체 회전 각도 (0~360도)">
-                🔄 <input id="objectRotationInput" type="number" min="0" max="359" step="5" value="0" style="width:40px; padding:2px 3px; border:1px solid var(--ink); border-radius:3px; font-weight:800; text-align:center; font-size:11px;" aria-label="회전 각도">°
+              <label style="display:flex; align-items:center; gap:2px; font-size:11px; font-weight:800; cursor:pointer;"
+                title="화살표/개체 회전 각도 (0~360도)">
+                🔄 <input id="objectRotationInput" type="number" min="0" max="359" step="5" value="0"
+                  style="width:40px; padding:2px 3px; border:1px solid var(--ink); border-radius:3px; font-weight:800; text-align:center; font-size:11px;"
+                  aria-label="회전 각도">°
               </label>
               <button id="rotateLeft90Btn" class="text-tool-button" type="button" title="반시계 90도 회전 (↶)">↶</button>
               <button id="rotateRight90Btn" class="text-tool-button" type="button" title="시계 90도 회전 (↷)">↷</button>
               <div id="arrowDirectionPresets" style="display:flex; align-items:center; gap:1px;" title="화살표 4방향 빠른 전환">
-                <button class="text-tool-button arrow-dir-btn" type="button" data-angle="0" title="오른쪽 방향 (0°)">➡️</button>
-                <button class="text-tool-button arrow-dir-btn" type="button" data-angle="90" title="아래쪽 방향 (90°)">⬇️</button>
-                <button class="text-tool-button arrow-dir-btn" type="button" data-angle="180" title="왼쪽 방향 (180°)">⬅️</button>
-                <button class="text-tool-button arrow-dir-btn" type="button" data-angle="270" title="위쪽 방향 (270°)">⬆️</button>
+                <button class="text-tool-button arrow-dir-btn" type="button" data-angle="0"
+                  title="오른쪽 방향 (0°)">➡️</button>
+                <button class="text-tool-button arrow-dir-btn" type="button" data-angle="90"
+                  title="아래쪽 방향 (90°)">⬇️</button>
+                <button class="text-tool-button arrow-dir-btn" type="button" data-angle="180"
+                  title="왼쪽 방향 (180°)">⬅️</button>
+                <button class="text-tool-button arrow-dir-btn" type="button" data-angle="270"
+                  title="위쪽 방향 (270°)">⬆️</button>
               </div>
             </div>
             <div id="tableMergeToolbarGroup" hidden style="display:flex; align-items:center; gap:4px;">
               <span class="toolbar-divider" style="width:1px; height:16px; background:#cbd5e1; margin:0 1px;"></span>
-              <button id="toolbarMergeCellsBtn" class="text-tool-button" type="button" title="선택된 복수 셀 병합 (단축키 M)" style="font-size:10.5px; padding:2px 6px;" disabled>🔗 셀 병합</button>
-              <button id="toolbarUnmergeCellsBtn" class="text-tool-button" type="button" title="병합된 셀을 병합 이전 상태로 되돌리기" style="font-size:10.5px; padding:2px 6px;" disabled>↩️ 병합 해제</button>
+              <button id="toolbarMergeCellsBtn" class="text-tool-button" type="button" title="선택된 복수 셀 병합 (단축키 M)"
+                style="font-size:10.5px; padding:2px 6px;" disabled>🔗 셀 병합</button>
+              <button id="toolbarUnmergeCellsBtn" class="text-tool-button" type="button" title="병합된 셀을 병합 이전 상태로 되돌리기"
+                style="font-size:10.5px; padding:2px 6px;" disabled>↩️ 병합 해제</button>
+              <button id="toolbarEqualRowHeightBtn" class="text-tool-button" type="button"
+                title="표의 행 높이를 균등하게 맞춤 (복수 행 선택 시 선택 행만 맞춤)"
+                style="font-size:10.5px; padding:2px 6px;">↕ 행높이 맞춤</button>
+              <button id="toolbarEqualColWidthBtn" class="text-tool-button" type="button"
+                title="표의 열 너비를 균등하게 맞춤 (복수 열 선택 시 선택 열만 맞춤)"
+                style="font-size:10.5px; padding:2px 6px;">↔ 열너비 맞춤</button>
             </div>
             <button id="closeTextToolbarButton" class="text-tool-button" type="button" aria-label="개체 서식 닫기">×</button>
           </div>
@@ -398,14 +557,16 @@
                 <div class="sel-popover-title">글자색</div>
                 <div class="sel-swatches" id="selColorSwatches">
                   <button class="sel-swatch" data-color="#151515" style="background:#151515;" title="검정"></button>
-                  <button class="sel-swatch" data-color="#ffffff" style="background:#ffffff; border:1px solid #cbd5e1;" title="흰색"></button>
+                  <button class="sel-swatch" data-color="#ffffff" style="background:#ffffff; border:1px solid #cbd5e1;"
+                    title="흰색"></button>
                   <button class="sel-swatch" data-color="#e11d48" style="background:#e11d48;" title="빨강"></button>
                   <button class="sel-swatch" data-color="#2563eb" style="background:#2563eb;" title="파랑"></button>
                   <button class="sel-swatch" data-color="#16a34a" style="background:#16a34a;" title="초록"></button>
                   <button class="sel-swatch" data-color="#f59e0b" style="background:#f59e0b;" title="주황"></button>
                   <button class="sel-swatch" data-color="#8b5cf6" style="background:#8b5cf6;" title="보라"></button>
                 </div>
-                <label class="sel-custom-picker-label">직접 선택 <input id="selColorCustomPicker" type="color" value="#e11d48"></label>
+                <label class="sel-custom-picker-label">직접 선택 <input id="selColorCustomPicker" type="color"
+                    value="#e11d48"></label>
               </div>
             </div>
             <div class="sel-popover-anchor">
@@ -416,12 +577,19 @@
               <div id="selHlMenu" class="sel-popover-menu" hidden>
                 <div class="sel-popover-title">형광펜 색상</div>
                 <div class="sel-swatches" id="selHlSwatches">
-                  <button class="sel-swatch hl-swatch" data-hl="#fef08a" style="background:#fef08a;" title="형광 노랑"></button>
-                  <button class="sel-swatch hl-swatch" data-hl="#bbf7d0" style="background:#bbf7d0;" title="형광 연두"></button>
-                  <button class="sel-swatch hl-swatch" data-hl="#bae6fd" style="background:#bae6fd;" title="형광 하늘"></button>
-                  <button class="sel-swatch hl-swatch" data-hl="#fbcfe8" style="background:#fbcfe8;" title="형광 분홍"></button>
-                  <button class="sel-swatch hl-swatch" data-hl="#fed7aa" style="background:#fed7aa;" title="형광 주황"></button>
-                  <button class="sel-swatch hl-swatch hl-clear" data-hl="transparent" style="background:#ffffff; border:1px dashed #94a3b8; font-size:10px; line-height:1;" title="형광펜 지우기">✕</button>
+                  <button class="sel-swatch hl-swatch" data-hl="#fef08a" style="background:#fef08a;"
+                    title="형광 노랑"></button>
+                  <button class="sel-swatch hl-swatch" data-hl="#bbf7d0" style="background:#bbf7d0;"
+                    title="형광 연두"></button>
+                  <button class="sel-swatch hl-swatch" data-hl="#bae6fd" style="background:#bae6fd;"
+                    title="형광 하늘"></button>
+                  <button class="sel-swatch hl-swatch" data-hl="#fbcfe8" style="background:#fbcfe8;"
+                    title="형광 분홍"></button>
+                  <button class="sel-swatch hl-swatch" data-hl="#fed7aa" style="background:#fed7aa;"
+                    title="형광 주황"></button>
+                  <button class="sel-swatch hl-swatch hl-clear" data-hl="transparent"
+                    style="background:#ffffff; border:1px dashed #94a3b8; font-size:10px; line-height:1;"
+                    title="형광펜 지우기">✕</button>
                 </div>
               </div>
             </div>
@@ -433,12 +601,15 @@
             <span class="sel-divider"></span>
             <button id="selClearFormatBtn" class="sel-tool-btn" type="button" title="서식 지우기">Tx</button>
           </div>
-          <div id="presentationStage" class="presentation-stage" tabindex="0" aria-label="현재 페이지 캔버스"></div>
+          <div id="presentationStage" class="presentation-stage" lang="ko" aria-label="현재 페이지 캔버스"></div>
         </div>
         <div class="stage-floating-actions" role="toolbar" aria-label="개체 및 슬라이드 편집 도구">
-          <button id="stageCopyBtn" class="button floating-action-btn" type="button" title="선택 개체 또는 슬라이드 복사 (Ctrl+C)">📋 복사</button>
-          <button id="stageCutBtn" class="button floating-action-btn" type="button" title="선택 개체 또는 슬라이드 잘라내기 (Ctrl+X)">✂️ 잘라내기</button>
-          <button id="stagePasteBtn" class="button floating-action-btn" type="button" title="복사한 개체 또는 슬라이드 붙여넣기 (Ctrl+V)">📥 붙여넣기</button>
+          <button id="stageCopyBtn" class="button floating-action-btn" type="button"
+            title="선택 개체 또는 슬라이드 복사 (Ctrl+C)">📋 복사</button>
+          <button id="stageCutBtn" class="button floating-action-btn" type="button"
+            title="선택 개체 또는 슬라이드 잘라내기 (Ctrl+X)">✂️ 잘라내기</button>
+          <button id="stagePasteBtn" class="button floating-action-btn" type="button"
+            title="복사한 개체 또는 슬라이드 붙여넣기 (Ctrl+V)">📥 붙여넣기</button>
         </div>
       </div>
     </section>
@@ -452,15 +623,20 @@
       </div>
       <form id="aiGenerationForm" class="ai-generation-form">
         <div class="intake-source-grid" role="group" aria-label="시작 방식">
-          <button class="intake-source intake-source-primary" type="button" data-intake-action="empty"><b>01</b><span>빈 슬라이드<br>불러오기</span></button>
-          <button class="intake-source intake-source-primary" type="button" data-intake-action="project"><b>02</b><span>txt 불러오기</span><small>기존 Local PPT 파일</small></button>
+          <button class="intake-source intake-source-primary" type="button" data-intake-action="empty"><b>01</b><span>빈
+              슬라이드<br>불러오기</span></button>
+          <button class="intake-source intake-source-primary" type="button"
+            data-intake-action="project"><b>02</b><span>txt 불러오기</span><small>기존 Local PPT 파일</small></button>
           <div class="intake-settings">
             <label class="intake-field">슬라이드 장수
               <input id="aiSlideCount" type="number" min="2" max="30" value="8" inputmode="numeric">
             </label>
-            <fieldset class="api-fields"><legend>AI API 키 <small>입력값은 이 요청에만 사용되며 저장되지 않습니다.</small></legend>
-              <label>ChatGPT API 키 <input id="openaiApiKey" type="password" autocomplete="off" placeholder="sk-..."></label>
-              <label>Claude API 키 <input id="anthropicApiKey" type="password" autocomplete="off" placeholder="sk-ant-..."></label>
+            <fieldset class="api-fields">
+              <legend>AI API 키 <small>입력값은 이 요청에만 사용되며 저장되지 않습니다.</small></legend>
+              <label>ChatGPT API 키 <input id="openaiApiKey" type="password" autocomplete="off"
+                  placeholder="sk-..."></label>
+              <label>Claude API 키 <input id="anthropicApiKey" type="password" autocomplete="off"
+                  placeholder="sk-ant-..."></label>
               <label>ChatGPT 모델
                 <select id="openaiModel">
                   <option value="gpt-5.6-sol">GPT-5.6 Sol — 최신 최고 성능</option>
@@ -480,14 +656,17 @@
             </fieldset>
           </div>
           <button class="intake-source" type="button" data-intake-action="prose"><b>03</b><span>줄글 붙여넣기</span></button>
-          <button class="intake-source" type="button" data-intake-action="outline"><b>04</b><span>개요 붙여넣기</span></button>
+          <button class="intake-source" type="button" data-intake-action="outline"><b>04</b><span>개요
+              붙여넣기</span></button>
           <button class="intake-source" type="button" data-intake-action="pdf"><b>05</b><span>PDF 파일 업로드</span></button>
-          <button class="intake-source" type="button" data-intake-action="spreadsheet"><b>06</b><span>엑셀 파일 업로드</span></button>
+          <button class="intake-source" type="button" data-intake-action="spreadsheet"><b>06</b><span>엑셀 파일
+              업로드</span></button>
         </div>
         <p id="intakeSelectionHint" class="intake-selection-hint" aria-live="polite">입력 방식을 선택하세요.</p>
         <div id="intakeSourceInput" class="intake-source-input" hidden>
           <label id="intakeProseTextLabel" class="intake-field" hidden>줄글 내용 입력
-            <textarea id="intakeProseText" rows="8" placeholder="핵심 내용, 수치, 대상 독자, 꼭 담아야 할 메시지를 줄글로 자유롭게 붙여넣으세요."></textarea>
+            <textarea id="intakeProseText" rows="8"
+              placeholder="핵심 내용, 수치, 대상 독자, 꼭 담아야 할 메시지를 줄글로 자유롭게 붙여넣으세요."></textarea>
           </label>
           <label id="intakeOutlineTextLabel" class="intake-field" hidden>개요 내용 입력
             <textarea id="intakeOutlineText" rows="10" placeholder="예:
@@ -513,7 +692,9 @@
           <p id="intakeFileInfo" class="intake-file-info" hidden></p>
         </div>
         <p id="aiIntakeStatus" class="ai-intake-status" aria-live="polite"></p>
-        <button id="generatePresentationButton" class="button button-dark intake-generate" type="submit" aria-valuemin="0" aria-valuemax="100" style="width:100%; margin-top:14px; padding:12px; font-size:15px; font-weight:950;">✨ AI로 슬라이드 만들기</button>
+        <button id="generatePresentationButton" class="button button-dark intake-generate" type="submit"
+          aria-valuemin="0" aria-valuemax="100"
+          style="width:100%; margin-top:14px; padding:12px; font-size:15px; font-weight:950;">✨ AI로 슬라이드 만들기</button>
 
         <div id="intakeStyleSettings" class="intake-style-settings">
           <div class="intake-style-header">
@@ -531,7 +712,8 @@
                   </div>
                   <select id="intakeDesignSelect" class="sr-only" style="display:none;" aria-hidden="true"></select>
                   <div id="intakeThemeFilterTabs" class="theme-filter-tabs"></div>
-                  <div id="intakeThemeThumbGrid" class="theme-thumbnail-grid" role="radiogroup" aria-label="프레젠테이션 디자인 테마 선택"></div>
+                  <div id="intakeThemeThumbGrid" class="theme-thumbnail-grid" role="radiogroup"
+                    aria-label="프레젠테이션 디자인 테마 선택"></div>
                   <p id="intakeDesignHint" class="guide theme-selected-hint"></p>
                 </div>
 
@@ -544,19 +726,22 @@
                     <div class="color-picker-row">
                       <span class="color-rank-label">1순위</span>
                       <input id="intakeColorPicker1" type="color" value="#e11d48">
-                      <input id="intakeColorHex1" type="text" class="color-hex-input" placeholder="#HEX" value="#e11d48" maxlength="7">
+                      <input id="intakeColorHex1" type="text" class="color-hex-input" placeholder="#HEX" value="#e11d48"
+                        maxlength="7">
                       <span id="intakeColorSwatch1" class="color-swatch-chip" style="background:#e11d48"></span>
                     </div>
                     <div class="color-picker-row">
                       <span class="color-rank-label">2순위</span>
                       <input id="intakeColorPicker2" type="color" value="#2563eb">
-                      <input id="intakeColorHex2" type="text" class="color-hex-input" placeholder="#HEX" value="#2563eb" maxlength="7">
+                      <input id="intakeColorHex2" type="text" class="color-hex-input" placeholder="#HEX" value="#2563eb"
+                        maxlength="7">
                       <span id="intakeColorSwatch2" class="color-swatch-chip" style="background:#2563eb"></span>
                     </div>
                     <div class="color-picker-row">
                       <span class="color-rank-label">3순위</span>
                       <input id="intakeColorPicker3" type="color" value="#f59e0b">
-                      <input id="intakeColorHex3" type="text" class="color-hex-input" placeholder="#HEX" value="#f59e0b" maxlength="7">
+                      <input id="intakeColorHex3" type="text" class="color-hex-input" placeholder="#HEX" value="#f59e0b"
+                        maxlength="7">
                       <span id="intakeColorSwatch3" class="color-swatch-chip" style="background:#f59e0b"></span>
                     </div>
                   </div>
@@ -570,9 +755,11 @@
             </div>
           </div>
           <div class="intake-overlay-block">
-            <div class="overlay-header-row" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <div class="overlay-header-row"
+              style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
               <strong class="option-group-title" style="margin:0;">6개 고정 위치 문구 설정</strong>
-              <label class="overlay-title-toggle-label" style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; cursor:pointer;">
+              <label class="overlay-title-toggle-label"
+                style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; cursor:pointer;">
                 <input id="intakeOverlayApplyToTitle" type="checkbox">
                 <span>Title PAGE 01 (표지)에도 적용</span>
               </label>
@@ -590,16 +777,26 @@
                   </select>
                 </div>
                 <div class="overlay-input-wrap">
-                  <input id="intakeOverlayText_tl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                  <input id="intakeOverlayText_tl" type="text" placeholder="문구 또는 {page}/{total}"
+                    class="overlay-text-input">
                   <input id="intakeOverlayFile_tl" type="file" accept="image/*" class="overlay-file-input" hidden>
                   <div id="intakeOverlayImgPrev_tl" class="overlay-img-preview" hidden>
                     <img id="intakeOverlayImg_tl" src="" alt="Overlay preview">
-                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="tl" title="이미지 삭제">✕</button>
+                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="tl"
+                      title="이미지 삭제">✕</button>
                   </div>
                 </div>
                 <div class="overlay-style-row">
-                  <select id="intakeOverlaySize_tl" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
-                  <select id="intakeOverlayWeight_tl" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                  <select id="intakeOverlaySize_tl" class="overlay-select">
+                    <option value="11px">작게 11px</option>
+                    <option value="13px" selected>보통 13px</option>
+                    <option value="16px">크게 16px</option>
+                  </select>
+                  <select id="intakeOverlayWeight_tl" class="overlay-select">
+                    <option value="400">보통 400</option>
+                    <option value="700" selected>굵게 700</option>
+                    <option value="900">매우 굵게 900</option>
+                  </select>
                 </div>
               </div>
               <!-- Top-Center -->
@@ -614,16 +811,26 @@
                   </select>
                 </div>
                 <div class="overlay-input-wrap">
-                  <input id="intakeOverlayText_tc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                  <input id="intakeOverlayText_tc" type="text" placeholder="문구 또는 {page}/{total}"
+                    class="overlay-text-input">
                   <input id="intakeOverlayFile_tc" type="file" accept="image/*" class="overlay-file-input" hidden>
                   <div id="intakeOverlayImgPrev_tc" class="overlay-img-preview" hidden>
                     <img id="intakeOverlayImg_tc" src="" alt="Overlay preview">
-                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="tc" title="이미지 삭제">✕</button>
+                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="tc"
+                      title="이미지 삭제">✕</button>
                   </div>
                 </div>
                 <div class="overlay-style-row">
-                  <select id="intakeOverlaySize_tc" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
-                  <select id="intakeOverlayWeight_tc" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                  <select id="intakeOverlaySize_tc" class="overlay-select">
+                    <option value="11px">작게 11px</option>
+                    <option value="13px" selected>보통 13px</option>
+                    <option value="16px">크게 16px</option>
+                  </select>
+                  <select id="intakeOverlayWeight_tc" class="overlay-select">
+                    <option value="400">보통 400</option>
+                    <option value="700" selected>굵게 700</option>
+                    <option value="900">매우 굵게 900</option>
+                  </select>
                 </div>
               </div>
               <!-- Top-Right -->
@@ -638,16 +845,26 @@
                   </select>
                 </div>
                 <div class="overlay-input-wrap">
-                  <input id="intakeOverlayText_tr" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                  <input id="intakeOverlayText_tr" type="text" placeholder="문구 또는 {page}/{total}"
+                    class="overlay-text-input">
                   <input id="intakeOverlayFile_tr" type="file" accept="image/*" class="overlay-file-input" hidden>
                   <div id="intakeOverlayImgPrev_tr" class="overlay-img-preview" hidden>
                     <img id="intakeOverlayImg_tr" src="" alt="Overlay preview">
-                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="tr" title="이미지 삭제">✕</button>
+                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="tr"
+                      title="이미지 삭제">✕</button>
                   </div>
                 </div>
                 <div class="overlay-style-row">
-                  <select id="intakeOverlaySize_tr" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
-                  <select id="intakeOverlayWeight_tr" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                  <select id="intakeOverlaySize_tr" class="overlay-select">
+                    <option value="11px">작게 11px</option>
+                    <option value="13px" selected>보통 13px</option>
+                    <option value="16px">크게 16px</option>
+                  </select>
+                  <select id="intakeOverlayWeight_tr" class="overlay-select">
+                    <option value="400">보통 400</option>
+                    <option value="700" selected>굵게 700</option>
+                    <option value="900">매우 굵게 900</option>
+                  </select>
                 </div>
               </div>
               <!-- Bottom-Left -->
@@ -662,16 +879,26 @@
                   </select>
                 </div>
                 <div class="overlay-input-wrap">
-                  <input id="intakeOverlayText_bl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                  <input id="intakeOverlayText_bl" type="text" placeholder="문구 또는 {page}/{total}"
+                    class="overlay-text-input">
                   <input id="intakeOverlayFile_bl" type="file" accept="image/*" class="overlay-file-input" hidden>
                   <div id="intakeOverlayImgPrev_bl" class="overlay-img-preview" hidden>
                     <img id="intakeOverlayImg_bl" src="" alt="Overlay preview">
-                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="bl" title="이미지 삭제">✕</button>
+                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="bl"
+                      title="이미지 삭제">✕</button>
                   </div>
                 </div>
                 <div class="overlay-style-row">
-                  <select id="intakeOverlaySize_bl" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
-                  <select id="intakeOverlayWeight_bl" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                  <select id="intakeOverlaySize_bl" class="overlay-select">
+                    <option value="11px">작게 11px</option>
+                    <option value="13px" selected>보통 13px</option>
+                    <option value="16px">크게 16px</option>
+                  </select>
+                  <select id="intakeOverlayWeight_bl" class="overlay-select">
+                    <option value="400">보통 400</option>
+                    <option value="700" selected>굵게 700</option>
+                    <option value="900">매우 굵게 900</option>
+                  </select>
                 </div>
               </div>
               <!-- Bottom-Center -->
@@ -686,16 +913,26 @@
                   </select>
                 </div>
                 <div class="overlay-input-wrap">
-                  <input id="intakeOverlayText_bc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                  <input id="intakeOverlayText_bc" type="text" placeholder="문구 또는 {page}/{total}"
+                    class="overlay-text-input">
                   <input id="intakeOverlayFile_bc" type="file" accept="image/*" class="overlay-file-input" hidden>
                   <div id="intakeOverlayImgPrev_bc" class="overlay-img-preview" hidden>
                     <img id="intakeOverlayImg_bc" src="" alt="Overlay preview">
-                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="bc" title="이미지 삭제">✕</button>
+                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="bc"
+                      title="이미지 삭제">✕</button>
                   </div>
                 </div>
                 <div class="overlay-style-row">
-                  <select id="intakeOverlaySize_bc" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
-                  <select id="intakeOverlayWeight_bc" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                  <select id="intakeOverlaySize_bc" class="overlay-select">
+                    <option value="11px">작게 11px</option>
+                    <option value="13px" selected>보통 13px</option>
+                    <option value="16px">크게 16px</option>
+                  </select>
+                  <select id="intakeOverlayWeight_bc" class="overlay-select">
+                    <option value="400">보통 400</option>
+                    <option value="700" selected>굵게 700</option>
+                    <option value="900">매우 굵게 900</option>
+                  </select>
                 </div>
               </div>
               <!-- Bottom-Right -->
@@ -710,21 +947,32 @@
                   </select>
                 </div>
                 <div class="overlay-input-wrap">
-                  <input id="intakeOverlayText_br" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                  <input id="intakeOverlayText_br" type="text" placeholder="문구 또는 {page}/{total}"
+                    class="overlay-text-input">
                   <input id="intakeOverlayFile_br" type="file" accept="image/*" class="overlay-file-input" hidden>
                   <div id="intakeOverlayImgPrev_br" class="overlay-img-preview" hidden>
                     <img id="intakeOverlayImg_br" src="" alt="Overlay preview">
-                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="br" title="이미지 삭제">✕</button>
+                    <button type="button" class="remove-overlay-img-btn" data-prefix="intake" data-pos="br"
+                      title="이미지 삭제">✕</button>
                   </div>
                 </div>
                 <div class="overlay-style-row">
-                  <select id="intakeOverlaySize_br" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
-                  <select id="intakeOverlayWeight_br" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                  <select id="intakeOverlaySize_br" class="overlay-select">
+                    <option value="11px">작게 11px</option>
+                    <option value="13px" selected>보통 13px</option>
+                    <option value="16px">크게 16px</option>
+                  </select>
+                  <select id="intakeOverlayWeight_br" class="overlay-select">
+                    <option value="400">보통 400</option>
+                    <option value="700" selected>굵게 700</option>
+                    <option value="900">매우 굵게 900</option>
+                  </select>
                 </div>
               </div>
             </div>
           </div>
-          <button id="startPresentationWithStyleButton" class="button button-dark start-with-style-btn" type="submit">✨ 선택한 디자인 & 스타일로 프레젠테이션 시작하기</button>
+          <button id="startPresentationWithStyleButton" class="button button-dark start-with-style-btn" type="submit">✨
+            선택한 디자인 & 스타일로 프레젠테이션 시작하기</button>
         </div>
       </form>
       <input id="intakeProjectFile" type="file" accept=".txt,.json,text/plain,application/json" hidden>
@@ -733,35 +981,45 @@
 
   <!-- AI Slide & Template Review Modal -->
   <section id="aiReviewModal" class="ai-intake" hidden role="dialog" aria-modal="true" aria-labelledby="aiReviewTitle">
-    <div class="ai-intake-card review-modal-card" style="max-width: 860px; width: 92vw; max-height: 90vh; display: flex; flex-direction: column;">
-      <div class="ai-intake-heading" style="display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 12px; border-bottom: 2px solid var(--ink);">
+    <div class="ai-intake-card review-modal-card"
+      style="max-width: 860px; width: 92vw; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="ai-intake-heading"
+        style="display: flex; align-items: flex-start; justify-content: space-between; padding-bottom: 12px; border-bottom: 2px solid var(--ink);">
         <div>
           <p class="ai-eyebrow">LOCAL PPT · AI REVIEW & TEMPLATE SELECTOR</p>
           <h2 id="aiReviewTitle" style="margin: 0; font-size: 20px; font-weight: 900;">🤖 AI 슬라이드 검토 및 템플릿 선택</h2>
-          <p style="margin-top: 4px; font-size: 13px;">AI가 생성한 슬라이드 제목과 추천 템플릿을 검토하고, 각 슬라이드에 반영할 템플릿을 자유롭게 변경할 수 있습니다.</p>
+          <p style="margin-top: 4px; font-size: 13px;">AI가 생성한 슬라이드 제목과 추천 템플릿을 검토하고, 각 슬라이드에 반영할 템플릿을 자유롭게 변경할 수 있습니다.
+          </p>
         </div>
-        <button id="closeAiReviewModalButton" class="text-link" type="button" style="font-size: 24px; font-weight: 900; line-height: 1; padding: 0 4px;">×</button>
+        <button id="closeAiReviewModalButton" class="text-link" type="button"
+          style="font-size: 24px; font-weight: 900; line-height: 1; padding: 0 4px;">×</button>
       </div>
 
-      <div id="aiReviewSlideList" class="review-slide-list" style="flex: 1; overflow-y: auto; margin-top: 14px; padding-right: 6px; display: flex; flex-direction: column; gap: 14px;">
+      <div id="aiReviewSlideList" class="review-slide-list"
+        style="flex: 1; overflow-y: auto; margin-top: 14px; padding-right: 6px; display: flex; flex-direction: column; gap: 14px;">
         <!-- Dynamic Slide Cards populated via javascript -->
       </div>
 
-      <div class="modal-actions-row" style="margin-top: 16px; padding-top: 14px; border-top: 2px solid var(--ink); display: flex; gap: 10px; justify-content: flex-end; align-items: center;">
+      <div class="modal-actions-row"
+        style="margin-top: 16px; padding-top: 14px; border-top: 2px solid var(--ink); display: flex; gap: 10px; justify-content: flex-end; align-items: center;">
         <button id="cancelAiReviewButton" class="button" type="button">취소</button>
-        <button id="confirmAiReviewButton" class="button button-dark" type="button" style="padding: 10px 24px; font-weight: 900;">✨ 확인 (슬라이드 생성)</button>
+        <button id="confirmAiReviewButton" class="button button-dark" type="button"
+          style="padding: 10px 24px; font-weight: 900;">✨ 확인 (슬라이드 생성)</button>
       </div>
     </div>
   </section>
-  <section id="styleConfigModal" class="ai-intake" hidden role="dialog" aria-modal="true" aria-labelledby="styleModalTitle">
+  <section id="styleConfigModal" class="ai-intake" hidden role="dialog" aria-modal="true"
+    aria-labelledby="styleModalTitle">
     <div class="ai-intake-card style-modal-card">
-      <div class="ai-intake-heading style-modal-heading" style="display:flex; align-items:flex-start; justify-content:space-between;">
+      <div class="ai-intake-heading style-modal-heading"
+        style="display:flex; align-items:flex-start; justify-content:space-between;">
         <div>
           <p class="ai-eyebrow">LOCAL PPT · DESIGN SYSTEM</p>
           <h2 id="styleModalTitle" style="margin:0; font-size:20px; font-weight:900;">디자인 & 테마 스타일 변경</h2>
           <p style="margin-top:4px;">현재 프레젠테이션의 데이터는 그대로 유지되며 디자인, 테마색, 고정 문구만 즉시 반영됩니다.</p>
         </div>
-        <button id="closeStyleModalButton" class="text-link" type="button" style="font-size:24px; font-weight:900; line-height:1; padding:0 4px;">×</button>
+        <button id="closeStyleModalButton" class="text-link" type="button"
+          style="font-size:24px; font-weight:900; line-height:1; padding:0 4px;">×</button>
       </div>
 
       <div class="intake-style-settings" style="margin-top:12px;">
@@ -775,7 +1033,8 @@
                 </div>
                 <select id="modalDesignSelect" class="sr-only" style="display:none;" aria-hidden="true"></select>
                 <div id="modalThemeFilterTabs" class="theme-filter-tabs"></div>
-                <div id="modalThemeThumbGrid" class="theme-thumbnail-grid" role="radiogroup" aria-label="프레젠테이션 디자인 테마 선택"></div>
+                <div id="modalThemeThumbGrid" class="theme-thumbnail-grid" role="radiogroup"
+                  aria-label="프레젠테이션 디자인 테마 선택"></div>
                 <p id="modalDesignHint" class="guide theme-selected-hint"></p>
               </div>
 
@@ -788,19 +1047,22 @@
                   <div class="color-picker-row">
                     <span class="color-rank-label">1순위</span>
                     <input id="modalColorPicker1" type="color" value="#e11d48">
-                    <input id="modalColorHex1" type="text" class="color-hex-input" placeholder="#HEX" value="#e11d48" maxlength="7">
+                    <input id="modalColorHex1" type="text" class="color-hex-input" placeholder="#HEX" value="#e11d48"
+                      maxlength="7">
                     <span id="modalColorSwatch1" class="color-swatch-chip" style="background:#e11d48"></span>
                   </div>
                   <div class="color-picker-row">
                     <span class="color-rank-label">2순위</span>
                     <input id="modalColorPicker2" type="color" value="#2563eb">
-                    <input id="modalColorHex2" type="text" class="color-hex-input" placeholder="#HEX" value="#2563eb" maxlength="7">
+                    <input id="modalColorHex2" type="text" class="color-hex-input" placeholder="#HEX" value="#2563eb"
+                      maxlength="7">
                     <span id="modalColorSwatch2" class="color-swatch-chip" style="background:#2563eb"></span>
                   </div>
                   <div class="color-picker-row">
                     <span class="color-rank-label">3순위</span>
                     <input id="modalColorPicker3" type="color" value="#f59e0b">
-                    <input id="modalColorHex3" type="text" class="color-hex-input" placeholder="#HEX" value="#f59e0b" maxlength="7">
+                    <input id="modalColorHex3" type="text" class="color-hex-input" placeholder="#HEX" value="#f59e0b"
+                      maxlength="7">
                     <span id="modalColorSwatch3" class="color-swatch-chip" style="background:#f59e0b"></span>
                   </div>
                 </div>
@@ -815,9 +1077,11 @@
         </div>
 
         <div class="intake-overlay-block">
-          <div class="overlay-header-row" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <div class="overlay-header-row"
+            style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
             <strong class="option-group-title" style="margin:0;">6개 고정 위치 문구 설정</strong>
-            <label class="overlay-title-toggle-label" style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; cursor:pointer;">
+            <label class="overlay-title-toggle-label"
+              style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; cursor:pointer;">
               <input id="modalOverlayApplyToTitle" type="checkbox">
               <span>Title PAGE 01 (표지)에도 적용</span>
             </label>
@@ -835,16 +1099,26 @@
                 </select>
               </div>
               <div class="overlay-input-wrap">
-                <input id="modalOverlayText_tl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <input id="modalOverlayText_tl" type="text" placeholder="문구 또는 {page}/{total}"
+                  class="overlay-text-input">
                 <input id="modalOverlayFile_tl" type="file" accept="image/*" class="overlay-file-input" hidden>
                 <div id="modalOverlayImgPrev_tl" class="overlay-img-preview" hidden>
                   <img id="modalOverlayImg_tl" src="" alt="Overlay preview">
-                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="tl" title="이미지 삭제">✕</button>
+                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="tl"
+                    title="이미지 삭제">✕</button>
                 </div>
               </div>
               <div class="overlay-style-row">
-                <select id="modalOverlaySize_tl" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
-                <select id="modalOverlayWeight_tl" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                <select id="modalOverlaySize_tl" class="overlay-select">
+                  <option value="11px">작게 11px</option>
+                  <option value="13px" selected>보통 13px</option>
+                  <option value="16px">크게 16px</option>
+                </select>
+                <select id="modalOverlayWeight_tl" class="overlay-select">
+                  <option value="400">보통 400</option>
+                  <option value="700" selected>굵게 700</option>
+                  <option value="900">매우 굵게 900</option>
+                </select>
               </div>
             </div>
             <!-- Top-Center -->
@@ -859,16 +1133,26 @@
                 </select>
               </div>
               <div class="overlay-input-wrap">
-                <input id="modalOverlayText_tc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <input id="modalOverlayText_tc" type="text" placeholder="문구 또는 {page}/{total}"
+                  class="overlay-text-input">
                 <input id="modalOverlayFile_tc" type="file" accept="image/*" class="overlay-file-input" hidden>
                 <div id="modalOverlayImgPrev_tc" class="overlay-img-preview" hidden>
                   <img id="modalOverlayImg_tc" src="" alt="Overlay preview">
-                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="tc" title="이미지 삭제">✕</button>
+                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="tc"
+                    title="이미지 삭제">✕</button>
                 </div>
               </div>
               <div class="overlay-style-row">
-                <select id="modalOverlaySize_tc" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
-                <select id="modalOverlayWeight_tc" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                <select id="modalOverlaySize_tc" class="overlay-select">
+                  <option value="11px">작게 11px</option>
+                  <option value="13px" selected>보통 13px</option>
+                  <option value="16px">크게 16px</option>
+                </select>
+                <select id="modalOverlayWeight_tc" class="overlay-select">
+                  <option value="400">보통 400</option>
+                  <option value="700" selected>굵게 700</option>
+                  <option value="900">매우 굵게 900</option>
+                </select>
               </div>
             </div>
             <!-- Top-Right -->
@@ -883,16 +1167,26 @@
                 </select>
               </div>
               <div class="overlay-input-wrap">
-                <input id="modalOverlayText_tr" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <input id="modalOverlayText_tr" type="text" placeholder="문구 또는 {page}/{total}"
+                  class="overlay-text-input">
                 <input id="modalOverlayFile_tr" type="file" accept="image/*" class="overlay-file-input" hidden>
                 <div id="modalOverlayImgPrev_tr" class="overlay-img-preview" hidden>
                   <img id="modalOverlayImg_tr" src="" alt="Overlay preview">
-                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="tr" title="이미지 삭제">✕</button>
+                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="tr"
+                    title="이미지 삭제">✕</button>
                 </div>
               </div>
               <div class="overlay-style-row">
-                <select id="modalOverlaySize_tr" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
-                <select id="modalOverlayWeight_tr" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                <select id="modalOverlaySize_tr" class="overlay-select">
+                  <option value="11px">작게 11px</option>
+                  <option value="13px" selected>보통 13px</option>
+                  <option value="16px">크게 16px</option>
+                </select>
+                <select id="modalOverlayWeight_tr" class="overlay-select">
+                  <option value="400">보통 400</option>
+                  <option value="700" selected>굵게 700</option>
+                  <option value="900">매우 굵게 900</option>
+                </select>
               </div>
             </div>
             <!-- Bottom-Left -->
@@ -907,16 +1201,26 @@
                 </select>
               </div>
               <div class="overlay-input-wrap">
-                <input id="modalOverlayText_bl" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <input id="modalOverlayText_bl" type="text" placeholder="문구 또는 {page}/{total}"
+                  class="overlay-text-input">
                 <input id="modalOverlayFile_bl" type="file" accept="image/*" class="overlay-file-input" hidden>
                 <div id="modalOverlayImgPrev_bl" class="overlay-img-preview" hidden>
                   <img id="modalOverlayImg_bl" src="" alt="Overlay preview">
-                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="bl" title="이미지 삭제">✕</button>
+                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="bl"
+                    title="이미지 삭제">✕</button>
                 </div>
               </div>
               <div class="overlay-style-row">
-                <select id="modalOverlaySize_bl" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
-                <select id="modalOverlayWeight_bl" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                <select id="modalOverlaySize_bl" class="overlay-select">
+                  <option value="11px">작게 11px</option>
+                  <option value="13px" selected>보통 13px</option>
+                  <option value="16px">크게 16px</option>
+                </select>
+                <select id="modalOverlayWeight_bl" class="overlay-select">
+                  <option value="400">보통 400</option>
+                  <option value="700" selected>굵게 700</option>
+                  <option value="900">매우 굵게 900</option>
+                </select>
               </div>
             </div>
             <!-- Bottom-Center -->
@@ -931,16 +1235,26 @@
                 </select>
               </div>
               <div class="overlay-input-wrap">
-                <input id="modalOverlayText_bc" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <input id="modalOverlayText_bc" type="text" placeholder="문구 또는 {page}/{total}"
+                  class="overlay-text-input">
                 <input id="modalOverlayFile_bc" type="file" accept="image/*" class="overlay-file-input" hidden>
                 <div id="modalOverlayImgPrev_bc" class="overlay-img-preview" hidden>
                   <img id="modalOverlayImg_bc" src="" alt="Overlay preview">
-                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="bc" title="이미지 삭제">✕</button>
+                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="bc"
+                    title="이미지 삭제">✕</button>
                 </div>
               </div>
               <div class="overlay-style-row">
-                <select id="modalOverlaySize_bc" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
-                <select id="modalOverlayWeight_bc" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                <select id="modalOverlaySize_bc" class="overlay-select">
+                  <option value="11px">작게 11px</option>
+                  <option value="13px" selected>보통 13px</option>
+                  <option value="16px">크게 16px</option>
+                </select>
+                <select id="modalOverlayWeight_bc" class="overlay-select">
+                  <option value="400">보통 400</option>
+                  <option value="700" selected>굵게 700</option>
+                  <option value="900">매우 굵게 900</option>
+                </select>
               </div>
             </div>
             <!-- Bottom-Right -->
@@ -955,16 +1269,26 @@
                 </select>
               </div>
               <div class="overlay-input-wrap">
-                <input id="modalOverlayText_br" type="text" placeholder="문구 또는 {page}/{total}" class="overlay-text-input">
+                <input id="modalOverlayText_br" type="text" placeholder="문구 또는 {page}/{total}"
+                  class="overlay-text-input">
                 <input id="modalOverlayFile_br" type="file" accept="image/*" class="overlay-file-input" hidden>
                 <div id="modalOverlayImgPrev_br" class="overlay-img-preview" hidden>
                   <img id="modalOverlayImg_br" src="" alt="Overlay preview">
-                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="br" title="이미지 삭제">✕</button>
+                  <button type="button" class="remove-overlay-img-btn" data-prefix="modal" data-pos="br"
+                    title="이미지 삭제">✕</button>
                 </div>
               </div>
               <div class="overlay-style-row">
-                <select id="modalOverlaySize_br" class="overlay-select"><option value="11px">작게 11px</option><option value="13px" selected>보통 13px</option><option value="16px">크게 16px</option></select>
-                <select id="modalOverlayWeight_br" class="overlay-select"><option value="400">보통 400</option><option value="700" selected>굵게 700</option><option value="900">매우 굵게 900</option></select>
+                <select id="modalOverlaySize_br" class="overlay-select">
+                  <option value="11px">작게 11px</option>
+                  <option value="13px" selected>보통 13px</option>
+                  <option value="16px">크게 16px</option>
+                </select>
+                <select id="modalOverlayWeight_br" class="overlay-select">
+                  <option value="400">보통 400</option>
+                  <option value="700" selected>굵게 700</option>
+                  <option value="900">매우 굵게 900</option>
+                </select>
               </div>
             </div>
           </div>
@@ -972,14 +1296,16 @@
 
         <div class="modal-actions-row" style="margin-top:16px; display:flex; gap:10px; justify-content:flex-end;">
           <button id="cancelStyleModalButton" class="button" type="button">취소</button>
-          <button id="applyStyleModalButton" class="button button-dark" type="button" style="padding:10px 24px; font-weight:900;">✨ 적용하기</button>
+          <button id="applyStyleModalButton" class="button button-dark" type="button"
+            style="padding:10px 24px; font-weight:900;">✨ 적용하기</button>
         </div>
       </div>
     </div>
   </section>
 
   <!-- HTML Import Modal -->
-  <section id="htmlImportModal" class="ai-intake" hidden role="dialog" aria-modal="true" aria-labelledby="htmlImportTitle">
+  <section id="htmlImportModal" class="ai-intake" hidden role="dialog" aria-modal="true"
+    aria-labelledby="htmlImportTitle">
     <div class="ai-intake-card" style="max-width: 680px; width: 90vw;">
       <div class="ai-intake-heading">
         <p class="ai-eyebrow">LOCAL PPT · HTML IMPORT</p>
@@ -1008,23 +1334,28 @@
 </div>" style="width: 100%; font-family: monospace; font-size: 12px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; line-height: 1.5; resize: vertical; background: #fafafa;"></textarea>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px;">
+        <div
+          style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px;">
           <strong style="font-size: 12px; color: #0f172a; font-weight: 800;">⚙️ HTML 슬라이드 구현 방식 선택:</strong>
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; cursor: pointer; color: #1e293b;">
+          <label
+            style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; cursor: pointer; color: #1e293b;">
             <input type="radio" name="htmlImportMode" value="raw-layout" checked>
             <span>✨ HTML 원문 디자인 &amp; CSS 레이아웃 그대로 슬라이드 구현 (1:1 Visual Render)</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; cursor: pointer; color: #475569;">
+          <label
+            style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; cursor: pointer; color: #475569;">
             <input type="radio" name="htmlImportMode" value="convert-objects">
             <span>📝 PPT 기본 텍스트/카드 개체로 분해 변환</span>
           </label>
         </div>
 
-        <p id="htmlImportStatus" class="guide" style="margin: 0; min-height: 18px; color: #2563eb; font-weight: 700;"></p>
+        <p id="htmlImportStatus" class="guide" style="margin: 0; min-height: 18px; color: #2563eb; font-weight: 700;">
+        </p>
 
         <div class="modal-actions-row" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px;">
           <button id="cancelHtmlImportButton" class="button" type="button">취소</button>
-          <button id="confirmHtmlImportButton" class="button button-dark" type="button" style="padding: 9px 20px; font-weight: 900;">✨ 슬라이드로 추가</button>
+          <button id="confirmHtmlImportButton" class="button button-dark" type="button"
+            style="padding: 9px 20px; font-weight: 900;">✨ 슬라이드로 추가</button>
         </div>
       </div>
     </div>
@@ -1038,4 +1369,5 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="ai-intake.js?v=20260828-ai4"></script>
 </body>
+
 </html>

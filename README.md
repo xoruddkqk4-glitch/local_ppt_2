@@ -118,7 +118,7 @@ AI 생성은 `index.html` 파일을 직접 열지 않고 `node server.js` 실행
 - 레이아웃·다이어그램 항목 추가·삭제 시 기존 텍스트와 서식을 유지하고 남은 카드 폭을 가용 영역에 맞게 자동 재배치
 - 마인드맵 4단계 계층, 방사형 배치, 부모–자식 연결선 및 단계별 색상
 - 마인드맵 항목 추가·삭제 시 기존 노드 위치 유지
-- 테이블 레이아웃의 행·열 추가 및 삭제
+- 테이블 레이아웃의 행·열 추가 및 삭제, 마우스 드래그를 통한 행 높이·열 너비 조절, 행높이 맞춤(`↕ 행높이 맞춤`) 및 열너비 맞춤(`↔ 열너비 맞춤`) 균등 배분 지원
 - 꼭짓점이 삼각형인 1단계를 포함하는 피라미드 다이어그램
 - 전체 화면 프레젠테이션 보기 및 `←`·`→` 키를 이용한 이전·다음 슬라이드 이동
 - 전체 프로젝트를 JSON 형식의 `.txt` 파일로 저장하고 다시 불러오기
@@ -244,7 +244,7 @@ AI 생성 기능 없이 편집기만 사용한다면 `index.html`을 직접 열 
 - 표지: 도형 없는 텍스트 항목을 추가합니다. 항목을 선택한 뒤 `Tab` 또는 `Shift+Tab`으로 위계를 조정할 수 있습니다.
 - 개조식: 선택한 항목 다음에 새 항목을 추가하거나 선택한 항목을 삭제합니다. `Tab`은 하위 위계, `Shift+Tab`은 상위 위계로 변경합니다. 동일 위계의 항목은 가장 긴 내용을 기준으로 같은 글자 크기를 사용하며, 위계가 내려갈수록 글자 크기가 작아집니다.
 - 마인드맵: 선택한 노드에 하위 가지를 추가합니다. 4단계에서는 더 깊은 가지를 추가할 수 없습니다. 가지를 삭제하면 그 아래의 모든 하위 가지도 함께 삭제됩니다. 추가와 삭제는 나머지 노드의 위치에 영향을 주지 않습니다. 같은 단계의 노드는 가장 긴 문구가 들어가는 공통 글자 크기를 사용합니다.
-- 테이블: 테이블 레이아웃이나 슬라이드에 추가된 테이블 개체를 선택하면 왼쪽 `02 개체 관리` 패널에 `+ 행`, `− 행`, `+ 열`, `− 열` 버튼이 표시되며, 현재 템플릿(개조식, 마인드맵, 레이아웃 등)과 관계없이 행과 열의 개수를 직접 조정할 수 있습니다.
+- 테이블: 테이블 레이아웃이나 슬라이드에 추가된 테이블 개체를 선택하면 왼쪽 `02 개체 관리` 패널에 `+ 행`, `− 행`, `+ 열`, `− 열` 버튼이 표시되며, 현재 템플릿(개조식, 마인드맵, 레이아웃 등)과 관계없이 행과 열의 개수를 직접 조정할 수 있습니다. 또한 표 내부 구분선 및 외곽 우측·하단 테두리를 마우스로 드래그해 열 너비와 행 높이를 자유롭게 조절할 수 있으며, 상단 편집 툴바와 좌측 표 설정 패널의 `↕ 행높이 맞춤`, `↔ 열너비 맞춤` 버튼(또는 경계선 더블클릭)으로 선택된 행·열이나 표 전체의 행 높이·열 너비를 균등하게 맞출 수 있습니다.
 - 레이아웃 및 다이어그램: 선택 상태를 기준으로 항목 수를 조정합니다. 항목을 추가하거나 삭제해도 기존 제목·카드·보조 패널의 텍스트와 서식은 유지됩니다. 카드 수가 줄면 고정된 빈 열을 남기지 않고 가용 영역을 다시 나누어 남은 카드의 폭을 확장합니다.
 
 일반 레이아웃·다이어그램의 같은 역할 항목과 표의 모든 셀도 가장 긴 내용을 기준으로 공통 크기를 계산합니다. 한 항목의 글자 크기를 수동으로 변경하면 같은 역할·위계의 항목에도 함께 적용됩니다.
@@ -1248,5 +1248,31 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
   - `ai-intake.js`:
     - **시작 화면과 편집창 간의 파일 피커 연동 통일**:
       - 시작 화면의 `02 txt 불러오기`(`action === "project"`)에서 기존 별도 ID(`"local-ppt-file"`) 대신 `window.LocalPptApp.openProjectPickerDialog()` 및 공통 ID(`"local-ppt-project"`)를 사용하도록 일원화하여 처음 불러오기에서 열었던 폴더와 편집창 버튼들의 최근 폴더가 100% 공유되도록 개선.
+- **검증 결과**:
+  - `node -c app.js; node -c ai-intake.js`: 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
+## [2026-11-09 00:21] 업데이트 이력 (Commit ID: 566cbb9)
+- **수정 내용**:
+  - `app.js`:
+    - **개체 내 텍스트 한글(IME) 입력 불가 현상 해결 (`isEditableInput`, `bindEvents` 전역 `keydown` 핸들러)**:
+      - `isEditableInput(target)`에서 `target.isContentEditable`뿐만 아니라 `closest('[contenteditable="true"]')` 및 활성 인라인 편집 개체(`state.editingObjectId`) 내부 여부를 함께 판별하도록 보강.
+      - 전역 `keydown` 리스너 최상단에 `event.isComposing || event.keyCode === 229` 가드를 추가하여 한글 IME 조합 중 단축키 핸들러가 개입하지 않도록 차단.
+      - 개체가 선택된 상태에서 문자 키를 직접 타이핑해 편집을 시작하는 로직에서 영문/숫자 정규식(`/^[a-zA-Z0-9]$/`) 제한으로 인해 한글 두벌식 자모가 차단되던 문제를 해결하고, `beginInlineTextEdit` 직후 `event.preventDefault()`를 제거하여 첫 한글 음절이 정상 조합·입력되도록 개선.
+    - **상단 편집 툴바(`#textToolbar`) 글자색 적용 오류 수정 (`applySelectedObjectColor`, `stripInlineColorStyles`, `applySelectionStyle`)**:
+      - 기존 인라인 부분 서식(`<span style="color: ...">`, `<font color="...">`)이 남아 있을 때 상단 툴바의 글자색 변경이 자식 인라인 스타일에 가려져 반영되지 않던 문제를 해결하기 위해 `stripInlineColorStyles(rootEl)` 헬퍼를 추가하여 내부 인라인 색상 속성을 정리하고 개체 전체 및 활성 편집 요소에 즉시 색상이 적용되도록 개선.
+      - 텍스트 드래그 선택 후 상단 `#textToolbar`의 글자색 피커 또는 프리셋 스와치 클릭 시에도 선택 영역이 해제되지 않도록 `mousedown` 기본 포커스 이동을 방지하고 선택된 텍스트 구간 또는 개체 전체에 글자색이 정확히 반영되도록 연동.
+    - **테이블 행높이 맞춤 / 열너비 맞춤 기능 추가 (`equalizeTableRowHeights`, `equalizeTableColWidths`)**:
+      - 상단 편집 툴바(`#textToolbar`) 및 좌측 표 설정 패널(`#tableDimensionControls`)에 `↕ 행높이 맞춤`(`#equalRowHeightBtn`, `#toolbarEqualRowHeightBtn`), `↔ 열너비 맞춤`(`#equalColWidthBtn`, `#toolbarEqualColWidthBtn`) 버튼을 추가하고 클릭 이벤트를 연동.
+      - 2개 이상의 행 또는 열을 다중 선택한 상태에서는 선택된 행/열들의 높이·너비 합계를 유지한 채 균등 배분하고, 단일 셀 선택이나 표 전체 선택 상태에서는 표 전체 행 높이·열 너비를 균등하게 맞춤.
+      - 기존의 `너비·높이 균등 맞춤`(`#resetTableSizesBtn`) 실행 시에도 헤더 행(38px)과 일반 행(30px)의 기본 높이 차이 없이 모든 행과 열이 동일한 비율로 균등 배분되도록 개선.
+    - **마우스 드래그를 이용한 테이블 열 너비 및 행 높이 실시간 조절 (`appendTableResizeHandles`, `getNormalizedTableColWidths`, `getNormalizedTableRowHeights`, `createTableElement`)**:
+      - 테이블 개체 렌더링 시 내부 열 경계선(`.table-col-resizer`), 우측 외곽 경계선(`.table-col-edge-resizer`), 내부 행 경계선(`.table-row-resizer`), 하단 외곽 경계선(`.table-row-edge-resizer`) 드래그 핸들을 오버레이로 생성.
+      - 내부 열/행 구분선 드래그 시 인접한 두 열의 너비 비율(`colWidths`) 또는 두 행의 높이(`rowHeights`)를 실시간으로 조절하고, 우측/하단 외곽 경계선 드래그 시 마지막 열/행 크기와 함께 표 전체 너비(`w`)·높이(`h`)가 자연스럽게 조절되도록 구현.
+      - 열/행 경계선 더블클릭 시 각각 전체 열 너비 균등 맞춤(`equalizeTableColWidths`), 전체 행 높이 균등 맞춤(`equalizeTableRowHeights`)이 즉시 실행되도록 지원.
+  - `index.html`:
+    - 좌측 `#tableDimensionControls` 패널 및 상단 `#textToolbar` 내 `#tableMergeToolbarGroup`에 `↕ 행높이 맞춤`, `↔ 열너비 맞춤` 버튼 추가.
+  - `style.css`:
+    - `.table-object`에 `table-layout: fixed;`를 적용하여 열 너비 비율과 행 높이 비율이 정확히 반영되도록 개선.
+    - `.table-grid-resizers`, `.table-col-resizer`, `.table-row-resizer`, `.table-col-edge-resizer`, `.table-row-edge-resizer` 스타일 및 호버/드래그 중 하이라이트 가이드, 전체 화면·발표 모드 숨김 규칙 추가.
 - **검증 결과**:
   - `node -c app.js; node -c ai-intake.js`: 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
