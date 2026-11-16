@@ -221,10 +221,12 @@ AI 생성 기능 없이 편집기만 사용한다면 `index.html`을 직접 열 
 | 편집 중 줄바꿈 | 텍스트 또는 표 셀 편집 중 `Alt+Enter` |
 | 개체 이동 | 개체 드래그 |
 | 개체 크기 조절 | 개체 우하단 핸들 드래그 |
-| 복수 선택 | `Ctrl`/`Cmd` + 개체 클릭 |
+| 개체 복수 선택 | `Ctrl`/`Cmd` + 개체 클릭 |
 | 복수 개체 이동 | 복수 선택 후 선택된 개체 드래그 |
+| 슬라이드 복수 선택 | 좌측 페이지 목록에서 `Ctrl`/`Cmd` + 슬라이드 클릭(개별 추가·해제), `Shift` + 슬라이드 클릭(연속 구간 선택) |
+| 슬라이드 일괄 이동·숨김·삭제 | 슬라이드 복수 선택 후 드래그로 순서 이동, 눈 아이콘으로 일괄 숨김·해제, `Delete`/`Backspace` 또는 `×`로 일괄 삭제 |
 | 개체 복사·붙여넣기 | 개체 선택 후 `Ctrl+C`/`Cmd+C`, `Ctrl+V`/`Cmd+V` |
-| 페이지 복사·붙여넣기 | 개체를 선택하지 않은 상태에서 본문 페이지를 선택한 뒤 `Ctrl+C`/`Cmd+C`, `Ctrl+V`/`Cmd+V` |
+| 페이지 복사·붙여넣기 | 개체를 선택하지 않은 상태에서 본문 페이지(단일 또는 복수)를 선택한 뒤 `Ctrl+C`/`Cmd+C`, `Ctrl+V`/`Cmd+V` |
 | 선택 해제 | `Esc` |
 | 개조식·표지 항목 하위 위계 | 항목 선택 후 `Tab` |
 | 개조식·표지 항목 상위 위계 | 항목 선택 후 `Shift+Tab` |
@@ -235,7 +237,7 @@ AI 생성 기능 없이 편집기만 사용한다면 `index.html`을 직접 열 
 
 이동과 크기 조절 중에는 5% 격자와 다른 개체의 가장자리 및 중앙선에 자동으로 맞춰집니다. 스냅되는 위치는 빨간 점선 가이드로 표시됩니다.
 
-페이지를 복사하면 텍스트, 이미지, 개체 위치와 크기, 마인드맵 연결을 포함한 페이지 전체가 복제됩니다. 붙여넣은 페이지는 현재 페이지 바로 뒤에 삽입되며 자동으로 선택됩니다. PAGE 01은 프레젠테이션의 고정 표지이므로 페이지 복사 대상에서 제외됩니다.
+페이지를 복사하면 텍스트, 이미지, 개체 위치와 크기, 마인드맵 연결을 포함한 페이지 전체가 복제됩니다(복수 선택 시 선택된 모든 본문 페이지가 순서대로 복제됨). 붙여넣은 페이지들은 마지막 선택 페이지 바로 뒤에 삽입되며 자동으로 복수 선택 상태가 됩니다. PAGE 01은 프레젠테이션의 고정 표지이므로 페이지 복사·삭제 대상에서 제외됩니다.
 
 ## 항목 추가 및 삭제
 
@@ -266,7 +268,10 @@ AI 생성 기능 없이 편집기만 사용한다면 `index.html`을 직접 열 
 - 마인드맵 계층 관계
 - Base64 형식으로 포함된 이미지
 
-Chrome과 Edge에서 File System Access API를 사용할 수 있으면 시작 화면의 불러오기와 편집창의 `txt 불러오기`, `txt에 저장`, `다른 이름 txt로 저장`이 모두 동일한 피커 ID(`local-ppt-project`) 및 직전 파일 핸들(`startIn`)과 `IndexedDB`(`local_ppt_fs_db`) 영속화를 통해 가장 최근에 불러오거나 저장했던 폴더를 맨 처음 열어 줍니다. API를 사용할 수 없는 브라우저에서는 파일 입력 및 다운로드 방식으로 대체됩니다.
+브라우저 및 실행 환경에 따라 최적화된 네이티브 파일 탐색기 연동을 지원합니다:
+- **로컬 서버(`start-local-ppt.cmd`, `http://127.0.0.1:8765`) + Chrome**: Chrome의 네이티브 `SelectFileDialog` 블로킹 현상을 우회하여 로컬 서버(`server.js`의 `/api/fs/*`)가 Windows 탐색기 열기·저장 대화상자(`OpenFileDialog` / `SaveFileDialog`)를 직접 띄웁니다. 브라우저 다운로드 파일 생성이나 불필요한 중간 모달 없이 원하는 폴더에 직접 저장·덮어쓰기되며, 마지막으로 사용한 폴더 위치를 기억하고 `다른 이름 txt로 저장` 직후 편집창의 활성 파일도 새 `.txt` 경로로 즉시 전환됩니다.
+- **Microsoft Edge**: 브라우저 내장 File System Access API(피커 ID `local-ppt-project-v2`, `startIn`, `IndexedDB` `local_ppt_fs_db`)를 통해 최근 폴더 기억 및 직접 덮어쓰기 저장을 지원합니다.
+- **드래그 앤 드롭 & 폴백**: 시작 화면이나 편집창 어디에든 `.txt`/`.json` 프로젝트 파일을 끌어다 놓아 바로 불러올 수 있으며, 서버 미실행(`file://`) 환경에서는 표준 파일 입력 및 다운로드 방식으로 자동 대체됩니다.
 
 > 저장 파일에는 이미지 데이터도 포함되므로 이미지를 많이 삽입하면 `.txt` 파일 크기가 커질 수 있습니다.
 
@@ -1276,3 +1281,22 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
     - `.table-grid-resizers`, `.table-col-resizer`, `.table-row-resizer`, `.table-col-edge-resizer`, `.table-row-edge-resizer` 스타일 및 호버/드래그 중 하이라이트 가이드, 전체 화면·발표 모드 숨김 규칙 추가.
 - **검증 결과**:
   - `node -c app.js; node -c ai-intake.js`: 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+
+## [2026-11-16 11:08] 업데이트 이력 (Commit ID: 9d694e0)
+- **수정 내용**:
+  - `app.js` & `style.css`:
+    - **슬라이드 복수 선택(`Ctrl+Click`, `Shift+Click`) 및 일괄 편집 기능 추가 (`state.selectedPageIndices`, `state.pageSelectionAnchor`, `getSelectedPageIndices`, `deleteSelectedPages`, `reorderPages`, `copySelectedPages`, `pasteCopiedPages`)**:
+      - 좌측 `#pageList`에서 `Ctrl`/`Cmd` + 슬라이드 클릭으로 개별 추가·해제, `Shift` + 슬라이드 클릭으로 기준 슬라이드부터 연속 범위 선택을 지원하고 `.page-item.is-selected` 다중 선택 시각 스타일 적용.
+      - 복수 선택된 본문 슬라이드(PAGE 01 고정 표지 자동 보호)의 `Ctrl+C`/`Ctrl+V` 일괄 복제·붙여넣기, `Delete`/`Backspace`/`×` 일괄 삭제, `👁`/`🙈` 일괄 숨김 토글, 드래그 앤 드롭 다중 순서 이동 지원.
+  - `app.js` & `ai-intake.js`:
+    - **프로젝트 `.txt` 불러오기 안정성 강화 및 브라우저별 최적 피커 분기 (`parseProject`, `loadProjectFile`, `canUseNativeFileSystemPicker`, `pickAndLoadProjectFile`)**:
+      - `parseProject()`의 UTF-8 BOM 제거 및 유연한 스키마 파싱 보강, `file.text()` 실패 시 `FileReader` 폴백, 대용량 파일 렌더링 전 시작 모달(`#aiIntake`) 즉시 닫기, 전역 창 `.txt`/`.json` 드래그 앤 드롭 열기 지원.
+      - Chrome에서 `window.showOpenFilePicker` / `window.showSaveFilePicker` 호출 시 탭 단위 `SelectFileDialog`가 응답 불능 상태에 빠져 이후 `<input type="file">`까지 차단되던 문제를 해결하기 위해 브라우저 내장 File System Access API 호출 대상을 Edge(`/\bEdg\//`) 전용으로 제한하고, 시작 화면 `02 txt 불러오기`와 상단 `txt 불러오기`를 `pickAndLoadProjectFile()`로 일원화.
+  - `server.js`, `app.js`, `start-local-ppt.cmd`, `index.html`:
+    - **Chrome용 로컬 Windows 탐색기 직접 열기·저장 브리지(`/api/fs/*`) 및 레거시 서버 자동 교체 (`openWindowsFileDialog`, `handleFsApi`, `openProjectViaServerDialog`, `saveProjectAsViaServerDialog`, `saveProjectDirectViaServer`)**:
+      - `server.js`에 PowerShell WinForms `OpenFileDialog` / `SaveFileDialog` 기반 `/api/fs/status`, `/api/fs/open`, `/api/fs/save-as`, `/api/fs/save-direct` 엔드포인트 구현 (`X-Local-Ppt-Client: 1` 및 localhost Origin 검증, `.txt`/`.json` 확장자 제한, `authorizedPaths` 화이트리스트 보호, 한글·대괄호 경로 안전 처리 및 Base64 UTF-8 인코딩, `os.tmpdir()/local-ppt-2-last-dir.json` 최근 폴더 영속화, 정적 자산 `Cache-Control: no-cache, no-store, must-revalidate` 헤더 추가).
+      - 중간 파일명 입력 모달 없이 즉시 Windows 파일 탐색기를 표시하고, `다른 이름 txt로 저장` 시 브라우저 다운로드 대신 선택한 경로에 직접 파일을 기록한 뒤 현재 열린 활성 문서(`currentProjectFileName`, `currentProjectServerPath`)를 새 `.txt` 파일로 즉시 전환하며 이후 `txt에 저장` 시 해당 파일에 즉시 덮어쓰기 저장되도록 개선.
+      - `start-local-ppt.cmd`가 기존 구버전 백그라운드 `node server.js`(`404 /api/fs/status`)를 자동 감지·종료한 뒤 최신 서버로 재기동하도록 개선하고, `index.html` 스크립트 캐시 버스팅 쿼리(`?v=20261116-fspicker5`) 갱신.
+- **검증 결과**:
+  - `node -c server.js; node -c app.js; node -c ai-intake.js`: 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+  - 슬라이드 다중 선택·복사·삭제 및 Chrome/Edge 파일 열기·다른 이름 저장·직접 덮어쓰기 시뮬레이션 검증 통과.

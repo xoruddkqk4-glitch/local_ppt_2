@@ -556,6 +556,27 @@ kbd { border:1px solid currentColor; padding:1px 3px; font-size:10px; }
 .page-item { flex:none; display:flex; flex-direction:column; gap:4px; padding:5px 6px; border:2px solid var(--ink); background:#fff; font-size:11px; font-weight:900; cursor:grab; user-select:none; transition:transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease; box-shadow:2.5px 2.5px 0 var(--ink); border-radius:5px; }
 .page-item-header { display:flex; align-items:center; justify-content:space-between; gap:4px; font-size:10.5px; font-weight:900; color:var(--ink); line-height:1; }
 .page-item-label { pointer-events:none; }
+.page-item.is-selected {
+  background: #eff6ff !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px #93c5fd, 2.5px 2.5px 0 #2563eb !important;
+}
+.page-item.is-selected .page-item-header {
+  color: #1d4ed8 !important;
+}
+.page-item.is-selected .page-thumbnail-box {
+  border-color: #3b82f6 !important;
+}
+.page-item.is-selected .page-hide-btn,
+.page-item.is-selected .page-delete {
+  color: #2563eb !important;
+  opacity: 0.9;
+}
+.page-item.is-selected .page-hide-btn:hover,
+.page-item.is-selected .page-delete:hover {
+  opacity: 1;
+  color: #ef4444 !important;
+}
 .page-item.is-current {
   background: var(--paper, #fffdf8) !important;
   border-color: #2563eb !important;

@@ -958,32 +958,15 @@
       document.querySelectorAll("[data-intake-action]").forEach((b) => b.classList.toggle("is-selected", b.dataset.intakeAction === "empty"));
       scrollToStylePanel();
     } else if (action === "project") {
-      if (window.showOpenFilePicker) {
-        (async () => {
-          try {
-            let handle;
-            if (window.LocalPptApp?.openProjectPickerDialog) {
-              handle = await window.LocalPptApp.openProjectPickerDialog();
-            } else {
-              [handle] = await window.showOpenFilePicker({
-                id: "local-ppt-project",
-                multiple: false,
-                types: [{ description: "Local ppt JSON 텍스트", accept: { "text/plain": [".txt", ".json"] } }]
-              });
-            }
-            await window.LocalPptApp.loadProjectFile(await handle.getFile(), handle);
-            intake.hidden = true;
-          } catch (error) {
-            if (error.name === "AbortError") return;
-            if (["SecurityError", "NotSupportedError"].includes(error.name)) {
-              $("#intakeProjectFile").click();
-            } else {
-              window.alert(`파일을 불러올 수 없습니다.\n${error.message}`);
-            }
-          }
-        })();
+      // Chrome에서는 동기 <input type="file">로, Edge에서는 네이티브 피커로 분기
+      if (window.LocalPptApp?.pickAndLoadProjectFile) {
+        window.LocalPptApp.pickAndLoadProjectFile();
       } else {
-        $("#intakeProjectFile").click();
+        const intakeInput = $("#intakeProjectFile");
+        if (intakeInput) {
+          intakeInput.value = "";
+          intakeInput.click();
+        }
       }
     } else {
       selectSource(action, false);
@@ -1004,7 +987,12 @@
 
   $("#goHomeButton")?.addEventListener("click", showStartScreen);
 
-  $("#intakeProjectFile")?.addEventListener("change", async (event) => { const file = event.target.files[0]; if (!file) return; await window.LocalPptApp.loadProjectFile(file); intake.hidden = true; });
+  $("#intakeProjectFile")?.addEventListener("change", async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    // Intake 닫기는 loadProjectFile 성공 시에만 수행
+    await window.LocalPptApp.loadProjectFile(file);
+  });
   fileInput?.addEventListener("change", () => { const file = fileInput.files[0]; fileName.textContent = file ? file.name : (sourceType === "pdf" ? "PDF 파일 선택" : "엑셀 파일 선택"); });
   [$("#openaiApiKey"), $("#anthropicApiKey")].forEach((input) => input?.addEventListener("input", updateProviderChoice));
   form?.addEventListener("submit", generate);

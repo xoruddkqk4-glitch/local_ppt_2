@@ -1,33 +1,25 @@
 docs: update README.md and detailed commit results
 
 [User Request]
-- 개체 내 텍스트에 한글 입력이 안돼.
-- 편집창 위 빨간 네모 안의 글자색 적용이 안돼.
-- 테이블 객체의 경우 행높이와 열높이 맞춤 버튼이 추가되면 좋겠어.
-- 드래그를 이용해 테이블의 행 넓이와 열 높이를 조정할 수 있으면 좋겠어.
+1. 좌측 슬라이드 목록에서도 Ctrl+클릭(개별 복수 선택) 및 Shift+클릭(연속 범위 선택)으로 여러 슬라이드를 함께 선택하고 복사·삭제·숨김·이동할 수 있도록 기능 추가.
+2. 기존 Local PPT `.txt` 파일 불러오기 불가 문제 점검 및 안정화.
+3. Chrome 환경에서도 중간 웹 모달이나 브라우저 다운로드 생성 없이 Windows 파일 탐색기 열기/저장 대화상자를 직접 표시하고, 최근 사용 폴더를 기억하며, '다른 이름 txt로 저장' 시 실제 파일 저장 및 현재 편집 중인 활성 `.txt` 파일 경로 즉시 전환.
 
 [Action & Verification Results]
-- app.js:
-  - 개체 내 텍스트 한글(IME) 입력 불가 현상 해결 (isEditableInput, bindEvents 전역 keydown 핸들러)
-    - isEditableInput(target)에서 target.isContentEditable뿐만 아니라 closest('[contenteditable="true"]') 및 활성 인라인 편집 개체(state.editingObjectId) 내부 여부를 함께 판별하도록 보강
-    - 전역 keydown 리스너 최상단에 event.isComposing || event.keyCode === 229 가드를 추가하여 한글 IME 조합 중 단축키 핸들러가 개입하지 않도록 차단
-    - 개체가 선택된 상태에서 문자 키를 직접 타이핑해 편집을 시작하는 로직에서 영문/숫자 정규식(/^[a-zA-Z0-9]$/) 제한으로 인해 한글 자모가 차단되던 문제를 해결하고, beginInlineTextEdit 직후 event.preventDefault()를 제거하여 첫 한글 음절이 정상 조합·입력되도록 개선
-  - 상단 편집 툴바(#textToolbar) 글자색 적용 오류 수정 (applySelectedObjectColor, stripInlineColorStyles, applySelectionStyle)
-    - 기존 인라인 부분 서식(<span style="color: ...">, <font color="...">)이 남아 있을 때 상단 툴바의 글자색 변경이 자식 인라인 스타일에 가려져 반영되지 않던 문제를 해결하기 위해 stripInlineColorStyles(rootEl) 헬퍼를 추가하여 내부 인라인 색상 속성을 정리하고 개체 전체 및 활성 편집 요소에 즉시 색상이 적용되도록 개선
-    - 텍스트 드래그 선택 후 상단 #textToolbar의 글자색 피커 또는 프리셋 스와치 클릭 시에도 선택 영역이 해제되지 않도록 mousedown 기본 포커스 이동을 방지하고 선택된 텍스트 구간 또는 개체 전체에 글자색이 정확히 반영되도록 연동
-  - 테이블 행높이 맞춤 / 열너비 맞춤 기능 추가 (equalizeTableRowHeights, equalizeTableColWidths)
-    - 상단 편집 툴바(#textToolbar) 및 좌측 표 설정 패널(#tableDimensionControls)에 ↕ 행높이 맞춤(#equalRowHeightBtn, #toolbarEqualRowHeightBtn), ↔ 열너비 맞춤(#equalColWidthBtn, #toolbarEqualColWidthBtn) 버튼 추가 및 이벤트 연동
-    - 2개 이상의 행 또는 열을 다중 선택한 상태에서는 선택된 행/열들의 높이·너비 합계를 유지한 채 균등 배분하고, 단일 셀 선택이나 표 전체 선택 상태에서는 표 전체 행 높이·열 너비를 균등 배분
-  - 마우스 드래그를 이용한 테이블 열 너비 및 행 높이 실시간 조절 (appendTableResizeHandles, getNormalizedTableColWidths, getNormalizedTableRowHeights, createTableElement)
-    - 테이블 개체 렌더링 시 내부 열 경계선(.table-col-resizer), 우측 외곽 경계선(.table-col-edge-resizer), 내부 행 경계선(.table-row-resizer), 하단 외곽 경계선(.table-row-edge-resizer) 드래그 핸들을 오버레이로 생성하여 열 너비와 행 높이를 실시간 드래그로 조절하고 더블클릭 시 균등 맞춤이 실행되도록 구현
-- index.html:
-  - 좌측 #tableDimensionControls 패널 및 상단 #textToolbar 내 #tableMergeToolbarGroup에 ↕ 행높이 맞춤, ↔ 열너비 맞춤 버튼 추가
-- style.css:
-  - .table-object에 table-layout: fixed를 적용하고 .table-grid-resizers 및 행/열 리사이저 핸들 스타일과 발표·전체화면 모드 숨김 규칙 추가
-- README.md:
-  - 테이블 행높이·열너비 맞춤 및 드래그 크기 조절 기능 설명 반영 및 2026-11-09 00:21 업데이트 이력 누적 기록 추가
-- 정적 및 구문 검증 결과:
-  - node -c app.js; node -c ai-intake.js: 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0)
+1. 슬라이드 복수 선택 및 일괄 편집 (`app.js`, `style.css`)
+   - `state.selectedPageIndices`, `state.pageSelectionAnchor`, `getSelectedPageIndices()`, `deleteSelectedPages()` 추가 및 `.page-item.is-selected` 스타일 적용.
+   - `Ctrl`/`Cmd` + 슬라이드 클릭 토글 선택 및 `Shift` + 슬라이드 클릭 연속 범위 선택 구현.
+   - 복수 슬라이드 `Ctrl+C` / `Ctrl+V` 일괄 복제·붙여넣기, `Delete` / `Backspace` / `×` 일괄 삭제(PAGE 01 표지 자동 보호), 눈 아이콘 일괄 숨김 토글, 드래그 앤 드롭 다중 순서 이동(`reorderPages`) 구현.
+2. `.txt` 불러오기 안정성 보강 및 브라우저별 피커 최적화 (`app.js`, `ai-intake.js`)
+   - `parseProject()` BOM 제거 및 유연한 파싱 보강, `FileReader` 폴백, 대용량 렌더링 전 시작 모달(`#aiIntake`) 즉시 닫기, 전역 `.txt`/`.json` 드래그 앤 드롭 열기 추가.
+   - Chrome에서 `showOpenFilePicker` / `showSaveFilePicker` 호출 시 탭 단위 `SelectFileDialog`가 멈춰 `<input type="file">`까지 차단되던 문제를 해결하기 위해 브라우저 내장 File System Access API 호출 대상을 Edge 전용(`canUseNativeFileSystemPicker()`)으로 분리하고, 시작 화면 `02 txt 불러오기`를 `pickAndLoadProjectFile()`로 통일.
+3. Chrome용 로컬 Windows 탐색기 직접 열기·저장 브리지 및 레거시 서버 자동 교체 (`server.js`, `app.js`, `start-local-ppt.cmd`, `index.html`)
+   - `server.js`에 PowerShell WinForms `OpenFileDialog`/`SaveFileDialog` 기반 `/api/fs/status`, `/api/fs/open`, `/api/fs/save-as`, `/api/fs/save-direct` 엔드포인트 구현 (`X-Local-Ppt-Client: 1` 및 localhost Origin 검증, `.txt`/`.json` 제한, `authorizedPaths` 보호, 한글·대괄호 경로 안전 처리 및 UTF-8 Base64 인코딩, `os.tmpdir()/local-ppt-2-last-dir.json` 최근 폴더 영속화, 정적 파일 무캐시 헤더 적용).
+   - Chrome에서 불필요한 중간 모달이나 `<a download>` 없이 Windows 파일 탐색기를 바로 표시하고, '다른 이름 txt로 저장' 시 선택한 경로에 직접 저장한 뒤 편집창의 활성 파일명/서버 경로를 새 `.txt`로 즉시 전환하며 이후 `txt에 저장` 시 해당 경로에 덮어쓰기 저장.
+   - `start-local-ppt.cmd`가 구버전 백그라운드 `node server.js`를 자동 감지·교체하도록 보강하고 `index.html` 스크립트 버전 쿼리(`?v=20261116-fspicker5`) 갱신.
+4. 문서 업데이트 및 정적 검증 (`README.md`)
+   - 캔버스 조작 표, 프로젝트 저장 파일 안내 및 `[2026-11-16 11:08]` 업데이트 이력 누적 기록.
+   - 터미널 정적 검증 (`node -c server.js; node -c app.js; node -c ai-intake.js`) 100% 통과 (Exit code: 0) 및 단위 시뮬레이션 검증 통과.
 
 [Summary]
-- 개체 내 한글(IME) 입력 및 상단 편집 툴바 글자색 적용 버그 수정, 테이블 행높이·열너비 맞춤 버튼 및 마우스 드래그 크기 조절 기능 구현, README.md 업데이트 및 원격 저장소 푸시 완료
+슬라이드 `Ctrl`/`Shift` 클릭 복수 선택·일괄 조작 기능과 함께 Chrome/Edge 환경 모두에서 안정적으로 작동하는 `.txt` 불러오기·직접 저장·최근 폴더 기억 및 `다른 이름 txt로 저장` 활성 파일 전환 기능을 구현·검증하여 `README.md` 업데이트와 함께 커밋 및 푸시합니다.

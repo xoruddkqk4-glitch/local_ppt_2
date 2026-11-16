@@ -11,6 +11,7 @@ if errorlevel 1 (
 
 call :server_ready
 if errorlevel 1 (
+  call :stop_legacy_server
   start "Local PPT 2 Server" /min node server.js
 
   for /l %%I in (1,1,20) do (
@@ -31,5 +32,9 @@ start "" "http://127.0.0.1:8765/"
 exit /b 0
 
 :server_ready
-powershell.exe -NoProfile -Command "try { $response = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8765/' -TimeoutSec 1; if ($response.StatusCode -eq 200) { exit 0 }; exit 1 } catch { exit 1 }" >nul 2>nul
+powershell.exe -NoProfile -Command "try { $response = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8765/api/fs/status' -Headers @{'X-Local-Ppt-Client'='1'} -TimeoutSec 1; if ($response.StatusCode -eq 200) { exit 0 }; exit 1 } catch { exit 1 }" >nul 2>nul
 exit /b %errorlevel%
+
+:stop_legacy_server
+powershell.exe -NoProfile -Command "try { $conn = Get-NetTCPConnection -LocalPort 8765 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1; if ($conn) { $proc = Get-CimInstance Win32_Process -Filter \"ProcessId = $($conn.OwningProcess)\" -ErrorAction SilentlyContinue; if ($proc -and $proc.Name -match '^node' -and $proc.CommandLine -match 'server\.js') { Stop-Process -Id $proc.ProcessId -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 500 } } } catch {}" >nul 2>nul
+exit /b 0

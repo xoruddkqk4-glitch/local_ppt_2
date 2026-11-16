@@ -12,7 +12,8 @@ const GRID_SIZE = 5;
 const SNAP_DISTANCE_PX = 8;
 const PROJECT_FORMAT = "local-ppt-json";
 const PROJECT_VERSION = 1;
-const PROJECT_PICKER_ID = "local-ppt-project";
+// v2: Chrome에 깨진 remembered directory가 남아 있으면 피커가 조용히 실패할 수 있어 id를 갱신
+const PROJECT_PICKER_ID = "local-ppt-project-v2";
 const STRUCTURED_LAYOUT_ROLES = new Set([
   "metric-card", "step-card", "stat-card", "feature-card", "comparison-panel", "definition-card",
   "process-flow-card", "icon-info-card", "numbered-card", "concept-card",
@@ -31,8 +32,43 @@ const AI_OBJECT_DEFAULT_VARIANTS = { layout: "cards", diagram: "process", chart:
 
 let currentProjectFileHandle = null;
 let lastProjectFileHandle = null;
+let fsPickerBlockedInSession = false;
+let currentServerFilePath = "";
+let hasLocalFsApi = false;
 let currentProjectFileName = "local-ppt.txt";
 let currentFolderPath = "c:\\Users\\user\\Desktop\\codex_cli\\.projects\\local_ppt_2\\txts\\";
+
+function isHttpOrigin() {
+  return typeof window !== "undefined" && /^https?:$/i.test(window.location?.protocol || "");
+}
+
+function checkLocalFsApiStatus() {
+  if (!isHttpOrigin() || typeof fetch !== "function") return;
+  fetch("/api/fs/status", {
+    method: "GET",
+    headers: { "X-Local-Ppt-Client": "1" },
+    cache: "no-store"
+  })
+    .then((res) => (res.ok ? res.json() : null))
+    .then((data) => {
+      if (data && data.ok) {
+        hasLocalFsApi = true;
+        if (data.lastDir && !currentProjectFileHandle && !currentServerFilePath) {
+          currentFolderPath = data.lastDir.endsWith("\\") || data.lastDir.endsWith("/") ? data.lastDir : `${data.lastDir}\\`;
+          updateFilePathDisplay();
+        }
+      }
+    })
+    .catch(() => {});
+}
+
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("focus", () => {
+    if (!hasLocalFsApi) {
+      checkLocalFsApiStatus();
+    }
+  });
+}
 
 const FILE_HANDLE_DB_NAME = "local_ppt_fs_db";
 const FILE_HANDLE_STORE_NAME = "handles";
@@ -74,6 +110,22 @@ async function saveLastFileHandleToDB(handle) {
     });
   } catch (err) {
     // Ignore IndexedDB persistence errors
+  }
+}
+
+async function clearLastFileHandleFromDB() {
+  lastProjectFileHandle = null;
+  try {
+    const db = await openFileHandleDB();
+    if (!db) return;
+    await new Promise((resolve) => {
+      const tx = db.transaction(FILE_HANDLE_STORE_NAME, "readwrite");
+      tx.objectStore(FILE_HANDLE_STORE_NAME).delete(LAST_FILE_HANDLE_KEY);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
+  } catch (err) {
+    // Ignore IndexedDB cleanup errors
   }
 }
 
@@ -232,6 +284,7 @@ let copiedObjects = [];
 let copiedFromPageId = null;
 let pasteOffsetCount = 0;
 let copiedPage = null;
+let copiedPages = [];
 let activeEditingTextElement = null;
 
 function selectAllText(editable) {
@@ -338,11 +391,35 @@ const state = {
   fixedOverlays: defaultFixedOverlays(),
   pages: [createCoverPage()],
   currentPageIndex: 0,
+  selectedPageIndices: new Set([0]),
+  pageSelectionAnchor: 0,
   selectedIds: new Set(),
   activeTextObjectId: null,
   guides: [],
   history: []
 };
+
+function getSelectedPageIndices() {
+  if (!state.selectedPageIndices || !(state.selectedPageIndices instanceof Set)) {
+    state.selectedPageIndices = new Set([typeof state.currentPageIndex === "number" ? state.currentPageIndex : 0]);
+  }
+  const maxIdx = Math.max(0, (state.pages?.length || 1) - 1);
+  const valid = [...state.selectedPageIndices]
+    .filter((idx) => typeof idx === "number" && !isNaN(idx) && idx >= 0 && idx <= maxIdx)
+    .sort((a, b) => a - b);
+  if (valid.length === 0) {
+    const fallback = Math.max(0, Math.min(typeof state.currentPageIndex === "number" ? state.currentPageIndex : 0, maxIdx));
+    state.selectedPageIndices = new Set([fallback]);
+    state.currentPageIndex = fallback;
+    state.pageSelectionAnchor = fallback;
+    return [fallback];
+  }
+  return valid;
+}
+
+function syncSelectedPageIndices() {
+  getSelectedPageIndices();
+}
 
 function getCurrentPalette() {
   if (Array.isArray(state.customPalette) && state.customPalette.length === 3) {
@@ -540,6 +617,8 @@ function undo() {
   state.fixedOverlays = restored.fixedOverlays || defaultFixedOverlays();
   state.pages = restored.pages;
   state.currentPageIndex = restored.currentPageIndex;
+  state.selectedPageIndices = new Set([state.currentPageIndex]);
+  state.pageSelectionAnchor = state.currentPageIndex;
   state.selectedIds.clear();
   state.guides = [];
   hideTextToolbar();
@@ -3662,16 +3741,80 @@ function renderControls() {
 let draggedPageIndex = null;
 let justDropped = false;
 
+function deleteSelectedPages() {
+  const selIndices = getSelectedPageIndices();
+  const deletableIndices = selIndices.filter((idx) => {
+    const page = state.pages[idx];
+    return page && page.type !== "cover";
+  });
+  if (deletableIndices.length === 0) {
+    showSaveToast("⚠️ 표지는 삭제할 수 없습니다.");
+    return false;
+  }
+
+  snapshot();
+  // 역순 정렬하여 뒤에서부터 삭제 (인덱스 유지)
+  deletableIndices.sort((a, b) => b - a).forEach((idx) => {
+    state.pages.splice(idx, 1);
+  });
+
+  const maxIdx = Math.max(0, state.pages.length - 1);
+  const nextActive = Math.min(Math.min(...deletableIndices), maxIdx);
+  state.currentPageIndex = nextActive;
+  state.selectedPageIndices = new Set([nextActive]);
+  state.pageSelectionAnchor = nextActive;
+  state.selectedIds.clear();
+  state.guides = [];
+  hideTextToolbar();
+  render();
+  showSaveToast(`🗑️ 슬라이드 ${deletableIndices.length}개 삭제 완료`);
+  return true;
+}
+
 function reorderPages(fromIndex, targetIndex) {
   if (fromIndex === null || fromIndex === undefined || isNaN(fromIndex)) return;
   if (targetIndex === null || targetIndex === undefined || isNaN(targetIndex)) return;
   if (fromIndex === targetIndex) return;
+
+  const selIndices = getSelectedPageIndices();
+  if (selIndices.includes(fromIndex) && selIndices.length > 1) {
+    snapshot();
+    const movingPages = selIndices.map((idx) => state.pages[idx]);
+    const targetPage = state.pages[targetIndex];
+    const remainingPages = state.pages.filter((_, idx) => !selIndices.includes(idx));
+
+    let insertAt = remainingPages.indexOf(targetPage);
+    if (insertAt === -1) {
+      insertAt = fromIndex < targetIndex ? remainingPages.length : 0;
+    } else if (fromIndex < targetIndex) {
+      insertAt += 1;
+    }
+
+    remainingPages.splice(insertAt, 0, ...movingPages);
+    state.pages = remainingPages;
+
+    const newIndices = [];
+    for (let i = 0; i < movingPages.length; i++) {
+      newIndices.push(insertAt + i);
+    }
+    state.currentPageIndex = insertAt;
+    state.selectedPageIndices = new Set(newIndices);
+    state.pageSelectionAnchor = insertAt;
+    state.selectedIds.clear();
+    state.guides = [];
+    hideTextToolbar();
+    render();
+    broadcastState();
+    return;
+  }
 
   snapshot();
   const [movedPage] = state.pages.splice(fromIndex, 1);
   state.pages.splice(targetIndex, 0, movedPage);
 
   state.currentPageIndex = targetIndex;
+  state.selectedPageIndices = new Set([targetIndex]);
+  state.pageSelectionAnchor = targetIndex;
   state.selectedIds.clear();
   state.guides = [];
   hideTextToolbar();
@@ -3794,8 +3937,10 @@ function renderPages() {
   const list = $("#pageList");
   list.innerHTML = "";
   state.pages.forEach((page, index) => {
+    const isCurrent = index === state.currentPageIndex;
+    const isSelected = state.selectedPageIndices ? state.selectedPageIndices.has(index) : isCurrent;
     const itemEl = document.createElement("div");
-    itemEl.className = `page-item ${index === state.currentPageIndex ? "is-current" : ""} ${page.type === "cover" ? "cover" : ""} ${page.hidden ? "is-hidden" : ""}`;
+    itemEl.className = `page-item ${isCurrent ? "is-current" : ""} ${isSelected ? "is-selected" : ""} ${page.type === "cover" ? "cover" : ""} ${page.hidden ? "is-hidden" : ""}`;
     itemEl.setAttribute("role", "button");
     itemEl.setAttribute("tabindex", "0");
     itemEl.setAttribute("draggable", "true");
@@ -3818,19 +3963,71 @@ function renderPages() {
       }
       if (event.target.classList.contains("page-hide-btn")) {
         snapshot();
-        page.hidden = !page.hidden;
+        const selIndices = getSelectedPageIndices();
+        if (selIndices.includes(index) && selIndices.length > 1) {
+          const targetHidden = !page.hidden;
+          selIndices.forEach((pIdx) => {
+            if (state.pages[pIdx]) state.pages[pIdx].hidden = targetHidden;
+          });
+        } else {
+          page.hidden = !page.hidden;
+        }
         render();
       } else if (event.target.classList.contains("page-delete")) {
-        snapshot();
-        state.pages.splice(index, 1);
-        state.currentPageIndex = Math.min(state.currentPageIndex, state.pages.length - 1);
-        state.selectedIds.clear();
-        state.guides = [];
-        hideTextToolbar();
-        render();
+        const selIndices = getSelectedPageIndices();
+        if (selIndices.includes(index) && selIndices.length > 1) {
+          deleteSelectedPages();
+        } else {
+          snapshot();
+          state.pages.splice(index, 1);
+          state.currentPageIndex = Math.min(state.currentPageIndex, state.pages.length - 1);
+          state.selectedPageIndices = new Set([state.currentPageIndex]);
+          state.pageSelectionAnchor = state.currentPageIndex;
+          state.selectedIds.clear();
+          state.guides = [];
+          hideTextToolbar();
+          render();
+        }
       } else {
         commitActiveTextEditing();
-        state.currentPageIndex = index;
+        const isCtrl = event.ctrlKey || event.metaKey;
+        const isShift = event.shiftKey;
+
+        if (!state.selectedPageIndices) {
+          state.selectedPageIndices = new Set([state.currentPageIndex]);
+        }
+
+        if (isShift) {
+          const anchor = (typeof state.pageSelectionAnchor === "number" && state.pageSelectionAnchor >= 0 && state.pageSelectionAnchor < state.pages.length)
+            ? state.pageSelectionAnchor
+            : state.currentPageIndex;
+          const start = Math.min(anchor, index);
+          const end = Math.max(anchor, index);
+          state.selectedPageIndices.clear();
+          for (let i = start; i <= end; i++) {
+            state.selectedPageIndices.add(i);
+          }
+          state.currentPageIndex = index;
+        } else if (isCtrl) {
+          if (state.selectedPageIndices.has(index)) {
+            if (state.selectedPageIndices.size > 1) {
+              state.selectedPageIndices.delete(index);
+              if (state.currentPageIndex === index) {
+                const remaining = [...state.selectedPageIndices];
+                state.currentPageIndex = remaining[remaining.length - 1];
+              }
+            }
+          } else {
+            state.selectedPageIndices.add(index);
+            state.currentPageIndex = index;
+            state.pageSelectionAnchor = index;
+          }
+        } else {
+          state.currentPageIndex = index;
+          state.selectedPageIndices = new Set([index]);
+          state.pageSelectionAnchor = index;
+        }
+
         state.selectedIds.clear();
         state.guides = [];
         hideTextToolbar();
@@ -3843,6 +4040,8 @@ function renderPages() {
         event.preventDefault();
         commitActiveTextEditing();
         state.currentPageIndex = index;
+        state.selectedPageIndices = new Set([index]);
+        state.pageSelectionAnchor = index;
         state.selectedIds.clear();
         state.guides = [];
         hideTextToolbar();
@@ -3984,6 +4183,8 @@ function renderPages() {
 $("#pageFirstBtn")?.addEventListener("click", () => {
   if (!state.pages || state.pages.length === 0) return;
   state.currentPageIndex = 0;
+  state.selectedPageIndices = new Set([0]);
+  state.pageSelectionAnchor = 0;
   state.selectedIds.clear();
   state.guides = [];
   hideTextToolbar();
@@ -4005,7 +4206,10 @@ $("#pageScrollRightBtn")?.addEventListener("click", () => {
 
 $("#pageLastBtn")?.addEventListener("click", () => {
   if (!state.pages || state.pages.length === 0) return;
-  state.currentPageIndex = Math.max(0, state.pages.length - 1);
+  const lastIdx = Math.max(0, state.pages.length - 1);
+  state.currentPageIndex = lastIdx;
+  state.selectedPageIndices = new Set([lastIdx]);
+  state.pageSelectionAnchor = lastIdx;
   state.selectedIds.clear();
   state.guides = [];
   hideTextToolbar();
@@ -8500,24 +8704,46 @@ function serializeProject() {
 }
 
 function parseProject(text) {
+  if (!text || typeof text !== "string") {
+    throw new Error("파일 내용이 비어 있거나 읽을 수 없습니다.");
+  }
+  const cleaned = text.trim().replace(/^\uFEFF/, "");
   let parsed;
   try {
-    parsed = JSON.parse(text);
+    parsed = JSON.parse(cleaned);
   } catch (err) {
     throw new Error("유효한 JSON 텍스트 형식이 아닙니다.");
   }
-  if (parsed?.format !== PROJECT_FORMAT || parsed?.version !== PROJECT_VERSION) {
-    throw new Error("Local ppt 저장 파일 형식이 아닙니다.");
+
+  // presentation 데이터 위치 확인 (다양한 과거 버전 및 구조 포용)
+  let presentation = null;
+  if (parsed.presentation && typeof parsed.presentation === "object" && Array.isArray(parsed.presentation.pages)) {
+    presentation = parsed.presentation;
+  } else if (Array.isArray(parsed.pages)) {
+    presentation = parsed;
+  } else if (parsed.data && Array.isArray(parsed.data.pages)) {
+    presentation = parsed.data;
+  } else {
+    for (const key of Object.keys(parsed)) {
+      if (parsed[key] && typeof parsed[key] === "object" && Array.isArray(parsed[key].pages)) {
+        presentation = parsed[key];
+        break;
+      }
+    }
   }
-  const presentation = parsed.presentation;
+
   if (!presentation || !Array.isArray(presentation.pages) || !presentation.pages.length) {
-    throw new Error("페이지 데이터가 없습니다.");
+    throw new Error("슬라이드(페이지) 데이터가 포함되어 있지 않습니다.");
   }
 
   const sanitizedPages = sanitizePagesData(presentation.pages);
 
+  const designName = designs[presentation.design]
+    ? presentation.design
+    : (window.PptDesigns?.[presentation.design] ? presentation.design : "bauhaus");
+
   return {
-    design: designs[presentation.design] ? presentation.design : "bauhaus",
+    design: designName,
     customPalette: Array.isArray(presentation.customPalette) && presentation.customPalette.length === 3 ? presentation.customPalette : null,
     fixedOverlays: presentation.fixedOverlays ? { ...defaultFixedOverlays(), ...presentation.fixedOverlays } : defaultFixedOverlays(),
     pages: sanitizedPages,
@@ -8525,25 +8751,51 @@ function parseProject(text) {
   };
 }
 
-async function loadProjectFile(file, handle = null) {
+function closeIntakeScreen() {
+  const intakeEl = $("#aiIntake");
+  if (!intakeEl) return;
+  intakeEl.hidden = true;
+  // present 모드 등에서 inline display:none 이 남아 있어도 다시 열 수 있게 정리
+  if (intakeEl.style.display === "none") intakeEl.style.display = "";
+}
+
+async function loadProjectFile(file, handle = null, serverMeta = null) {
   try {
-    const loaded = parseProject(await file.text());
+    if (!file) throw new Error("선택된 파일이 없습니다.");
+    let text = "";
+    if (typeof file.text === "function") {
+      text = await file.text();
+    } else {
+      text = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error || new Error("파일 읽기 실패"));
+        reader.readAsText(file, "utf-8");
+      });
+    }
+
+    const loaded = parseProject(text);
     state.design = loaded.design;
     state.customPalette = loaded.customPalette;
     state.fixedOverlays = loaded.fixedOverlays ? { ...defaultFixedOverlays(), ...loaded.fixedOverlays } : defaultFixedOverlays();
     state.pages = loaded.pages;
     state.currentPageIndex = loaded.currentPageIndex;
+    state.selectedPageIndices = new Set([state.currentPageIndex]);
+    state.pageSelectionAnchor = state.currentPageIndex;
     state.history = [];
     state.selectedIds.clear();
     state.guides = [];
     hideTextToolbar();
     currentProjectFileHandle = handle;
+    currentServerFilePath = serverMeta?.filePath ? String(serverMeta.filePath) : "";
     if (handle) {
       lastProjectFileHandle = handle;
       saveLastFileHandleToDB(handle);
     }
     currentProjectFileName = file.name || "local-ppt.txt";
-    if (file.path) {
+    if (serverMeta?.folderPath) {
+      currentFolderPath = serverMeta.folderPath;
+    } else if (file.path) {
       const lastSep = Math.max(file.path.lastIndexOf("\\"), file.path.lastIndexOf("/"));
       if (lastSep > 0) currentFolderPath = file.path.substring(0, lastSep + 1);
     } else if (!handle) {
@@ -8554,10 +8806,29 @@ async function loadProjectFile(file, handle = null) {
     if (window.LocalPptAiIntake?.syncOptionsUI) {
       window.LocalPptAiIntake.syncOptionsUI();
     }
-    render();
-    snapshot();
+
+    // 무거운 render/snapshot 전에 Intake를 먼저 닫아 화면이 즉시 전환되도록 함
+    closeIntakeScreen();
+    showSaveToast(`📂 파일 불러오기 완료 (${currentProjectFileName})`);
+
+    // 한 프레임 yield → 브라우저가 Intake 닫힘을 먼저 페인트
+    await new Promise((resolve) => {
+      if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => resolve());
+      else setTimeout(resolve, 0);
+    });
+
+    try {
+      render();
+      snapshot();
+    } catch (renderError) {
+      console.error("loadProjectFile render error:", renderError);
+      window.alert(`파일은 불러왔지만 화면 표시 중 오류가 발생했습니다.\n${renderError.message}`);
+    }
+    return true;
   } catch (error) {
     window.alert(`파일을 불러올 수 없습니다.\n${error.message}`);
+    console.error("loadProjectFile error:", error);
+    return false;
   }
 }
 
@@ -8595,6 +8866,7 @@ async function writeProjectToHandle(handle) {
     await writable.write(serializeProject());
     await writable.close();
     currentProjectFileHandle = handle;
+    currentServerFilePath = "";
     if (handle) {
       lastProjectFileHandle = handle;
       saveLastFileHandleToDB(handle);
@@ -8610,16 +8882,24 @@ async function writeProjectToHandle(handle) {
   }
 }
 
+function canUseNativeFileSystemPicker() {
+  if (typeof window === "undefined") return false;
+  if (window.location?.protocol === "file:") return false;
+  if (fsPickerBlockedInSession) return false;
+  const ua = (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : "";
+  return /\bEdg\//.test(ua);
+}
+
 function downloadProject(filename = currentProjectFileName) {
   const blob = new Blob([serializeProject()], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = filename.endsWith(".txt") ? filename : `${filename}.txt`;
+  anchor.download = filename.toLowerCase().endsWith(".txt") ? filename : `${filename}.txt`;
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
   currentProjectFileName = anchor.download;
   document.title = `Local PPT 2 — ${currentProjectFileName}`;
   updateFilePathDisplay();
@@ -8636,6 +8916,12 @@ function suggestedProjectName() {
   return `local-ppt_${year}-${month}-${day}_${hours}-${minutes}-${seconds}.txt`;
 }
 
+function getDefaultSaveProjectName() {
+  return (currentProjectFileName && currentProjectFileName !== "local-ppt.txt")
+    ? currentProjectFileName
+    : suggestedProjectName();
+}
+
 function getNewImagePlacement(page, index) {
   if (page.template === "object" && page.objectCategory === "layout") {
     if (page.variant === "stepsMedia") return { x: 8 + index, y: 58 + index, w: 84 - index * 2, h: 27 - index * 2 };
@@ -8644,86 +8930,297 @@ function getNewImagePlacement(page, index) {
   return { x: 62 + (index % 3) * 5, y: 55 + (index % 3) * 5, w: 25, h: 28 };
 }
 
+async function runPickerWithBlockDetection(pickerFn) {
+  let didWindowBlur = false;
+  let timerId = null;
+  const onBlur = () => {
+    didWindowBlur = true;
+  };
+  window.addEventListener("blur", onBlur, { once: true });
+  const startedAt = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+
+  try {
+    // 반드시 await 이전에 동기 호출해야 사용자 제스처(Transient User Activation) 유지
+    const pickerPromise = pickerFn();
+    pickerPromise.catch(() => {});
+
+    const timeoutPromise = new Promise((_, reject) => {
+      timerId = setTimeout(() => {
+        const stillFocused = typeof document === "undefined" ? true : document.hasFocus();
+        if (!didWindowBlur && stillFocused) {
+          const hangErr = new Error("파일 대화상자 응답이 지연되어 브라우저 기본 방식으로 전환합니다.");
+          hangErr.name = "PickerBlockedError";
+          reject(hangErr);
+        }
+      }, 2500);
+    });
+
+    return await Promise.race([pickerPromise, timeoutPromise]);
+  } catch (error) {
+    if (error?.name === "PickerBlockedError") {
+      throw error;
+    }
+    const now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+    const elapsedMs = now - startedAt;
+    const stillFocused = typeof document === "undefined" ? true : document.hasFocus();
+    const isInstantSilentAbort =
+      error?.name === "AbortError" &&
+      !didWindowBlur &&
+      stillFocused &&
+      elapsedMs < 250;
+    const isPermissionOrSecurityBlock = [
+      "SecurityError",
+      "NotAllowedError",
+      "NotSupportedError"
+    ].includes(error?.name);
+
+    if (isInstantSilentAbort || isPermissionOrSecurityBlock) {
+      const blockedErr = new Error(error?.message || "브라우저에서 파일 시스템 대화상자 호출이 차단되었습니다.");
+      blockedErr.name = "PickerBlockedError";
+      blockedErr.originalError = error;
+      throw blockedErr;
+    }
+    throw error;
+  } finally {
+    if (timerId) clearTimeout(timerId);
+    window.removeEventListener("blur", onBlur);
+  }
+}
+
 async function openProjectPickerDialog() {
-  const baseOptions = {
+  const options = {
     id: PROJECT_PICKER_ID,
     multiple: false,
-    types: [{ description: "Local ppt JSON 텍스트", accept: { "text/plain": [".txt", ".json"] } }]
+    types: [
+      {
+        description: "Local PPT 파일 (*.txt, *.json)",
+        accept: {
+          "text/plain": [".txt"],
+          "application/json": [".json"]
+        }
+      }
+    ],
+    excludeAcceptAllOption: false
   };
   const startIn = currentProjectFileHandle || lastProjectFileHandle;
-  if (startIn) {
-    try {
-      const [handle] = await window.showOpenFilePicker({ ...baseOptions, startIn });
-      if (handle) {
-        lastProjectFileHandle = handle;
-        saveLastFileHandleToDB(handle);
-      }
-      return handle;
-    } catch (error) {
-      if (error.name === "AbortError" || ["SecurityError", "NotSupportedError"].includes(error.name)) {
-        throw error;
-      }
-      lastProjectFileHandle = null;
+  const hadStartIn = Boolean(startIn && typeof startIn === "object");
+  if (hadStartIn) options.startIn = startIn;
+  const hadActivationAtStart = (typeof navigator !== "undefined" && navigator.userActivation) ? navigator.userActivation.isActive : true;
+
+  try {
+    const [handle] = await runPickerWithBlockDetection(() => window.showOpenFilePicker(options));
+    if (handle) {
+      lastProjectFileHandle = handle;
+      saveLastFileHandleToDB(handle);
     }
+    return handle;
+  } catch (error) {
+    if (error?.name === "AbortError") throw error;
+    if (hadStartIn) {
+      currentProjectFileHandle = null;
+      void clearLastFileHandleFromDB();
+    } else if (error?.name === "PickerBlockedError" && hadActivationAtStart) {
+      fsPickerBlockedInSession = true;
+    }
+    throw error;
   }
-  const [handle] = await window.showOpenFilePicker(baseOptions);
-  if (handle) {
-    lastProjectFileHandle = handle;
-    saveLastFileHandleToDB(handle);
-  }
-  return handle;
 }
 
 async function saveProjectPickerDialog(suggestedName) {
-  const baseOptions = {
+  const options = {
     id: PROJECT_PICKER_ID,
     suggestedName,
-    types: [{ description: "Local ppt JSON 텍스트", accept: { "text/plain": [".txt"] } }]
+    types: [
+      {
+        description: "Local PPT 파일 (*.txt)",
+        accept: { "text/plain": [".txt"] }
+      }
+    ],
+    excludeAcceptAllOption: false
   };
   const startIn = currentProjectFileHandle || lastProjectFileHandle;
-  if (startIn) {
-    try {
-      const handle = await window.showSaveFilePicker({ ...baseOptions, startIn });
-      if (handle) {
-        lastProjectFileHandle = handle;
-        saveLastFileHandleToDB(handle);
-      }
-      return handle;
-    } catch (error) {
-      if (error.name === "AbortError" || ["SecurityError", "NotSupportedError"].includes(error.name)) {
-        throw error;
-      }
-      lastProjectFileHandle = null;
+  const hadStartIn = Boolean(startIn && typeof startIn === "object");
+  if (hadStartIn) options.startIn = startIn;
+  const hadActivationAtStart = (typeof navigator !== "undefined" && navigator.userActivation) ? navigator.userActivation.isActive : true;
+
+  try {
+    const handle = await runPickerWithBlockDetection(() => window.showSaveFilePicker(options));
+    if (handle) {
+      lastProjectFileHandle = handle;
+      saveLastFileHandleToDB(handle);
     }
+    return handle;
+  } catch (error) {
+    if (error?.name === "AbortError") throw error;
+    if (hadStartIn) {
+      currentProjectFileHandle = null;
+      void clearLastFileHandleFromDB();
+    } else if (error?.name === "PickerBlockedError" && hadActivationAtStart) {
+      fsPickerBlockedInSession = true;
+    }
+    throw error;
   }
-  const handle = await window.showSaveFilePicker(baseOptions);
-  if (handle) {
-    lastProjectFileHandle = handle;
-    saveLastFileHandleToDB(handle);
+}
+
+async function postLocalFsJson(endpoint, payload) {
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Local-Ppt-Client": "1"
+    },
+    body: JSON.stringify(payload || {})
+  });
+  const data = await res.json().catch(() => ({}));
+  return { res, data };
+}
+
+async function openProjectViaServerDialog() {
+  try {
+    const { res, data } = await postLocalFsJson("/api/fs/open", {
+      initialDir: currentFolderPath || ""
+    });
+    if (res.status === 404 || res.status === 405) {
+      hasLocalFsApi = false;
+      const err = new Error("Local FS API unavailable");
+      err.name = "LocalFsApiUnavailable";
+      throw err;
+    }
+    if (!res.ok) {
+      throw new Error(data.error || "파일 열기 대화상자를 실행할 수 없습니다.");
+    }
+    if (data.cancelled) return null;
+    if (!data.ok) {
+      throw new Error(data.error || "선택된 파일을 읽지 못했습니다.");
+    }
+    const virtualFile = {
+      name: data.fileName || "local-ppt.txt",
+      text: async () => String(data.content ?? "")
+    };
+    await loadProjectFile(virtualFile, null, {
+      filePath: data.filePath,
+      folderPath: data.folderPath
+    });
+    return data;
+  } catch (error) {
+    if (error?.name === "LocalFsApiUnavailable") {
+      if (!openFallbackProjectFileInput()) {
+        showSaveToast("⚠️ 기본 열기 모드로 전환했습니다. 'txt 불러오기'를 한 번 더 눌러주세요.");
+      }
+      return null;
+    }
+    window.alert(`파일을 불러올 수 없습니다.\n${error.message}`);
+    return null;
   }
-  return handle;
+}
+
+function confirmLegacyServerDownloadFallback(defaultName) {
+  const shouldFallbackDownload = (typeof window.confirm === "function")
+    ? window.confirm(
+        "현재 실행 중인 로컬 서버(server.js)가 이전 버전이어서 직접 파일 저장 기능을 아직 사용할 수 없습니다.\n\n" +
+        "• 프로젝트 폴더의 'start-local-ppt.cmd'를 한 번 더블클릭해 서버를 자동 갱신한 뒤(현재 브라우저 창은 닫거나 새로고침하지 않아도 됩니다!) 다시 '다른 이름 txt로 저장'을 누르시면 다운로드 없이 바로 저장되고 새 파일 이름으로 전환됩니다.\n\n" +
+        "지금 임시로 브라우저 다운로드 방식으로 먼저 받으시겠습니까?"
+      )
+    : true;
+  if (!shouldFallbackDownload) return false;
+  downloadProject(defaultName);
+  return true;
+}
+
+async function saveProjectAsViaServerDialog(defaultName) {
+  let res;
+  let data;
+  try {
+    ({ res, data } = await postLocalFsJson("/api/fs/save-as", {
+      suggestedName: defaultName,
+      initialDir: currentFolderPath || "",
+      content: serializeProject()
+    }));
+  } catch (networkErr) {
+    console.warn("saveProjectAsViaServerDialog network error:", networkErr);
+    hasLocalFsApi = false;
+    return confirmLegacyServerDownloadFallback(defaultName);
+  }
+
+  if (res.status === 404 || res.status === 405) {
+    hasLocalFsApi = false;
+    return confirmLegacyServerDownloadFallback(defaultName);
+  }
+  if (!res.ok) {
+    throw new Error(data.error || "파일 저장 대화상자를 실행할 수 없습니다.");
+  }
+  if (data.cancelled) return false;
+  if (!data.ok) {
+    throw new Error(data.error || "파일을 저장하지 못했습니다.");
+  }
+
+  hasLocalFsApi = true;
+  currentProjectFileHandle = null;
+  currentServerFilePath = data.filePath || "";
+  currentProjectFileName = data.fileName || defaultName;
+  if (data.folderPath) currentFolderPath = data.folderPath;
+  document.title = `Local PPT 2 — ${currentProjectFileName}`;
+  updateFilePathDisplay();
+  return true;
+}
+
+async function saveProjectDirectViaServer(filePath) {
+  try {
+    const { res, data } = await postLocalFsJson("/api/fs/save-direct", {
+      filePath,
+      content: serializeProject()
+    });
+    if (res.status === 404 || res.status === 405) {
+      hasLocalFsApi = false;
+      return false;
+    }
+    if (!res.ok || data.needSaveAs || !data.ok) {
+      return false;
+    }
+    hasLocalFsApi = true;
+    currentServerFilePath = data.filePath || filePath;
+    currentProjectFileName = data.fileName || currentProjectFileName;
+    if (data.folderPath) currentFolderPath = data.folderPath;
+    document.title = `Local PPT 2 — ${currentProjectFileName}`;
+    updateFilePathDisplay();
+    return true;
+  } catch (error) {
+    console.warn("saveProjectDirectViaServer failed:", error);
+    return false;
+  }
 }
 
 async function saveProjectAs() {
-  try {
-    if (window.showSaveFilePicker) {
-      const handle = await saveProjectPickerDialog(suggestedProjectName());
+  const defaultName = getDefaultSaveProjectName();
+  if (canUseNativeFileSystemPicker() && window.showSaveFilePicker) {
+    try {
+      const handle = await saveProjectPickerDialog(defaultName);
       await writeProjectToHandle(handle);
       return true;
-    } else {
-      downloadProject(suggestedProjectName());
-      return true;
-    }
-  } catch (error) {
-    if (error.name === "AbortError") return false;
-    if (["SecurityError", "NotSupportedError"].includes(error.name)) {
-      downloadProject(suggestedProjectName());
-      return true;
-    } else {
+    } catch (error) {
+      if (error?.name === "AbortError") return false;
+      if (
+        error?.name === "PickerBlockedError" ||
+        ["SecurityError", "NotSupportedError", "NotAllowedError", "TypeError", "InvalidStateError", "NotFoundError"].includes(error?.name)
+      ) {
+        if (hasLocalFsApi || isHttpOrigin()) return await saveProjectAsViaServerDialog(defaultName);
+        downloadProject(defaultName);
+        return true;
+      }
       window.alert(`파일을 저장할 수 없습니다.\n${error.message}`);
       return false;
     }
   }
+  if (hasLocalFsApi || isHttpOrigin()) {
+    try {
+      return await saveProjectAsViaServerDialog(defaultName);
+    } catch (error) {
+      window.alert(`파일을 저장할 수 없습니다.\n${error.message}`);
+      return false;
+    }
+  }
+  downloadProject(defaultName);
+  return true;
 }
 
 async function saveCurrentProject() {
@@ -8751,6 +9248,12 @@ async function saveCurrentProject() {
         }
         console.warn("기존 파일 핸들 저장 실패, 다른 이름으로 저장으로 전환합니다:", handleError);
         currentProjectFileHandle = null;
+        saved = await saveProjectAs();
+      }
+    } else if (hasLocalFsApi && currentServerFilePath) {
+      saved = await saveProjectDirectViaServer(currentServerFilePath);
+      if (!saved) {
+        currentServerFilePath = "";
         saved = await saveProjectAs();
       }
     } else {
@@ -8843,29 +9346,73 @@ function showSaveToast(message) {
   }, 2200);
 }
 
-$("#loadProjectButton").addEventListener("click", async () => {
-  if (window.showOpenFilePicker) {
-    try {
-      const handle = await openProjectPickerDialog();
-      await loadProjectFile(await handle.getFile(), handle);
-    } catch (error) {
-      if (error.name === "AbortError") return;
-      if (["SecurityError", "NotSupportedError"].includes(error.name)) {
-        $("#projectFileInput").value = "";
-        $("#projectFileInput").click();
-      } else {
-        window.alert(`파일을 불러올 수 없습니다.\n${error.message}`);
-      }
-    }
-  } else {
-    $("#projectFileInput").value = "";
-    $("#projectFileInput").click();
+function openFallbackProjectFileInput() {
+  const input = $("#projectFileInput");
+  if (!input) {
+    window.alert("파일 선택 입력란을 찾을 수 없습니다. 페이지를 새로고침한 뒤 다시 시도하세요.");
+    return false;
   }
+  input.value = "";
+  input.click();
+  return true;
+}
+
+async function pickAndLoadProjectFileViaNativePicker() {
+  try {
+    const handle = await openProjectPickerDialog();
+    if (!handle) return;
+    await loadProjectFile(await handle.getFile(), handle);
+  } catch (error) {
+    if (error?.name === "AbortError") return;
+    console.warn("showOpenFilePicker failed, falling back to file input:", error);
+    fsPickerBlockedInSession = true;
+    const canClickInputNow = (typeof navigator !== "undefined" && navigator.userActivation) ? navigator.userActivation.isActive : true;
+    if (canClickInputNow && openFallbackProjectFileInput()) {
+      return;
+    }
+    showSaveToast("⚠️ 브라우저 권한 제한으로 기본 열기 모드로 전환했습니다. 'txt 불러오기'를 한 번 더 눌러주세요.");
+  }
+}
+
+function pickAndLoadProjectFile() {
+  if (canUseNativeFileSystemPicker() && window.showOpenFilePicker) {
+    void pickAndLoadProjectFileViaNativePicker();
+    return;
+  }
+  if (hasLocalFsApi) {
+    void openProjectViaServerDialog();
+    return;
+  }
+  openFallbackProjectFileInput();
+}
+
+$("#loadProjectButton").addEventListener("click", () => {
+  pickAndLoadProjectFile();
 });
 
 $("#projectFileInput").addEventListener("change", (event) => {
   const [file] = event.target.files;
-  if (file) loadProjectFile(file);
+  if (file) void loadProjectFile(file);
+});
+
+// 전역 파일 드래그 앤 드롭으로 .txt / .json 프로젝트 불러오기 지원
+window.addEventListener("dragover", (event) => {
+  if (event.dataTransfer?.types && Array.from(event.dataTransfer.types).includes("Files")) {
+    event.preventDefault();
+  }
+});
+
+window.addEventListener("drop", (event) => {
+  const files = Array.from(event.dataTransfer?.files || []);
+  const projectFile = files.find((f) => {
+    const name = (f.name || "").toLowerCase();
+    return name.endsWith(".txt") || name.endsWith(".json");
+  });
+  if (projectFile) {
+    event.preventDefault();
+    event.stopPropagation();
+    loadProjectFile(projectFile);
+  }
 });
 
 $("#saveProjectButton")?.addEventListener("click", saveCurrentProject);
@@ -9050,6 +9597,8 @@ $("#addPageButton").addEventListener("click", () => {
     state.pages.push(newPage);
     state.currentPageIndex = state.pages.length - 1;
   }
+  state.selectedPageIndices = new Set([state.currentPageIndex]);
+  state.pageSelectionAnchor = state.currentPageIndex;
   state.selectedIds.clear();
   state.guides = [];
   hideTextToolbar();
@@ -10809,6 +11358,7 @@ function copyCurrentPage() {
   const page = currentPage();
   if (!page) return false;
   copiedPage = JSON.parse(JSON.stringify(page));
+  copiedPages = [copiedPage];
   copiedObjects = [];
   copiedFromPageId = null;
   pasteOffsetCount = 0;
@@ -10827,6 +11377,37 @@ function copyCurrentPage() {
   return true;
 }
 
+function copySelectedPages() {
+  const selIndices = getSelectedPageIndices();
+  if (selIndices.length === 0) return false;
+  if (selIndices.length === 1) {
+    return copyCurrentPage();
+  }
+
+  const pagesToCopy = selIndices.map((idx) => state.pages[idx]).filter(Boolean);
+  if (pagesToCopy.length === 0) return false;
+
+  copiedPages = JSON.parse(JSON.stringify(pagesToCopy));
+  copiedPage = copiedPages[0];
+  copiedObjects = [];
+  copiedFromPageId = null;
+  pasteOffsetCount = 0;
+  internalCopyType = "pages";
+  lastInternalCopyTime = Date.now();
+
+  saveToSharedClipboard("pages", {
+    pages: copiedPages,
+    sourcePalette: getCurrentPalette()
+  });
+
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText("LOCAL_PPT_INTERNAL_PAGES_COPY").catch(() => {});
+  }
+
+  showSaveToast(`📋 슬라이드 ${copiedPages.length}개 복사 완료`);
+  return true;
+}
+
 function executeCopy() {
   const selection = window.getSelection();
   const selectedText = selection ? selection.toString() : "";
@@ -10834,6 +11415,9 @@ function executeCopy() {
     return false;
   }
   if (state.selectedIds.size > 0 && copySelectedObjects()) return true;
+  if (state.selectedPageIndices && state.selectedPageIndices.size > 1) {
+    return copySelectedPages();
+  }
   return copyCurrentPage();
 }
 
@@ -10843,6 +11427,9 @@ function executePaste() {
     if (shared.type === "objects" && Array.isArray(shared.objects) && shared.objects.length > 0) {
       return pasteCopiedObjects(shared.objects, shared.sourcePageId, shared.sourcePalette);
     }
+    if (shared.type === "pages" && Array.isArray(shared.pages) && shared.pages.length > 0) {
+      return pasteCopiedPages(shared.pages, shared.sourcePalette);
+    }
     if (shared.type === "page" && shared.page) {
       return pasteCopiedPage(shared.page, shared.sourcePalette);
     }
@@ -10850,6 +11437,9 @@ function executePaste() {
 
   if (copiedObjects && copiedObjects.length > 0) {
     return pasteCopiedObjects();
+  }
+  if (copiedPages && copiedPages.length > 1) {
+    return pasteCopiedPages();
   }
   if (copiedPage) {
     return pasteCopiedPage();
@@ -10896,11 +11486,52 @@ function pasteCopiedPage(sourcePage = copiedPage, sourcePalette = null) {
   snapshot();
   state.pages.splice(insertIndex, 0, clone);
   state.currentPageIndex = insertIndex;
+  state.selectedPageIndices = new Set([insertIndex]);
+  state.pageSelectionAnchor = insertIndex;
   state.selectedIds.clear();
   state.guides = [];
   hideTextToolbar();
   render();
   showSaveToast(`📋 슬라이드 붙여넣기 완료 (새 페이지 ${insertIndex + 1})`);
+  return true;
+}
+
+function pasteCopiedPages(sourcePages = copiedPages, sourcePalette = null) {
+  const targetPages = sourcePages || copiedPages;
+  if (!targetPages || !Array.isArray(targetPages) || targetPages.length === 0) return false;
+  if (targetPages.length === 1) {
+    return pasteCopiedPage(targetPages[0], sourcePalette);
+  }
+
+  const currentPalette = getCurrentPalette();
+  const clones = targetPages.map((pg) => {
+    const clone = clonePageWithNewIds(pg);
+    if (sourcePalette && Array.isArray(clone.objects)) {
+      clone.objects.forEach((obj) => adaptObjectToTargetTheme(obj, sourcePalette, currentPalette));
+    }
+    if (clone.design) delete clone.design;
+    return clone;
+  }).filter(Boolean);
+
+  if (clones.length === 0) return false;
+
+  const insertIndex = state.currentPageIndex + 1;
+  snapshot();
+  state.pages.splice(insertIndex, 0, ...clones);
+
+  const newIndices = [];
+  for (let i = 0; i < clones.length; i++) {
+    newIndices.push(insertIndex + i);
+  }
+
+  state.currentPageIndex = insertIndex;
+  state.selectedPageIndices = new Set(newIndices);
+  state.pageSelectionAnchor = insertIndex;
+  state.selectedIds.clear();
+  state.guides = [];
+  hideTextToolbar();
+  render();
+  showSaveToast(`📋 슬라이드 ${clones.length}개 붙여넣기 완료 (페이지 ${insertIndex + 1}~${insertIndex + clones.length})`);
   return true;
 }
 
@@ -11241,6 +11872,12 @@ document.addEventListener("keydown", (event) => {
       event.preventDefault();
       return;
     }
+    if (state.selectedPageIndices && state.selectedPageIndices.size > 1 && state.selectedIds.size === 0) {
+      if (deleteSelectedPages()) {
+        event.preventDefault();
+        return;
+      }
+    }
   }
 
   if (event.key === "Escape" || keyCode === 27) {
@@ -11485,14 +12122,22 @@ window.LocalPptApp = {
     state.fixedOverlays = options.fixedOverlays || defaultFixedOverlays();
     state.pages = [createCoverPage()];
     state.currentPageIndex = 0;
+    state.selectedPageIndices = new Set([0]);
+    state.pageSelectionAnchor = 0;
     state.selectedIds.clear();
     state.guides = [];
     state.history = [];
+    currentProjectFileHandle = null;
+    currentServerFilePath = "";
+    currentProjectFileName = "local-ppt.txt";
+    document.title = "Local PPT 2";
+    updateFilePathDisplay();
     hideTextToolbar();
     render();
   },
   loadProjectFile,
   openProjectPickerDialog,
+  pickAndLoadProjectFile,
   applyAiPresentation(presentation, options = {}) {
     const title = String(presentation?.title || "AI PRESENTATION").trim().slice(0, 90) || "AI PRESENTATION";
     const slides = Array.isArray(presentation?.slides) ? presentation.slides.slice(0, 30) : [];
@@ -11505,12 +12150,16 @@ window.LocalPptApp = {
     cover.objects.find((object) => object.role === "cover-subtitle").text = String(presentation?.subtitle || "AI가 생성한 프레젠테이션 초안").trim().slice(0, 160);
     state.pages = [cover, ...slides.map(createAiContentPage)];
     state.currentPageIndex = 0;
+    state.selectedPageIndices = new Set([0]);
+    state.pageSelectionAnchor = 0;
     state.selectedIds.clear();
     state.guides = [];
     state.history = [];
     currentProjectFileHandle = null;
+    currentServerFilePath = "";
     currentProjectFileName = "local-ppt.txt";
     document.title = "Local PPT 2";
+    updateFilePathDisplay();
     hideTextToolbar();
     render();
   },
@@ -11542,6 +12191,7 @@ if (typeof ResizeObserver !== "undefined") {
 }
 updateStageScale();
 updateFilePathDisplay();
+checkLocalFsApiStatus();
 
 // 브라우저 북마크바 표시, 포커스 이동 등으로 인해 윈도우 스크롤이 발생하여 상단 헤더 버튼이 가려지는 현상 원천 방지
 function enforceViewportScrollLock() {
