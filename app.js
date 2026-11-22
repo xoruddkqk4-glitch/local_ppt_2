@@ -231,6 +231,14 @@ function updateFilePathDisplay() {
   const display = $("#currentFilePathDisplay");
   if (!display) return;
   const fileName = currentProjectFileName || "local-ppt.txt";
+  const isFileProtocol = typeof window !== "undefined" && window.location?.protocol === "file:";
+  display.classList.toggle("is-file-protocol-warning", isFileProtocol);
+  if (isFileProtocol) {
+    display.title = "file:// 직접 열기 상태에서는 원본 덮어쓰기 및 폴더 선택 저장을 사용할 수 없습니다. start-local-ppt.cmd로 실행하세요.";
+    display.innerHTML = `📁 <strong class="file-name-title">${escapeHtml(fileName)}</strong><span class="file-protocol-warning">⚠️ 직접 저장 불가(file://) — start-local-ppt.cmd 실행 필요</span>`;
+    return;
+  }
+  display.title = "현재 작업 중인 파일 경로 및 파일명";
   const dirPath = currentFolderPath && !currentProjectFileHandle ? (currentFolderPath.endsWith("\\") || currentFolderPath.endsWith("/") ? currentFolderPath : currentFolderPath + "\\") : "";
   if (dirPath) {
     display.innerHTML = `📁 <span class="file-dir-path">${escapeHtml(dirPath)}</span><strong class="file-name-title">${escapeHtml(fileName)}</strong>`;
@@ -9076,16 +9084,30 @@ async function postLocalFsJson(endpoint, payload) {
 }
 
 async function openProjectViaServerDialog() {
+  let res;
+  let data;
   try {
-    const { res, data } = await postLocalFsJson("/api/fs/open", {
+    ({ res, data } = await postLocalFsJson("/api/fs/open", {
       initialDir: currentFolderPath || ""
-    });
-    if (res.status === 404 || res.status === 405) {
-      hasLocalFsApi = false;
-      const err = new Error("Local FS API unavailable");
-      err.name = "LocalFsApiUnavailable";
-      throw err;
-    }
+    }));
+  } catch (networkErr) {
+    console.warn("openProjectViaServerDialog network error:", networkErr);
+    hasLocalFsApi = false;
+    alertLocalServerRequired("txt 불러오기");
+    return null;
+  }
+
+  if (res.status === 404 || res.status === 405) {
+    hasLocalFsApi = false;
+    alertLocalServerRequired("txt 불러오기");
+    return null;
+  }
+  if (res.status === 409) {
+    window.alert(data.error || "이미 파일 선택 창이 열려 있습니다. 작업 표시줄이나 브라우저 뒤의 파일 창을 확인해 주세요.");
+    return null;
+  }
+
+  try {
     if (!res.ok) {
       throw new Error(data.error || "파일 열기 대화상자를 실행할 수 없습니다.");
     }
@@ -9093,6 +9115,7 @@ async function openProjectViaServerDialog() {
     if (!data.ok) {
       throw new Error(data.error || "선택된 파일을 읽지 못했습니다.");
     }
+    hasLocalFsApi = true;
     const virtualFile = {
       name: data.fileName || "local-ppt.txt",
       text: async () => String(data.content ?? "")
@@ -9103,28 +9126,30 @@ async function openProjectViaServerDialog() {
     });
     return data;
   } catch (error) {
-    if (error?.name === "LocalFsApiUnavailable") {
-      if (!openFallbackProjectFileInput()) {
-        showSaveToast("⚠️ 기본 열기 모드로 전환했습니다. 'txt 불러오기'를 한 번 더 눌러주세요.");
-      }
-      return null;
-    }
     window.alert(`파일을 불러올 수 없습니다.\n${error.message}`);
     return null;
   }
 }
 
-function confirmLegacyServerDownloadFallback(defaultName) {
-  const shouldFallbackDownload = (typeof window.confirm === "function")
-    ? window.confirm(
-        "현재 실행 중인 로컬 서버(server.js)가 이전 버전이어서 직접 파일 저장 기능을 아직 사용할 수 없습니다.\n\n" +
-        "• 프로젝트 폴더의 'start-local-ppt.cmd'를 한 번 더블클릭해 서버를 자동 갱신한 뒤(현재 브라우저 창은 닫거나 새로고침하지 않아도 됩니다!) 다시 '다른 이름 txt로 저장'을 누르시면 다운로드 없이 바로 저장되고 새 파일 이름으로 전환됩니다.\n\n" +
-        "지금 임시로 브라우저 다운로드 방식으로 먼저 받으시겠습니까?"
-      )
-    : true;
-  if (!shouldFallbackDownload) return false;
-  downloadProject(defaultName);
-  return true;
+function alertLocalServerRequired(actionLabel = "저장") {
+  const isFileProtocol = typeof window !== "undefined" && window.location?.protocol === "file:";
+  if (typeof window !== "undefined" && typeof window.alert === "function") {
+    if (isFileProtocol) {
+      window.alert(
+        `현재 index.html을 파일(file://)로 직접 열어 '${actionLabel}' 기능을 사용할 수 없습니다.\n\n` +
+        "브라우저 보안 정책상 file:// 경로에서는 기존 .txt 파일 덮어쓰기나 저장 폴더 선택창을 열 수 없으며, 다운로드 폴더로만 내려받아집니다.\n\n" +
+        "해결 방법:\n" +
+        "• 프로젝트 폴더의 'start-local-ppt.cmd'를 더블클릭해 http://127.0.0.1:8765/ 주소로 실행한 뒤 이용해 주세요."
+      );
+    } else {
+      window.alert(
+        `로컬 파일 서버(server.js)에 연결할 수 없어 '${actionLabel}' 작업을 실행할 수 없습니다.\n\n` +
+        "• 현재 브라우저 창은 닫거나 새로고침하지 마세요.\n" +
+        "• 프로젝트 폴더의 'start-local-ppt.cmd'를 한 번 더블클릭해 서버를 실행(또는 갱신)한 뒤 다시 버튼을 누르시면 정상 작동합니다."
+      );
+    }
+  }
+  return false;
 }
 
 async function saveProjectAsViaServerDialog(defaultName) {
@@ -9139,12 +9164,16 @@ async function saveProjectAsViaServerDialog(defaultName) {
   } catch (networkErr) {
     console.warn("saveProjectAsViaServerDialog network error:", networkErr);
     hasLocalFsApi = false;
-    return confirmLegacyServerDownloadFallback(defaultName);
+    return alertLocalServerRequired("다른 이름 txt로 저장");
   }
 
   if (res.status === 404 || res.status === 405) {
     hasLocalFsApi = false;
-    return confirmLegacyServerDownloadFallback(defaultName);
+    return alertLocalServerRequired("다른 이름 txt로 저장");
+  }
+  if (res.status === 409) {
+    window.alert(data.error || "이미 파일 선택 창이 열려 있습니다. 작업 표시줄이나 브라우저 뒤의 파일 창을 확인해 주세요.");
+    return false;
   }
   if (!res.ok) {
     throw new Error(data.error || "파일 저장 대화상자를 실행할 수 없습니다.");
@@ -9172,10 +9201,13 @@ async function saveProjectDirectViaServer(filePath) {
     });
     if (res.status === 404 || res.status === 405) {
       hasLocalFsApi = false;
-      return false;
+      return { ok: false, reason: "server-unavailable" };
     }
-    if (!res.ok || data.needSaveAs || !data.ok) {
-      return false;
+    if (res.status === 409 || data.needSaveAs) {
+      return { ok: false, reason: "need-save-as" };
+    }
+    if (!res.ok || !data.ok) {
+      return { ok: false, reason: "error", message: data.error || "파일을 저장하지 못했습니다." };
     }
     hasLocalFsApi = true;
     currentServerFilePath = data.filePath || filePath;
@@ -9183,10 +9215,11 @@ async function saveProjectDirectViaServer(filePath) {
     if (data.folderPath) currentFolderPath = data.folderPath;
     document.title = `Local PPT 2 — ${currentProjectFileName}`;
     updateFilePathDisplay();
-    return true;
+    return { ok: true };
   } catch (error) {
     console.warn("saveProjectDirectViaServer failed:", error);
-    return false;
+    hasLocalFsApi = false;
+    return { ok: false, reason: "server-unavailable" };
   }
 }
 
@@ -9204,8 +9237,7 @@ async function saveProjectAs() {
         ["SecurityError", "NotSupportedError", "NotAllowedError", "TypeError", "InvalidStateError", "NotFoundError"].includes(error?.name)
       ) {
         if (hasLocalFsApi || isHttpOrigin()) return await saveProjectAsViaServerDialog(defaultName);
-        downloadProject(defaultName);
-        return true;
+        return alertLocalServerRequired("다른 이름 txt로 저장");
       }
       window.alert(`파일을 저장할 수 없습니다.\n${error.message}`);
       return false;
@@ -9219,8 +9251,7 @@ async function saveProjectAs() {
       return false;
     }
   }
-  downloadProject(defaultName);
-  return true;
+  return alertLocalServerRequired("다른 이름 txt로 저장");
 }
 
 async function saveCurrentProject() {
@@ -9247,15 +9278,25 @@ async function saveCurrentProject() {
           return;
         }
         console.warn("기존 파일 핸들 저장 실패, 다른 이름으로 저장으로 전환합니다:", handleError);
+        window.alert("현재 파일에 직접 쓰기 권한이 확인되지 않아 저장 폴더 선택 창을 엽니다.");
         currentProjectFileHandle = null;
         saved = await saveProjectAs();
       }
-    } else if (hasLocalFsApi && currentServerFilePath) {
-      saved = await saveProjectDirectViaServer(currentServerFilePath);
-      if (!saved) {
+    } else if ((hasLocalFsApi || isHttpOrigin()) && currentServerFilePath) {
+      const directRes = await saveProjectDirectViaServer(currentServerFilePath);
+      if (directRes.ok) {
+        saved = true;
+      } else if (directRes.reason === "server-unavailable") {
+        saved = alertLocalServerRequired("txt에 저장");
+      } else if (directRes.reason === "need-save-as") {
         currentServerFilePath = "";
         saved = await saveProjectAs();
+      } else {
+        window.alert(`파일을 저장할 수 없습니다.\n${directRes.message || "알 수 없는 오류"}`);
+        saved = false;
       }
+    } else if (!canUseNativeFileSystemPicker() && !hasLocalFsApi && !isHttpOrigin()) {
+      saved = alertLocalServerRequired("txt에 저장");
     } else {
       saved = await saveProjectAs();
     }
@@ -9364,8 +9405,12 @@ async function pickAndLoadProjectFileViaNativePicker() {
     await loadProjectFile(await handle.getFile(), handle);
   } catch (error) {
     if (error?.name === "AbortError") return;
-    console.warn("showOpenFilePicker failed, falling back to file input:", error);
+    console.warn("showOpenFilePicker failed:", error);
     fsPickerBlockedInSession = true;
+    if (hasLocalFsApi || isHttpOrigin()) {
+      await openProjectViaServerDialog();
+      return;
+    }
     const canClickInputNow = (typeof navigator !== "undefined" && navigator.userActivation) ? navigator.userActivation.isActive : true;
     if (canClickInputNow && openFallbackProjectFileInput()) {
       return;
@@ -9379,7 +9424,7 @@ function pickAndLoadProjectFile() {
     void pickAndLoadProjectFileViaNativePicker();
     return;
   }
-  if (hasLocalFsApi) {
+  if (hasLocalFsApi || isHttpOrigin()) {
     void openProjectViaServerDialog();
     return;
   }
@@ -9402,17 +9447,35 @@ window.addEventListener("dragover", (event) => {
   }
 });
 
-window.addEventListener("drop", (event) => {
+window.addEventListener("drop", async (event) => {
   const files = Array.from(event.dataTransfer?.files || []);
-  const projectFile = files.find((f) => {
+  const fileItems = Array.from(event.dataTransfer?.items || []).filter((item) => item.kind === "file");
+  const projectIndex = files.findIndex((f) => {
     const name = (f.name || "").toLowerCase();
     return name.endsWith(".txt") || name.endsWith(".json");
   });
-  if (projectFile) {
-    event.preventDefault();
-    event.stopPropagation();
-    loadProjectFile(projectFile);
+  if (projectIndex < 0) return;
+
+  const projectFile = files[projectIndex];
+  const matchingItem = fileItems[projectIndex];
+  event.preventDefault();
+  event.stopPropagation();
+
+  const canTryHandle = typeof window !== "undefined" && window.location?.protocol !== "file:";
+  const handlePromise = (canTryHandle && matchingItem && typeof matchingItem.getAsFileSystemHandle === "function")
+    ? matchingItem.getAsFileSystemHandle().catch(() => null)
+    : null;
+
+  let handle = null;
+  if (handlePromise) {
+    const resolvedHandle = await handlePromise;
+    if (resolvedHandle && resolvedHandle.kind === "file" && /\.(txt|json)$/i.test(resolvedHandle.name || "")) {
+      handle = resolvedHandle;
+    }
   }
+
+  const fileToLoad = handle ? await handle.getFile().catch(() => projectFile) : projectFile;
+  await loadProjectFile(fileToLoad, handle);
 });
 
 $("#saveProjectButton")?.addEventListener("click", saveCurrentProject);

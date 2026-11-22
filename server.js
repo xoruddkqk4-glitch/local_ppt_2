@@ -9,8 +9,47 @@ const send = (res, status, data) => { res.writeHead(status, { "Content-Type": "a
 
 const defaultTxtsDir = fs.existsSync(path.join(root, "txts")) ? path.join(root, "txts") : root;
 const lastDirStateFile = path.join(os.tmpdir(), "local-ppt-2-last-dir.json");
+const authorizedPathsStateFile = path.join(os.tmpdir(), "local-ppt-2-authorized-paths.json");
+const MAX_AUTHORIZED_PATHS = 200;
 const authorizedPaths = new Set();
 let activeFileDialog = false;
+
+function loadAuthorizedPaths() {
+  try {
+    if (!fs.existsSync(authorizedPathsStateFile)) return;
+    const parsed = JSON.parse(fs.readFileSync(authorizedPathsStateFile, "utf8"));
+    if (!Array.isArray(parsed)) return;
+    for (const entry of parsed) {
+      if (typeof entry !== "string" || !entry.trim()) continue;
+      const resolved = path.resolve(entry.trim());
+      if (!/\.(txt|json)$/i.test(resolved)) continue;
+      authorizedPaths.add(resolved);
+      if (authorizedPaths.size >= MAX_AUTHORIZED_PATHS) break;
+    }
+  } catch {
+    // 손상된 허용 경로 상태 파일 무시
+  }
+}
+
+function authorizeFilePath(filePath) {
+  const resolved = path.resolve(String(filePath || "").trim());
+  if (!/\.(txt|json)$/i.test(resolved)) return resolved;
+  authorizedPaths.delete(resolved);
+  authorizedPaths.add(resolved);
+  while (authorizedPaths.size > MAX_AUTHORIZED_PATHS) {
+    const oldest = authorizedPaths.values().next().value;
+    if (oldest === undefined) break;
+    authorizedPaths.delete(oldest);
+  }
+  try {
+    fs.writeFileSync(authorizedPathsStateFile, JSON.stringify(Array.from(authorizedPaths)), "utf8");
+  } catch {
+    // 임시 상태 파일 기록 오류 무시
+  }
+  return resolved;
+}
+
+loadAuthorizedPaths();
 
 function isExistingDirectory(dirPath) {
   if (typeof dirPath !== "string" || !dirPath.trim()) return false;
@@ -84,11 +123,16 @@ function openWindowsFileDialog({ mode, initialDir, suggestedName }) {
     return Promise.reject(new Error("네이티브 Windows 파일 대화상자는 Windows에서만 지원됩니다."));
   }
   if (activeFileDialog) {
-    return Promise.reject(new Error("이미 파일 창이 열려 있습니다."));
+    const busyErr = new Error("이미 파일 선택 창이 열려 있습니다. 작업 표시줄이나 브라우저 뒤의 파일 창을 확인해 주세요.");
+    busyErr.statusCode = 409;
+    return Promise.reject(busyErr);
   }
   activeFileDialog = true;
 
   const initDir = isExistingDirectory(initialDir) ? path.resolve(initialDir.trim()) : loadRememberedDir();
+  const safeSuggestedName = typeof suggestedName === "string" && suggestedName.trim()
+    ? path.basename(suggestedName.trim()).replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").trim()
+    : "";
   const psScript = `
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
@@ -106,6 +150,11 @@ try {
   $owner.Size = New-Object System.Drawing.Size(1, 1)
   $owner.Opacity = 0
   $owner.Show()
+  try {
+    Add-Type -Namespace LpptNative -Name Win32 -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);' -ErrorAction SilentlyContinue
+    [LpptNative.Win32]::SetForegroundWindow($owner.Handle) | Out-Null
+  } catch {}
+  $owner.BringToFront()
   $owner.Activate()
   if ($mode -eq 'save') {
     $dlg = New-Object System.Windows.Forms.SaveFileDialog
@@ -146,7 +195,7 @@ try {
           ...process.env,
           LPPT_DIALOG_MODE: mode,
           LPPT_INIT_DIR: initDir || "",
-          LPPT_FILE_NAME: suggestedName || ""
+          LPPT_FILE_NAME: safeSuggestedName
         }
       }
     );
@@ -304,9 +353,8 @@ async function handleFsApi(req, res, reqPath) {
       if (!/\.(txt|json)$/i.test(selectedPath)) {
         return send(res, 400, { error: "지원되는 .txt 또는 .json 프로젝트 파일만 열 수 있습니다." });
       }
-      const resolved = path.resolve(selectedPath);
+      const resolved = authorizeFilePath(selectedPath);
       const content = fs.readFileSync(resolved, "utf8");
-      authorizedPaths.add(resolved);
       const dir = path.dirname(resolved);
       saveRememberedDir(dir);
       const folderPath = dir.endsWith(path.sep) ? dir : `${dir}${path.sep}`;
@@ -323,9 +371,8 @@ async function handleFsApi(req, res, reqPath) {
         return send(res, 200, { ok: false, cancelled: true });
       }
       const withExt = /\.(txt|json)$/i.test(selectedPath) ? selectedPath : `${selectedPath}.txt`;
-      const finalPath = path.resolve(withExt);
+      const finalPath = authorizeFilePath(withExt);
       fs.writeFileSync(finalPath, String(body.content ?? ""), "utf8");
-      authorizedPaths.add(finalPath);
       const dir = path.dirname(finalPath);
       saveRememberedDir(dir);
       const folderPath = dir.endsWith(path.sep) ? dir : `${dir}${path.sep}`;
@@ -335,10 +382,11 @@ async function handleFsApi(req, res, reqPath) {
       const body = await readJsonBody(req);
       const rawPath = String(body.filePath || "");
       const resolved = rawPath ? path.resolve(rawPath) : "";
-      if (!resolved || !authorizedPaths.has(resolved) || !/\.(txt|json)$/i.test(resolved)) {
+      if (!resolved || !authorizedPaths.has(resolved) || !/\.(txt|json)$/i.test(resolved) || !isExistingDirectory(path.dirname(resolved))) {
         return send(res, 409, { ok: false, needSaveAs: true });
       }
       fs.writeFileSync(resolved, String(body.content ?? ""), "utf8");
+      authorizeFilePath(resolved);
       const dir = path.dirname(resolved);
       saveRememberedDir(dir);
       const folderPath = dir.endsWith(path.sep) ? dir : `${dir}${path.sep}`;
@@ -346,7 +394,7 @@ async function handleFsApi(req, res, reqPath) {
     }
     return send(res, 404, { error: "Not found" });
   } catch (error) {
-    return send(res, 500, { error: error.message || "파일 작업 중 오류가 발생했습니다." });
+    return send(res, error.statusCode || 500, { error: error.message || "파일 작업 중 오류가 발생했습니다." });
   }
 }
 

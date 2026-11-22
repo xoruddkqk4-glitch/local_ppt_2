@@ -79,6 +79,8 @@ button, select, input { font: inherit; }
 .current-file-path-bar::-webkit-scrollbar { display:none; }
 .current-file-path-bar .file-dir-path { color:#64748b; font-weight:600; font-family:monospace, Pretendard, sans-serif; white-space:nowrap; }
 .current-file-path-bar .file-name-title { color:#0f172a; font-weight:900; font-family:monospace, Pretendard, sans-serif; white-space:nowrap; }
+.current-file-path-bar.is-file-protocol-warning { background:#fffbeb; border-color:#d97706; }
+.current-file-path-bar .file-protocol-warning { color:#b45309; font-weight:850; font-size:11px; margin-left:4px; white-space:nowrap; }
 .header-actions { margin-left:auto; display:grid; grid-template-columns:repeat(4, auto); grid-template-rows:repeat(2, 26px); gap:4px 5px; align-items:center; flex-shrink:0; }
 .header-actions .button { padding:2px 7px; font-size:10.5px; height:26px; line-height:20px; white-space:nowrap; display:inline-flex; align-items:center; justify-content:center; gap:3px; box-sizing:border-box; font-weight:850; }
 .header-actions .button kbd { font-size:9px; padding:0px 3px; border-radius:2px; line-height:1.2; }

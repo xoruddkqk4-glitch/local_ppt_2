@@ -269,9 +269,9 @@ AI 생성 기능 없이 편집기만 사용한다면 `index.html`을 직접 열 
 - Base64 형식으로 포함된 이미지
 
 브라우저 및 실행 환경에 따라 최적화된 네이티브 파일 탐색기 연동을 지원합니다:
-- **로컬 서버(`start-local-ppt.cmd`, `http://127.0.0.1:8765`) + Chrome**: Chrome의 네이티브 `SelectFileDialog` 블로킹 현상을 우회하여 로컬 서버(`server.js`의 `/api/fs/*`)가 Windows 탐색기 열기·저장 대화상자(`OpenFileDialog` / `SaveFileDialog`)를 직접 띄웁니다. 브라우저 다운로드 파일 생성이나 불필요한 중간 모달 없이 원하는 폴더에 직접 저장·덮어쓰기되며, 마지막으로 사용한 폴더 위치를 기억하고 `다른 이름 txt로 저장` 직후 편집창의 활성 파일도 새 `.txt` 경로로 즉시 전환됩니다.
+- **로컬 서버(`start-local-ppt.cmd`, `http://127.0.0.1:8765`) + Chrome**: Chrome의 네이티브 `SelectFileDialog` 블로킹 현상을 우회하여 로컬 서버(`server.js`의 `/api/fs/*`)가 Windows 탐색기 열기·저장 대화상자(`OpenFileDialog` / `SaveFileDialog`)를 직접 띄웁니다. 브라우저 다운로드 파일 생성이나 불필요한 중간 모달 없이 원하는 폴더에 직접 저장·덮어쓰기되며, 마지막으로 사용한 폴더와 허용 경로 목록(`local-ppt-2-authorized-paths.json`)을 기억해 서버 재시작 후에도 `txt에 저장` 덮어쓰기를 유지하고 `다른 이름 txt로 저장` 직후 편집창의 활성 파일도 새 `.txt` 경로로 즉시 전환됩니다.
 - **Microsoft Edge**: 브라우저 내장 File System Access API(피커 ID `local-ppt-project-v2`, `startIn`, `IndexedDB` `local_ppt_fs_db`)를 통해 최근 폴더 기억 및 직접 덮어쓰기 저장을 지원합니다.
-- **드래그 앤 드롭 & 폴백**: 시작 화면이나 편집창 어디에든 `.txt`/`.json` 프로젝트 파일을 끌어다 놓아 바로 불러올 수 있으며, 서버 미실행(`file://`) 환경에서는 표준 파일 입력 및 다운로드 방식으로 자동 대체됩니다.
+- **드래그 앤 드롭 & `file://` 실행 안내**: 시작 화면이나 편집창 어디에든 `.txt`/`.json` 프로젝트 파일을 끌어다 놓아 바로 불러올 수 있으며, 브라우저가 `getAsFileSystemHandle()`을 지원하면 드래그 앤 드롭으로 연 파일도 `txt에 저장` 직접 덮어쓰기를 지원합니다. 로컬 서버 없이 `index.html`을 직접 연(`file://`) 환경이나 서버 연결이 끊긴 상태에서는 브라우저 `Downloads` 폴더로의 무단 자동 다운로드를 차단하고, 상단 경로 표시줄 경고 및 `start-local-ppt.cmd` 실행 안내 대화상자를 표시합니다.
 
 > 저장 파일에는 이미지 데이터도 포함되므로 이미지를 많이 삽입하면 `.txt` 파일 크기가 커질 수 있습니다.
 
@@ -1300,3 +1300,20 @@ AI 생성은 OpenAI 또는 Anthropic API 키를 한 개 이상 입력해 슬라�
 - **검증 결과**:
   - `node -c server.js; node -c app.js; node -c ai-intake.js`: 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
   - 슬라이드 다중 선택·복사·삭제 및 Chrome/Edge 파일 열기·다른 이름 저장·직접 덮어쓰기 시뮬레이션 검증 통과.
+
+## [2026-11-22 17:30] 업데이트 이력 (Commit ID: d3c4e32)
+- **수정 내용**:
+  - `app.js`:
+    - **무단 브라우저 다운로드 폴백 완전 제거 (`saveProjectAs`, `saveProjectAsViaServerDialog`, `saveCurrentProject`, `alertLocalServerRequired`)**: `txt에 저장` 및 `다른 이름 txt로 저장` 실행 시 `downloadProject()` / `confirmLegacyServerDownloadFallback()` 자동 다운로드를 제거하고, `file://` 직접 열기 또는 로컬 서버 미연결 상태에서는 다운로드를 생성하거나 거짓 저장 완료 토스트를 띄우지 않고 `start-local-ppt.cmd` 실행 안내 경고 후 `false`를 반환하도록 개선.
+    - **`txt에 저장` 직접 덮어쓰기 및 서버 경로 보존 (`saveProjectDirectViaServer`, `saveCurrentProject`)**: `/api/fs/save-direct` 응답을 `server-unavailable`, `need-save-as`, `error`로 세분화하여 서버 일시 중단 시에도 기존 `currentServerFilePath`를 지우지 않고 보존하도록 수정.
+    - **`txt 불러오기` 초기 레이스 컨디션 해결 및 드래그 앤 드롭 핸들 지원 (`pickAndLoadProjectFile`, `pickAndLoadProjectFileViaNativePicker`, `openProjectViaServerDialog`, `drop`)**: `pickAndLoadProjectFile()` 및 Edge 피커 폴백에서 `hasLocalFsApi || isHttpOrigin()` 조건으로 `/api/fs/open`을 호출하도록 보강하고, 전역 `drop` 핸들러에서 `getAsFileSystemHandle()`을 동기 호출해 드래그 앤 드롭으로 연 `.txt`/`.json` 파일도 직접 덮어쓰기를 지원하도록 개선.
+    - **상단 파일 경로 표시줄 `file://` 경고 연동 (`updateFilePathDisplay`)**: `file://` 직접 열기 시 `⚠️ 직접 저장 불가(file://) — start-local-ppt.cmd 실행 필요` 안내 표시 추가.
+  - `server.js`:
+    - **허용 경로 목록 영속화 (`loadAuthorizedPaths`, `authorizeFilePath`, `local-ppt-2-authorized-paths.json`)**: 열거나 저장한 `.txt`/`.json` 경로(최대 200개)를 임시 상태 파일에 저장·복원하고 `/api/fs/save-direct` 부모 디렉터리 존재 검증을 추가해 서버 재시작 후에도 기존 파일 직접 덮어쓰기가 끊기지 않도록 보강.
+    - **Windows 파일 대화상자 포커스 및 예외 처리 보강 (`openWindowsFileDialog`)**: `suggestedName`의 경로 구분자/금지 문자를 정제해 전달하고, PowerShell 소유 창에 `SetForegroundWindow` 및 `BringToFront()`를 적용했으며, 중복 대화상자 요청 시 HTTP `409`를 반환하도록 개선.
+  - `style.css` & `index.html`:
+    - `.current-file-path-bar.is-file-protocol-warning` 및 `.file-protocol-warning` 경고 스타일 추가, CSS/스크립트 캐시 버스팅 쿼리(`?v=20261122-savefix1`) 갱신.
+- **검증 결과**:
+  - `node -c server.js; node -c app.js; node -c ai-intake.js`: 구문 및 정적 무결성 검증 100% 통과 (Exit code: 0).
+  - `server.js` 내 PowerShell `psScript` 구문 파서 검사(`System.Management.Automation.Language.Parser`): 파싱 오류 0건 (`PS_SYNTAX_OK`).
+  - 임시 포트(`18765`) 헤드리스 서버 API 검증(`SERVER_AND_APP_CHECKS_OK`): `GET /api/fs/status` 200 확인, 비허용 경로 `/api/fs/save-direct` 409(`needSaveAs: true`) 차단 확인, 허용 경로 시드 및 서버 재시작 후 `/api/fs/save-direct` 200 및 디스크 파일 덮어쓰기 확인, `app.js` 내 의도치 않은 `downloadProject(` 호출 0건 정적 검증 통과.
